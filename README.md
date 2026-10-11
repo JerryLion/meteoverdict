@@ -12,10 +12,12 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
   the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
   data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples,
-  and `mvd stations`, which builds the ČHMÚ station table.
+  `mvd stations`, which builds the ČHMÚ station table, and the model catalogue
+  (`mvd models`): 11 Open-Meteo models that cover Czechia.
 - **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
   still empty.
-- **Next:** Open-Meteo model coverage (1.3), station → kraj mapping (1.4).
+- **Next:** station → kraj mapping (1.4), then fetching observations (1.5) and
+  forecasts (1.6).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -52,8 +54,11 @@ per kraj (region) and elevation class. Scope of v1: 2 m temperature, precipitati
 
 Forecasts are requested at each station's latitude, longitude **and elevation**, so
 Open-Meteo applies its elevation correction. This matters most for mountain stations.
-Which models are included is decided in roadmap 1.3 after checking their coverage of
-Czechia.
+The models are listed in [`models.yaml`](src/meteoverdict/models.yaml) (`mvd models`):
+ČHMÚ ALADIN (1 km and 2.3 km), DWD ICON-D2 and ICON-EU, ECMWF IFS HRES, IFS 0.25° and
+AIFS, NOAA GFS, UK Met Office global, Météo-France ARPEGE Europe and GeoSphere AROME
+Austria. All cover Czechia. Their archived history differs: ALADIN only from June 2026
+([details](docs/data-sources.md#models)).
 
 Paths, file formats and caveats: [docs/data-sources.md](docs/data-sources.md).
 
@@ -69,6 +74,7 @@ uv run ruff check . && uv run ruff format --check . && uv run pytest
 
 ```bash
 uv run mvd stations             # download ČHMÚ station metadata → data/stations.parquet
+uv run mvd models [--all]       # list the compared weather models (from models.yaml)
 ```
 
 `data/stations.parquet` has one row per station: `id` (WIGOS id), `gh_id` (ČHMÚ
