@@ -12,12 +12,12 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
   the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
   data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples,
-  `mvd stations`, which builds the ČHMÚ station table, and the model catalogue
-  (`mvd models`): 11 Open-Meteo models that cover Czechia.
+  `mvd stations`, which builds the ČHMÚ station table with each station's kraj and
+  elevation class, and the model catalogue (`mvd models`): 11 Open-Meteo models that
+  cover Czechia.
 - **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
   still empty.
-- **Next:** station → kraj mapping (1.4), then fetching observations (1.5) and
-  forecasts (1.6).
+- **Next:** fetching observations (1.5) and forecasts (1.6).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -78,10 +78,12 @@ uv run mvd models [--all]       # list the compared weather models (from models.
 ```
 
 `data/stations.parquet` has one row per station: `id` (WIGOS id), `gh_id` (ČHMÚ
-id), `name`, `lat`, `lon`, `elevation` (m) and `active`. Active stations are those in
-today's ČHMÚ list; stations closed since 2024-01-01 are kept as inactive so the
-backfill can still use them. Foreign stations are dropped with a coarse bounding box
-(exact borders come in roadmap 1.4). Use `--out PATH` to write elsewhere.
+id), `name`, `lat`, `lon`, `elevation` (m), `active`, `kraj_code` (NUTS 3, e.g.
+`CZ064`), `kraj` and `elevation_class` (`lowland` < 400 m, `upland` 400–800 m,
+`mountain` > 800 m). Active stations are those in today's ČHMÚ list; stations closed
+since 2024-01-01 are kept as inactive so the backfill can still use them. Stations
+outside Czechia are dropped (up to 2 km outside the border still counts, for stations
+on the border line). Use `--out PATH` to write elsewhere.
 
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
@@ -107,6 +109,9 @@ external data comes from recorded fixtures in `tests/fixtures/`.
 - Observations: Czech Hydrometeorological Institute (ČHMÚ / CHMI),
   [opendata.chmi.cz](https://opendata.chmi.cz/). The licence is probably CC BY 4.0 but
   not yet confirmed (see [docs/data-sources.md](docs/data-sources.md#licence-and-attribution)).
+- Kraj boundaries: © ČÚZK (INSPIRE Administrative Units), CC BY 4.0, via
+  [siwekm/czech-geojson](https://github.com/siwekm/czech-geojson); simplified by
+  `scripts/build_kraje.py`.
 - Generated scores and maps: CC BY 4.0.
 - Code: [MIT](LICENSE).
 
