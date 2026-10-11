@@ -27,7 +27,8 @@ real files.
 Implications for us:
 
 - **Backfill (2.6)** reads `historical/` for closed years and `recent/` for the current
-  year. Both have 10-minute and hourly data from 2018, which covers our 2024+ window.
+  year. `historical/` has 10-minute and hourly data from 2018, which covers our 2024+
+  window.
 - **Daily runs (3.2)** should read `recent/` (checked data, twice a day), not `now/`, and
   re-score the previous two months after the 3rd of each month, when ČHMÚ republishes
   corrected data.
