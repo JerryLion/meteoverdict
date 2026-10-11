@@ -36,7 +36,9 @@ Package: `meteoverdict` · CLI: `mvd`
 **The key trick:** Open-Meteo's Previous Runs API returns, for any past hour, what
 each model predicted 1, 2, 3… days earlier (`temperature_2m_previous_day1`, …).
 Most models are archived since January 2024. So we do not need to archive
-forecasts ourselves, and we can **backfill ~2 years of history on day one**.
+forecasts ourselves, and we can **backfill ~2 years of history on day one** for most
+models. Exception found in 1.3: models added to Open-Meteo later have less history,
+notably ČHMÚ ALADIN (from June 2026); see `docs/data-sources.md#models`.
 
 ### Components
 
@@ -70,14 +72,15 @@ cd web && npm i && npm run dev              # local web map
 - **Variables:** 2 m temperature (hourly), precipitation (hourly → daily sums), 10 m wind speed.
 - **Lead times:** D+1, D+2, D+3 (D+4, D+5 where available).
 - **Regions:** 14 kraje, plus an elevation class (lowland < 400 m, upland 400–800 m, mountain > 800 m).
-- **Candidate models** (coverage over CZ to be verified in task 1.3):
-  - ČHMÚ ALADIN CZ 1 km and ALADIN Central Europe 2 km
+- **Models** (coverage of CZ verified in 1.3; the list lives in `src/meteoverdict/models.yaml`):
+  - ČHMÚ ALADIN CZ 1 km and ALADIN Central Europe 2.3 km
   - DWD ICON-D2 and ICON-EU
-  - ECMWF IFS HRES 9 km and ECMWF AIFS
+  - ECMWF IFS HRES 9 km, ECMWF IFS 0.25° (longer history than HRES) and ECMWF AIFS
   - NOAA GFS
   - UK Met Office global
   - Météo-France ARPEGE Europe
-  - GeoSphere Austria AROME (if its domain covers CZ)
+  - GeoSphere Austria AROME (covers CZ)
+  - KNMI and DMI HARMONIE-AROME also cover CZ; listed but disabled for v1
 - **Metrics:**
   - Temperature and wind: MAE, bias, RMSE.
   - Precipitation: MAE of daily sums, plus POD, FAR and ETS for events of at least 0.1 mm/day and at least 5 mm/day.
@@ -105,7 +108,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 ### Phase 1: Data in
 - [x] 1.1 Explore `opendata.chmi.cz/meteorology/climate/{now,recent,historical}`: document paths, formats and licence in `docs/data-sources.md`
 - [x] 1.2 Station metadata loader → `stations.parquet` (id, name, lat, lon, elevation, active)
-- [ ] 1.3 Verify which Open-Meteo models cover CZ and their Previous Runs history start; write `models.yaml`
+- [x] 1.3 Verify which Open-Meteo models cover CZ and their Previous Runs history start; write `models.yaml`
 - [ ] 1.4 Station → kraj mapping (point-in-polygon with open kraj boundaries) + elevation class
 - [ ] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
 - [ ] 1.6 `fetch-fc`: Previous Runs client, batched locations, retries, rate-limit aware
