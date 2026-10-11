@@ -11,9 +11,11 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 
 - **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
   the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
-  data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples.
-- **Not yet:** no data is fetched or scored; the leaderboard is still empty.
-- **Next:** station metadata loader (1.2), Open-Meteo model coverage (1.3).
+  data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples,
+  and `mvd stations`, which builds the ČHMÚ station table.
+- **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
+  still empty.
+- **Next:** Open-Meteo model coverage (1.3), station → kraj mapping (1.4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -64,6 +66,16 @@ uv sync                         # create .venv with dev tools
 uv run mvd --help               # list commands
 uv run ruff check . && uv run ruff format --check . && uv run pytest
 ```
+
+```bash
+uv run mvd stations             # download ČHMÚ station metadata → data/stations.parquet
+```
+
+`data/stations.parquet` has one row per station: `id` (WIGOS id), `gh_id` (ČHMÚ
+id), `name`, `lat`, `lon`, `elevation` (m) and `active`. Active stations are those in
+today's ČHMÚ list; stations closed since 2024-01-01 are kept as inactive so the
+backfill can still use them. Foreign stations are dropped with a coarse bounding box
+(exact borders come in roadmap 1.4). Use `--out PATH` to write elsewhere.
 
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.

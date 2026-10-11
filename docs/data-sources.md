@@ -102,13 +102,22 @@ ideally in CI, which has open internet.
 
 | File | Header (as seen in real files) | Notes |
 |---|---|---|
-| `meta1` | `WSI,GH_ID,FULL_NAME,GEOGR1,GEOGR2,ELEVATION,BEGIN_DATE` | stations. **`GEOGR1` is longitude, `GEOGR2` is latitude** (e.g. Cheb 12.39, 50.07). Elevation in m. The PDF omits `BEGIN_DATE`. It includes at least one non-Czech station (Reykjavik), so filter to Czechia. |
+| `meta1` (`now/`) | `WSI,GH_ID,FULL_NAME,GEOGR1,GEOGR2,ELEVATION,BEGIN_DATE` | stations operating today (about 530 rows on 2026-10-11). **`GEOGR1` is longitude, `GEOGR2` is latitude** (e.g. Cheb 12.39, 50.07). Elevation in m. The PDF omits `BEGIN_DATE`. It includes at least one non-Czech station (Reykjavik), so filter to Czechia. |
+| `meta1` (`historical/metadata/meta1.json`) | `WSI,GH_ID,BEGIN_DATE,END_DATE,FULL_NAME,GEOGR1,GEOGR2,ELEVATION` | **one row per validity period**: a station's position and elevation can change between periods (Cheb has six). An open period ends at `3999-12-31T23:59:00Z`. Also lists closed stations. Note the different column order. The copy we read was created 2026-02-12, so it lags behind closures during the current year. |
 | `meta2` | `OBS_TYPE,WSI,EG_EL_ABBREVIATION,NAME,UN_DESCRIPTION,HEIGHT,SCHEDULE` | elements measured per station, with sensor height in m. The PDF omits `OBS_TYPE` and `SCHEDULE`. |
 | `meta3` | per the PDF: `EL_ABBREVIATION,FLAG,DESCRIPTION` | **unverified** |
 | `meta4` | per the PDF: `FLAG2,DESCRIPTION` (quality codes) | **unverified** |
 
-`meta1` has no "active" flag. Roadmap 1.2 must derive "active" from other evidence (for
-example, presence in the current `now/metadata/meta1`).
+Neither `meta1` has an "active" flag. `mvd stations` (roadmap 1.2) treats a station
+as active when it is in the current `now/metadata/meta1`, and takes its position from
+there. Stations only in the historical file are kept as inactive at the position of
+their last period, if that period ended on or after 2024-01-01. The historical file
+is not reliable as the only source of "active": it is regenerated once a year.
+
+Foreign stations also show up in the historical file, and not always with sensible
+coordinates: Marambio (Antarctica) is listed at `GEOGR1` 56.62, `GEOGR2` 64.23, so
+latitude and longitude look swapped and unsigned. A Czech bounding box filters them
+out.
 
 Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 
