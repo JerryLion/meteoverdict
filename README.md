@@ -20,6 +20,16 @@ _Coming soon. Generated automatically by the daily pipeline._
 3. Score each model (MAE, bias, RMSE, precipitation hit rates), then aggregate by region (kraj) and elevation.
 4. Publish the results to this README and to a web map (GitHub Pages).
 
+## Development
+
+Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you).
+
+```bash
+uv sync                         # create .venv with dev tools
+uv run mvd --version            # CLI entry point
+uv run ruff check . && uv run pytest
+```
+
 ## Data & attribution
 
 - Forecast data: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0)
