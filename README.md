@@ -7,6 +7,14 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
+## Status
+
+- **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
+  and the `mvd` CLI with all pipeline commands as validated stubs.
+- **Not yet:** no data is fetched or scored; the leaderboard is still empty.
+- **Next:** README skeleton (0.4), then the ČHMÚ data-source exploration (1.1)
+  and station metadata (1.2). See [ROADMAP.md](ROADMAP.md).
+
 ## Leaderboard
 
 Best model per region (D+1, rolling 90 days):
