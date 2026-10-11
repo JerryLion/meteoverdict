@@ -1,8 +1,10 @@
 # Data sources
 
 This page records what we verified about the external data, where it lives and under
-which terms. Everything here was read on **2026-10-11**. Claims we could not verify are
-marked **unverified**; do not build on them without checking.
+which terms. Everything here was checked on **2026-10-11**, by downloading the real
+files and calling the real API. Claims we could not verify are marked **unverified**;
+do not build on them without checking. Both sources are reachable without
+authentication from the development machine and from GitHub Actions.
 
 ## ČHMÚ climatological open data (observations)
 
@@ -41,7 +43,7 @@ Implications for us:
 | Data | Pattern |
 |---|---|
 | `now/` and `historical/` 10 min / 1 h (JSON) | `10m-{WSI}-{YYYYMMDD}.json`, `1h-{WSI}-{YYYYMMDD}.json` (one file per station and day) |
-| `recent/` 10 min / 1 h | "created the same way as `now/`" per the PDF; exact names **unverified** |
+| `recent/` 10 min / 1 h | `10m-{WSI}-{YYYYMM}.json`, `1h-{WSI}-{YYYYMM}.json` (one file per station and **month**, in month folders `01/`…`12/`; a folder holds the latest published year for that month, e.g. `10/` still held `202510` on 2026-10-11) |
 | daily | `recent/`: `dly-{WSI}-{YYYYMM}.json`; `historical/`: `dly-{WSI}.json` |
 | `historical_csv/` 10 min / 1 h | `10m-{WSI}-{PRVEK}.csv`, `1h-{WSI}-{PRVEK}.csv` |
 
@@ -79,34 +81,35 @@ All JSON files we read (metadata and data) share one envelope:
 ### Data files (10 min and 1 h)
 
 Columns: `STATION` (WSI), `ELEMENT`, `DT` (UTC timestamp), `VAL` (number), `FLAG`
-(string, often empty), `QUALITY` (number; we saw `4.0` and `5.0`, and their meaning is
-listed in `meta4`). The rows are long-format: one row per station × element × time.
+(string, often empty), `QUALITY` (number, codes from `meta4`: 0 Good, 1 Suspect,
+2 Poor, 3 Estimated, 4 Missing, 5 Unknown). `now/` data is unchecked (`5.0`), `recent/`
+data is checked (`0.0` for good values). The rows are long-format: one row per
+station × element × time.
 
 Which elements go where (from `meta2`'s `OBS_TYPE` column and real files):
 
 - **Hourly (`1H`) elements** include `SRA1H` (precipitation, 1 h, mm), `P`, `E`, `Td`,
-  `N`, `ww`, `VV`, `SSV1H` and the ceilometer `C-…` elements. **`T` and the wind
-  elements are not listed as hourly elements for the station we checked (Cheb).**
-- **10-minute (`10M`) elements** include `D`, `Dmax`, `Dprum`, `F`, `Fmax`, `Casmax`
-  (all seen in `10m-0-20000-0-11520-20261011.json`). The PDF lists `T`, `SRA10M` and
-  `SSV10M` as 10-minute elements, but we could not read that far into a file.
-- Element names and units come from `meta2` (`NAME`, `UN_DESCRIPTION`). The PDF lists
-  codes without definitions.
+  `N`, `ww`, `VV`, `SSV1H` and the ceilometer `C-…` elements.
+- **10-minute (`10M`) elements**, per `meta2` for Praha-Libuš: `T` (Teplota, °C,
+  sensor at 2 m), `TMA`/`TMI` (max/min), `F` (Rychlost větru, m/s, 10 m), `Fprum`
+  (Rychlost prům, m/s, 10 m), `Fmax`, `D` (direction), `SRA10M` (precipitation, mm),
+  plus soil temperatures.
+- Element names, units and sensor heights come from `meta2` (`NAME`, `UN_DESCRIPTION`,
+  `HEIGHT`). The PDF lists codes without definitions.
 
-**Unverified / open for 1.5:** which exact element (and sampling) to use for hourly 2 m
-temperature (`T` at the full hour from the 10-minute data?) and 10 m wind speed (`F` vs
-`Fprum`, 10-minute mean at the full hour?). Settle this from `meta2` and real files,
-ideally in CI, which has open internet.
+**Open for 1.5:** 2 m temperature and 10 m wind are only in the 10-minute files, so 1.5
+must decide the hourly sampling (value at the full hour vs. hourly mean) and whether
+`F` or `Fprum` matches what Open-Meteo's `wind_speed_10m` represents.
 
 ### Metadata files
 
 | File | Header (as seen in real files) | Notes |
 |---|---|---|
-| `meta1` (`now/`) | `WSI,GH_ID,FULL_NAME,GEOGR1,GEOGR2,ELEVATION,BEGIN_DATE` | stations operating today (about 530 rows on 2026-10-11). **`GEOGR1` is longitude, `GEOGR2` is latitude** (e.g. Cheb 12.39, 50.07). Elevation in m. The PDF omits `BEGIN_DATE`. It includes at least one non-Czech station (Reykjavik), so filter to Czechia. |
-| `meta1` (`historical/metadata/meta1.json`) | `WSI,GH_ID,BEGIN_DATE,END_DATE,FULL_NAME,GEOGR1,GEOGR2,ELEVATION` | **one row per validity period**: a station's position and elevation can change between periods (Cheb has six). An open period ends at `3999-12-31T23:59:00Z`. Also lists closed stations. Note the different column order. The copy we read was created 2026-02-12, so it lags behind closures during the current year. |
+| `meta1` (`now/`) | `WSI,GH_ID,FULL_NAME,GEOGR1,GEOGR2,ELEVATION,BEGIN_DATE` | stations operating today (760 rows on 2026-10-11, of which 3 WIGOS ids appear twice: two re-equipped stations with a new `GH_ID` and `BEGIN_DATE` in 2026, one with two slightly different positions; `mvd stations` keeps the row with the latest `BEGIN_DATE`). **`GEOGR1` is longitude, `GEOGR2` is latitude** (e.g. Cheb 12.39, 50.07). Elevation in m. The PDF omits `BEGIN_DATE`. It includes at least one non-Czech station (Reykjavik), so filter to Czechia. |
+| `meta1` (`historical/metadata/meta1.json`) | `WSI,GH_ID,BEGIN_DATE,END_DATE,FULL_NAME,GEOGR1,GEOGR2,ELEVATION` | **one row per validity period**: a station's position and elevation can change between periods (Cheb has six). An open period ends at `3999-12-31T23:59:00Z`. Also lists closed stations. 5,539 rows (created 2026-02-12, so it lags behind closures during the current year). Note the different column order. |
 | `meta2` | `OBS_TYPE,WSI,EG_EL_ABBREVIATION,NAME,UN_DESCRIPTION,HEIGHT,SCHEDULE` | elements measured per station, with sensor height in m. The PDF omits `OBS_TYPE` and `SCHEDULE`. |
-| `meta3` | per the PDF: `EL_ABBREVIATION,FLAG,DESCRIPTION` | **unverified** |
-| `meta4` | per the PDF: `FLAG2,DESCRIPTION` (quality codes) | **unverified** |
+| `meta3` | `EL_ABBREVIATION,FLAG,DESCRIPTION` | meaning of the `FLAG` column per element (32 rows) |
+| `meta4` | `FLAG2,DESCRIPTION` | quality codes 0–5 (see above) |
 
 Neither `meta1` has an "active" flag. `mvd stations` (roadmap 1.2) treats a station
 as active when it is in the current `now/metadata/meta1`, and takes its position from
@@ -119,14 +122,16 @@ coordinates: Marambio (Antarctica) is listed at `GEOGR1` 56.62, `GEOGR2` 64.23, 
 latitude and longitude look swapped and unsigned. A Czech bounding box drops them
 first, then the kraj polygons drop anything outside Czechia (see below).
 
+On 2026-10-11 `mvd stations` produced 782 stations (756 active, 26 closed since
+2024-01-01) in all 14 kraje; none was outside Czechia or needed the border tolerance.
+
 Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 
 ### Access notes
 
-- Directory listings below `meteorology/climate/{now,recent,historical}/` often failed
-  to load through our web reader (server errors or timeouts). Single files loaded
-  fine. The fetcher should build URLs from the patterns above rather than scrape
-  listings, and should retry.
+- Directory listings work with plain HTTP (they are large HTML pages). The fetcher
+  should still build URLs from the patterns above rather than scrape listings, and
+  retry on errors.
 - No authentication is needed.
 
 ### Licence and attribution
@@ -162,10 +167,10 @@ contains it, or the nearest kraj if the station is at most 2 km outside the bord
 
 ## Open-Meteo Previous Runs API (forecasts)
 
-Checked on **2026-10-11** against the Open-Meteo documentation and its source code
-(open-meteo-website at `1755598c7ac9`, open-meteo server at `f625df2c2b2d`).
-api.open-meteo.com is not reachable from the development sandbox, so **no live
-request has been made yet**; the client (roadmap 1.6) will record real responses.
+Checked on **2026-10-11** against the Open-Meteo documentation, its source code
+(open-meteo-website at `1755598c7ac9`, open-meteo server at `f625df2c2b2d`) and live
+requests. The free tier also has per-minute and per-hour limits: a burst of a few
+hundred requests got `429 Too Many Requests`, so the client must batch and back off.
 
 - Endpoint: `https://previous-runs-api.open-meteo.com/v1/forecast`, same parameters as
   the Forecast API (`latitude`, `longitude`, `elevation`, `hourly`, `models`,
@@ -176,9 +181,8 @@ request has been made yet**; the client (roadmap 1.6) will record real responses
   have at most `_previous_day3` populated").
 - Variables with offsets include `temperature_2m`, `precipitation` and
   `wind_speed_10m`, the three we verify.
-- Archive: "Most models are archived from **January 2024**. Some models were added to
-  the archive later in 2024 or 2025 and have correspondingly shorter coverage." GFS 2 m
-  temperature goes back to March 2021.
+- Archive: the docs say "most models are archived from January 2024"; measured per
+  model below.
 - Licence: CC BY 4.0. Non-commercial use is free under 10,000 calls a day; commercial
   use of this API needs the Professional subscription.
 
@@ -213,30 +217,51 @@ Open-Meteo in September 2025, so the open-data IFS is our only ECMWF history bef
 
 **Forecast length, grid and output step** come from the model tables in the Open-Meteo
 docs (e.g. ICON-D2 2 days, ALADIN 3 days, ARPEGE Europe 4 days, GeoSphere AROME,
-KNMI and DMI 2.5 days). `mvd models` derives the usable lead days from it, capped at D+5.
-Lead days close to the horizon (e.g. ICON-D2 at D+2) may be only partly filled,
-depending on run times; check this in the first live data.
+KNMI and DMI 2.5 days).
 
-**`archive_from` is a lower bound, not a verified start.** It is the later of
-2024-01-01 and the day the model was added to the Open-Meteo server (first commit of
-its domain code):
+**Lead days** (`max_lead_day`) were measured: share of September 2026 hours with a
+`temperature_2m_previous_dayN` value at Praha-Libuš. The archive fills one day less
+than the forecast length for short-range models, because a run issued a full N×24 h
+before every hour must still reach that hour:
 
-| Model | Added to Open-Meteo |
-|---|---|
-| ČHMÚ ALADIN CZ 1 km | 2026-06-10 |
-| ČHMÚ ALADIN Central Europe 2.3 km | 2026-06-24 |
-| GeoSphere AROME Austria | 2026-03-24 |
-| ECMWF IFS HRES 9 km | 2025-09-30 |
-| UK Met Office Global 10 km | 2024-08-12 |
-| KNMI / DMI HARMONIE-AROME | 2024-07-04 |
-| ECMWF AIFS | 2024-02-28 |
-| ECMWF IFS 0.25° | 2024-02-04 |
+| Model | D+1 | D+2 | D+3 | D+4 | D+5 |
+|---|---|---|---|---|---|
+| ALADIN CZ 1 km, ALADIN CE 2.3 km | 100 % | 100 % | 0 | 0 | 0 |
+| ICON-D2, GeoSphere AROME, KNMI, DMI | 100 % | 0 | 0 | 0 | 0 |
+| ICON-EU | 100 % | 100 % | 100 % | 100 % | 0 |
+| ARPEGE Europe | 100 % | 100 % | 100 % | 0 | 0 |
+| IFS HRES, IFS 0.25°, AIFS, GFS, UKMO global | 100 % | 100 % | 100 % | 100 % | 100 % |
 
-Consequence: **ALADIN, the model this project most wants to evaluate, has at most a
-few months of Previous Runs history (from June 2026)**, not the ~2 years assumed in the
-roadmap. Long-window rankings must compare models over their common period (or label
-windows per model). The real first available day of each model should be probed once
-we have network access (roadmap 1.6 / 2.6).
+So the high-resolution models can only be compared at D+1, and ALADIN at D+1 and D+2.
+
+**Archive start and gaps** were measured with `scripts/probe_archive.py` (one request
+per model: D+1 forecasts of the three variables at Praha-Libuš, 2021-01-01 to
+2026-10-09). `archive_from` is the first day all three variables have D+1 data;
+`variable_from` records variables that start later. Re-run the script to refresh.
+
+| Model | First day (D+1) | Hours filled since | Gaps and notes |
+|---|---|---|---|
+| ALADIN CZ 1 km / CE 2.3 km | 2026-06-24 | 100 % | |
+| ICON-D2, ICON-EU | 2024-01-19 | 100 % | |
+| ECMWF IFS HRES | 2025-10-01 | 96–100 % | T2m 69–81 % in 2026-03/04, wind 81–83 % in 2026-04/05; a few stray wind values in 2025-01 |
+| ECMWF IFS 0.25° | 2024-02-04 | 100 % | |
+| ECMWF AIFS | **2025-02-18** | 100 % | not 2024 as the docs suggest |
+| NOAA GFS | 2024-01-19 | 100 % | 2 m temperature alone from 2021-03-24 |
+| UK Met Office global | 2024-08-08 | **75–84 %** | many months between 14 % and 80 % |
+| ARPEGE Europe | 2024-01-19 | 100 % | **10 m wind only from 2026-08-07** |
+| GeoSphere AROME | 2026-03-26 | 84–100 % | T2m and precipitation 44–80 % in 2026-03 to 2026-05 |
+| KNMI HARMONIE | 2024-06-29 | 99–100 % | precipitation only from 2024-10-10 |
+| DMI HARMONIE | 2024-06-29 | 100 % | |
+
+Consequences:
+
+- **ALADIN, the model this project most wants to evaluate, has Previous Runs history
+  only from 2026-06-24**, not the ~2 years assumed in the roadmap. Long-window rankings
+  must compare models over their common period (or label windows per model).
+- Model code landing in Open-Meteo is not a reliable bound: UKMO, KNMI and DMI data
+  start a few days before their integration commits, AIFS a year after.
+- Gaps are real (UKMO especially), so scores must count only hours where both the
+  observation and the forecast exist, and report the sample size.
 
 Also note: AIFS has 6-hourly output and IFS 0.25° 3-hourly, so hourly scores for them
 use fewer hours; ICON-EU, IFS HRES and UKMO become 3-hourly later in the forecast
