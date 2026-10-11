@@ -144,5 +144,82 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 
 ## Open-Meteo Previous Runs API (forecasts)
 
-Covered in roadmap 1.3 (model coverage) and 1.6 (client). Licence: CC BY 4.0, free tier
-non-commercial and under 10,000 calls a day. See ROADMAP.md, section "Data & licensing".
+Checked on **2026-10-11** against the Open-Meteo documentation and its source code
+(open-meteo-website at `1755598c7ac9`, open-meteo server at `f625df2c2b2d`).
+api.open-meteo.com is not reachable from the development sandbox, so **no live
+request has been made yet**; the client (roadmap 1.6) will record real responses.
+
+- Endpoint: `https://previous-runs-api.open-meteo.com/v1/forecast`, same parameters as
+  the Forecast API (`latitude`, `longitude`, `elevation`, `hourly`, `models`,
+  `start_date`/`end_date` or `past_days`).
+- `<variable>_previous_dayN` is the value predicted 24·N hours before the valid time,
+  N = 1…7; `_previous_day0` is the latest run. For models with a short forecast horizon
+  only the offsets within the horizon are filled ("a model with a 3-day horizon will
+  have at most `_previous_day3` populated").
+- Variables with offsets include `temperature_2m`, `precipitation` and
+  `wind_speed_10m`, the three we verify.
+- Archive: "Most models are archived from **January 2024**. Some models were added to
+  the archive later in 2024 or 2025 and have correspondingly shorter coverage." GFS 2 m
+  temperature goes back to March 2021.
+- Licence: CC BY 4.0. Non-commercial use is free under 10,000 calls a day; commercial
+  use of this API needs the Professional subscription.
+
+### Models
+
+The catalogue is [`src/meteoverdict/models.yaml`](../src/meteoverdict/models.yaml)
+(`mvd models --all` prints it).
+
+**Coverage of Czechia** was checked by testing five points (the westernmost, easternmost,
+northernmost and southernmost points of Czechia, plus the centre) against each model's
+grid as defined in the Open-Meteo server code (`Sources/App/*/…Domain.swift`); projected
+grids (ALADIN Central Europe, DMI, KNMI) were transformed with pyproj. Global models
+cover Czechia by definition.
+
+| Model id | Grid extent from the server code | Czechia |
+|---|---|---|
+| `chmi_aladin_cz_1km` | lat 48.5–51.098, lon 12.0–18.995 | covered |
+| `chmi_aladin_central_europe_2km` | Lambert conformal, 1053 × 837 × 2.325 km | covered |
+| `dwd_icon_d2` | lat 43.18–58.08, lon −3.94–20.34 | covered |
+| `dwd_icon_eu` | lat 29.5–70.5, lon −23.5–62.5 | covered |
+| `meteofrance_arpege_europe` | lat 20–72, lon −32–42 | covered |
+| `geosphere_arome_austria` | lat 42.98–51.82, lon 5.50–22.10 | covered |
+| `knmi_harmonie_arome_europe` | rotated grid, 676 × 564 × 0.05° | covered |
+| `dmi_harmonie_arome_europe` | Lambert conformal, 1906 × 1606 × 2 km | covered |
+| `meteofrance_arome_france` | lat 37.5–55.4, lon −12.0–16.0 | **partly** (not east of 16° E): excluded |
+| `italia_meteo_arpae_icon_2i` | lat 33.7–48.9, lon 3–22 | **only the far south**: excluded |
+
+The UK Met Office UKV 2 km model covers only the UK and Ireland (excluded).
+KNMI and DMI HARMONIE-AROME cover Czechia but are disabled for v1 (not in the roadmap's
+candidate list); `ecmwf_ifs025` is enabled because IFS HRES (`ecmwf_ifs`) only joined
+Open-Meteo in September 2025, so the open-data IFS is our only ECMWF history before that.
+
+**Forecast length, grid and output step** come from the model tables in the Open-Meteo
+docs (e.g. ICON-D2 2 days, ALADIN 3 days, ARPEGE Europe 4 days, GeoSphere AROME,
+KNMI and DMI 2.5 days). `mvd models` derives the usable lead days from it, capped at D+5.
+Lead days close to the horizon (e.g. ICON-D2 at D+2) may be only partly filled,
+depending on run times; check this in the first live data.
+
+**`archive_from` is a lower bound, not a verified start.** It is the later of
+2024-01-01 and the day the model was added to the Open-Meteo server (first commit of
+its domain code):
+
+| Model | Added to Open-Meteo |
+|---|---|
+| ČHMÚ ALADIN CZ 1 km | 2026-06-10 |
+| ČHMÚ ALADIN Central Europe 2.3 km | 2026-06-24 |
+| GeoSphere AROME Austria | 2026-03-24 |
+| ECMWF IFS HRES 9 km | 2025-09-30 |
+| UK Met Office Global 10 km | 2024-08-12 |
+| KNMI / DMI HARMONIE-AROME | 2024-07-04 |
+| ECMWF AIFS | 2024-02-28 |
+| ECMWF IFS 0.25° | 2024-02-04 |
+
+Consequence: **ALADIN, the model this project most wants to evaluate, has at most a
+few months of Previous Runs history (from June 2026)**, not the ~2 years assumed in the
+roadmap. Long-window rankings must compare models over their common period (or label
+windows per model). The real first available day of each model should be probed once
+we have network access (roadmap 1.6 / 2.6).
+
+Also note: AIFS has 6-hourly output and IFS 0.25° 3-hourly, so hourly scores for them
+use fewer hours; ICON-EU, IFS HRES and UKMO become 3-hourly later in the forecast
+(78 h, 90 h and 54 h).
