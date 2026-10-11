@@ -10,11 +10,11 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 ## Status
 
 - **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
-  the `mvd` CLI with all pipeline commands as validated stubs, and the README layout
-  with leaderboard markers.
+  the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
+  data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples.
 - **Not yet:** no data is fetched or scored; the leaderboard is still empty.
-- **Next:** ČHMÚ data-source exploration and licence (1.1), station metadata (1.2),
-  Open-Meteo model coverage (1.3). See [ROADMAP.md](ROADMAP.md).
+- **Next:** station metadata loader (1.2), Open-Meteo model coverage (1.3).
+  See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
 
@@ -45,13 +45,15 @@ per kraj (region) and elevation class. Scope of v1: 2 m temperature, precipitati
 
 | Source | What we use | Licence |
 |---|---|---|
-| [ČHMÚ open data](https://opendata.chmi.cz/) | station metadata and hourly observations (truth) | to be confirmed in roadmap 1.1 |
+| [ČHMÚ open data](https://opendata.chmi.cz/) | station metadata and hourly observations (truth) | likely CC BY 4.0, not yet confirmed ([details](docs/data-sources.md#licence-and-attribution)) |
 | [Open-Meteo Previous Runs API](https://open-meteo.com/en/docs/previous-runs-api) | forecasts issued 1–5 days before each hour, per model | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 
 Forecasts are requested at each station's latitude, longitude **and elevation**, so
 Open-Meteo applies its elevation correction. This matters most for mountain stations.
 Which models are included is decided in roadmap 1.3 after checking their coverage of
 Czechia.
+
+Paths, file formats and caveats: [docs/data-sources.md](docs/data-sources.md).
 
 ## Development
 
@@ -84,8 +86,9 @@ external data comes from recorded fixtures in `tests/fixtures/`.
 
 - Weather data by [Open-Meteo.com](https://open-meteo.com/), licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- Observations: Czech Hydrometeorological Institute (ČHMÚ / CHMI) open data. Exact
-  attribution wording follows once the terms are confirmed (roadmap 1.1).
+- Observations: Czech Hydrometeorological Institute (ČHMÚ / CHMI),
+  [opendata.chmi.cz](https://opendata.chmi.cz/). The licence is probably CC BY 4.0 but
+  not yet confirmed (see [docs/data-sources.md](docs/data-sources.md#licence-and-attribution)).
 - Generated scores and maps: CC BY 4.0.
 - Code: [MIT](LICENSE).
 
