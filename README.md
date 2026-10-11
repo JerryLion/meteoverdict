@@ -13,8 +13,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
   data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples,
   `mvd stations`, which builds the ČHMÚ station table with each station's kraj and
-  elevation class, and the model catalogue (`mvd models`): 11 Open-Meteo models that
-  cover Czechia.
+  elevation class (782 stations on 2026-10-11), and the model catalogue (`mvd models`):
+  11 Open-Meteo models that cover Czechia, with archive start dates and lead days
+  measured against the live API.
 - **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
   still empty.
 - **Next:** fetching observations (1.5) and forecasts (1.6).
@@ -57,8 +58,10 @@ Open-Meteo applies its elevation correction. This matters most for mountain stat
 The models are listed in [`models.yaml`](src/meteoverdict/models.yaml) (`mvd models`):
 ČHMÚ ALADIN (1 km and 2.3 km), DWD ICON-D2 and ICON-EU, ECMWF IFS HRES, IFS 0.25° and
 AIFS, NOAA GFS, UK Met Office global, Météo-France ARPEGE Europe and GeoSphere AROME
-Austria. All cover Czechia. Their archived history differs: ALADIN only from June 2026
-([details](docs/data-sources.md#models)).
+Austria. All cover Czechia. Their archived history and lead days differ, measured
+against the live API: ALADIN only from 2026-06-24 and up to D+2; ICON-D2 and GeoSphere
+AROME only D+1 ([details](docs/data-sources.md#models), re-check with
+`uv run scripts/probe_archive.py`).
 
 Paths, file formats and caveats: [docs/data-sources.md](docs/data-sources.md).
 
