@@ -10,10 +10,11 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 ## Status
 
 - **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
-  and the `mvd` CLI with all pipeline commands as validated stubs.
+  the `mvd` CLI with all pipeline commands as validated stubs, and the README layout
+  with leaderboard markers.
 - **Not yet:** no data is fetched or scored; the leaderboard is still empty.
-- **Next:** README skeleton (0.4), then the ČHMÚ data-source exploration (1.1)
-  and station metadata (1.2). See [ROADMAP.md](ROADMAP.md).
+- **Next:** ČHMÚ data-source exploration and licence (1.1), station metadata (1.2),
+  Open-Meteo model coverage (1.3). See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
 
