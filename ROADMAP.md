@@ -99,7 +99,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 ### Phase 0: Skeleton
 - [x] 0.1 `pyproject.toml` (uv), package `meteoverdict` (CLI `mvd`), `ruff` + `pytest` config, MIT licence, `.gitignore`
 - [x] 0.2 CI workflow: lint + tests on PR
-- [ ] 0.3 CLI entry point (`typer`) with stub commands: `fetch-obs`, `fetch-fc`, `score`, `report`, `daily`, `backfill`
+- [x] 0.3 CLI entry point (`typer`) with stub commands: `fetch-obs`, `fetch-fc`, `score`, `report`, `daily`, `backfill`
 - [ ] 0.4 README skeleton: goal, data sources, attribution, empty leaderboard markers
 
 ### Phase 1: Data in
