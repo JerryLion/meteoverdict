@@ -116,8 +116,8 @@ is not reliable as the only source of "active": it is regenerated once a year.
 
 Foreign stations also show up in the historical file, and not always with sensible
 coordinates: Marambio (Antarctica) is listed at `GEOGR1` 56.62, `GEOGR2` 64.23, so
-latitude and longitude look swapped and unsigned. A Czech bounding box filters them
-out.
+latitude and longitude look swapped and unsigned. A Czech bounding box drops them
+first, then the kraj polygons drop anything outside Czechia (see below).
 
 Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 
@@ -141,6 +141,24 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
   Hydrometeorological Institute (ČHMÚ), opendata.chmi.cz" wherever we show derived
   data. To confirm: the dataset's record in the National Open Data Catalogue (NKOD,
   data.gov.cz), or ask klima@chmi.cz.
+
+## Kraj boundaries
+
+`src/meteoverdict/data/kraje.geojson` holds the 14 kraje with their NUTS 3 code
+(`CZ010` … `CZ080`) and name. Built by `scripts/build_kraje.py` from:
+
+- ČÚZK INSPIRE Administrative Units (`services.cuzk.gov.cz/gml/inspire/au/`). ČÚZK
+  publishes its open data under CC BY 4.0 ("ČÚZK poskytuje otevřená data pod licencí
+  Creative Commons CC-BY 4.0", cuzk.gov.cz, Otevřená data – základní informace).
+- converted to GeoJSON by [siwekm/czech-geojson](https://github.com/siwekm/czech-geojson)
+  (CC BY 4.0), pinned to commit `6e77140c`. Names and ids are top-level feature fields
+  there (`name`, `id` = `CZ0100000000`), not `properties`.
+
+The script simplifies all 14 polygons together (`shapely.coverage_simplify`, tolerance
+0.002°) so neighbours keep identical shared borders, and rounds to 4 decimals. That
+shrinks 9 MB to about 240 KB; borders move by at most ~0.006° (about 0.6 km). Středočeský
+kraj has one hole (Praha). `mvd stations` gives a station the kraj whose polygon
+contains it, or the nearest kraj if the station is at most 2 km outside the border.
 
 ## Open-Meteo Previous Runs API (forecasts)
 
