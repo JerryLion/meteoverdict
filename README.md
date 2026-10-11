@@ -1,5 +1,7 @@
 # meteoverdict 🐸
 
+[![CI](https://github.com/JerryLion/meteoverdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryLion/meteoverdict/actions/workflows/ci.yml)
+
 **Which weather model gets Czechia right?**
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
 
@@ -27,8 +29,11 @@ Requires [uv](https://docs.astral.sh/uv/) (it installs Python 3.12 for you).
 ```bash
 uv sync                         # create .venv with dev tools
 uv run mvd --version            # CLI entry point
-uv run ruff check . && uv run pytest
+uv run ruff check . && uv run ruff format --check . && uv run pytest
 ```
+
+CI runs the same checks on every pull request. Tests never use the network;
+external data comes from recorded fixtures in `tests/fixtures/`.
 
 ## Data & attribution
 
