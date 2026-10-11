@@ -104,7 +104,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 
 ### Phase 1: Data in
 - [x] 1.1 Explore `opendata.chmi.cz/meteorology/climate/{now,recent,historical}`: document paths, formats and licence in `docs/data-sources.md`
-- [ ] 1.2 Station metadata loader → `stations.parquet` (id, name, lat, lon, elevation, active)
+- [x] 1.2 Station metadata loader → `stations.parquet` (id, name, lat, lon, elevation, active)
 - [ ] 1.3 Verify which Open-Meteo models cover CZ and their Previous Runs history start; write `models.yaml`
 - [ ] 1.4 Station → kraj mapping (point-in-polygon with open kraj boundaries) + elevation class
 - [ ] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
