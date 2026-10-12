@@ -6,6 +6,9 @@
 **Which weather model gets Czechia right?**
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
 
+**Web map:** [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/) ·
+**model comparison:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html)
+
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
 ## Status
@@ -33,7 +36,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   when the daily run last updated the table and how recent the scores are.
 - **Web map:** regions and stations coloured by the best model, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
-  English. It goes live on GitHub Pages once Pages is enabled for the repository.
+  English, live at [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/)
+  and updated after every daily run.
 - **Upstream:** wetterdienst already reads ČHMÚ data, but only closed years; what we
   learned about the current-year files could fill that gap
   ([docs/upstream.md](docs/upstream.md)).
@@ -143,8 +147,8 @@ and the choice is remembered in the browser). Boundaries are drawn on a plain ba
 series from `site/data`, which is published in the release `data-latest`
 (`site-data.zip`; unzip it into `site/data` to run the map locally with data) and not
 committed. `.github/workflows/pages.yml` builds it after every daily update and
-publishes it on GitHub Pages once Pages is enabled for the repository (Settings → Pages
-→ Source: GitHub Actions); until then it only builds.
+publishes it on GitHub Pages (Settings → Pages → Source: GitHub Actions) at
+<https://jerrylion.github.io/meteoverdict/>; a fork without Pages enabled only builds.
 
 ```bash
 cd web && npm ci && npm test && npm run dev   # local map at http://localhost:5173
