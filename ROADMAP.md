@@ -146,6 +146,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 3.2 GitHub Actions daily cron: `mvd daily` → commit JSON + README, upload raw data. Forecasts in 14-day windows (≈ 6,900 calls each, any shorter window costs the same). Must fetch yesterday's observations from `now/` every day (kept ~3 days; the current month is not in `recent/` yet) and re-fetch months from `recent/` once published
 - [x] 3.3 Data quality checks (missing stations, outliers, stale data) that fail loudly
 - [x] 3.4 Badge / "last updated" timestamp in README
+- [x] 3.5 Compact score files (float32 sums, small integer counts, summed in 64 bits): about a third smaller, as the daily run downloads all score months
 
 ### Phase 4: Web app
 - [ ] 4.1 Vite + MapLibre scaffold, GitHub Pages deploy workflow
