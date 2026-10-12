@@ -167,6 +167,12 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [ ] 5.5b Propose a `recent`/`now` period for wetterdienst's `chmi/observation` in an upstream issue (from the maintainer's account)
 - [ ] 5.6 Write-up / blog post with findings
 
+### Phase 6: Every okres, and our own forecast
+- [x] 6.1 Rank every okres: okresy with fewer than 3 stations borrow the nearest stations of their neighbours (≤ 30 km beyond the border), same fair comparison
+- [ ] 6.2 Combination weights per okres × variable × lead day from the 90-day scores (inverse-MSE weights, bias corrections) and a forecast point per okres → `site/data/forecast.json`
+- [ ] 6.3 Web: meteoverdict forecast for a chosen okres: today's Open-Meteo forecasts of all models combined with the 6.2 weights, next to the best single model
+- [ ] 6.4 Verify the combination out of sample (weights from earlier days, scored like a model) and rank it against the best single model
+
 ---
 
 ## 3. Rules for the daily development task
