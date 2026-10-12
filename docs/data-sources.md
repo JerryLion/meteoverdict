@@ -257,6 +257,28 @@ aggregates. Ranked variables: `temperature_2m`, `wind_speed_10m`,
 - Cost: about 10 s per window for 100 stations × 90 days × all models (measured); the
   full network takes a few minutes, mostly at station level.
 
+## Backfill (`mvd backfill`)
+
+`mvd backfill --from 2024-01-01 [--to D] [--max-calls N] [--github-release]` fills
+history newest first in 14-day windows counted from `--from` (a window costs the same
+Open-Meteo quota as one day, so windows run across month boundaries). For each window:
+the observations of its months (once per month), the forecasts of every enabled model
+from its archive start, then the window's daily scores.
+
+- **Resumable:** `data/backfill-state.json` records published observation months,
+  finished `model|window` pairs and scored windows. A run stops at `--max-calls` or at
+  Open-Meteo's daily limit, keeps what it fetched, and the next run continues.
+- A month whose observations came from `now/` only (not yet published) is not final:
+  its windows are fetched but scored only once ČHMÚ publishes the month.
+- With `--github-release` the month files and the state are pulled from and pushed to
+  GitHub Releases (`data-YYYY-MM`, state in `data-state`) after every window, so the
+  scheduled workflow `.github/workflows/backfill.yml` (daily, 6,000 calls) can continue
+  from any machine.
+- Budget: about 6,900 calls per window for all ~500 stations and 11 models, so about
+  one window a day; 2024-01-01 to now is about 70 windows, i.e. 2–3 months. ČHMÚ
+  downloads are about 2.5 GB per month of history. Checked live on 3 stations × one
+  window (41 calls, 6,270 score rows; a second run did nothing).
+
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
