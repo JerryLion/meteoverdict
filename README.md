@@ -25,7 +25,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Data quality:** implausible observations are dropped; stale data or many silent
   stations make the daily run fail loudly instead of publishing an outdated table
   (`mvd check`).
-- **Next:** "last updated" badge (3.4), the web map (phase 4).
+- **Freshness:** the "last updated" badge above and a line under the leaderboard show
+  when the daily run last updated the table and how recent the scores are.
+- **Next:** the web map (phase 4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
