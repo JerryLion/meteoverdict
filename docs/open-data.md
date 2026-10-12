@@ -1,0 +1,49 @@
+# Open data (roadmap 6.11)
+
+Our combined forecast and the ranking of the models for every okres, as static JSON
+and CSV files on GitHub Pages: free, no key, CORS allowed (GitHub Pages sends
+`Access-Control-Allow-Origin: *`). Human-readable page with a picker and examples:
+<https://jerrywoof.github.io/meteoverdict/api.html>.
+
+| File | Contains |
+|---|---|
+| `api/v1/index.json` | all 77 okresy: `code`, `name`, `lat`, `lon` and the URLs of their files |
+| `api/v1/okresy/{code}.json` | everything for one okres (below) |
+| `api/v1/okresy/{code}.csv` | the hourly forecast: `time_utc,temperature_2m,precipitation,wind_speed_10m,cloud_cover` |
+
+Base URL: `https://jerrywoof.github.io/meteoverdict/`. Codes are LAU 1 (`CZ0201`
+Benešov, `CZ020A` Praha-západ, `CZ0100` Praha).
+
+## An okres file
+
+- `okres`: code, name, and the forecast point inside the okres (`combine.okres_points`).
+- `forecast.generated`, `forecast.hourly`: `time` (UTC, `2026-10-12T00:00Z`) and the
+  combined hourly series `temperature_2m` (°C), `precipitation` (mm in the hour ending at
+  the time), `wind_speed_10m` (m/s), `cloud_cover` (%, plain mean of the models, not
+  verified); 6 days; `null` where fewer than two models cover an hour.
+- `forecast.parts`: per day and part of day in Prague time (`night`, `morning`,
+  `afternoon`, `evening`, `day`): `tmin`, `tmax`, `precipitation`, `rain_probability`,
+  `wind`, `cloud`, `symbol` (as on the forecast map; [data-sources.md](data-sources.md#outlook-mvd-outlook-roadmap-66)).
+- `models.variables.<variable>` for `temperature_2m`, `wind_speed_10m`,
+  `precipitation_daily` and `precipitation_24h`: `stations`, `borrowed`, `days`, and
+  `lead_days."1"…"5"`: the models in rank order with `rank`, `mae`, `bias`, `rmse`,
+  `tied_with_best`, and `weight`/`correction` as used in our forecast (`null` for the
+  06–06 precipitation, which is ranked but not combined). Window: the last 90 days
+  (`models.from`, `models.to`).
+- `licence`, `attribution`, `docs`.
+
+## How they are made
+
+`web/scripts/build-api.mjs` (part of `npm run build`, logic in `web/src/api.js`) writes
+them from the data the pages use: `outlook.json` and `outlook-hourly.json` (`mvd
+outlook`, twice a day), `forecast/<okres>.json` and `90d/okres/<variable>.json` (`mvd
+aggregate`, daily). The Pages workflow runs after the Daily and the Outlook workflows,
+so the files follow both. About 3.4 MB in total, 25 kB per okres.
+
+## Terms
+
+CC BY-SA 4.0: credit meteoverdict, Open-Meteo.com (model data, CC BY 4.0; UK Met Office
+CC BY-SA 4.0) and ČHMÚ (observations, CC BY 4.0) — the `attribution` field has the text —
+and share derived data alike. Not an official forecast; whether the combination beats
+the best single model is still being tested (roadmap 6.4). Please fetch at most once an
+hour.
