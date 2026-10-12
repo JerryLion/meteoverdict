@@ -308,12 +308,17 @@ in the whole history, e.g. all summers, so models can be compared by season (the
   day for 750 stations, 13 models and a year of days takes about 35 s on a laptop
   (bootstrap included; 19 s with only the first three windows).
 
-- **Fair comparison:** within a window, variable, lead day and station only the days
-  that every model covering that station has scores for are used, so models with a
-  shorter archive or gaps are compared on the same days as the rest. A model that never
-  reaches a station (ICON-D2 in the far east) is simply absent there. (Consequence: the `all`
-  window for D+1 and D+2 starts when the newest model's archive starts, ALADIN in June
-  2026.)
+- **Fair comparison:** within a window, variable, lead day and region only the
+  station-days that every model present in that region has scores for are used, so all
+  models of a region are compared on the same stations and days. Models with a shorter
+  archive or gaps get the same days as the rest. Where a model never reaches some
+  stations (ICON-D2 at six stations in the Beskydy), those stations drop out of that
+  region's comparison (Moravskoslezský kraj, Czechia, their okres and elevation class)
+  for every model, and are compared among the other models at the station level.
+  (Consequences: the `all` window for D+1 and D+2 starts when the newest model's archive
+  starts, ALADIN in June 2026; while the backfill has fetched a model for only part of
+  the stations, regions are compared on that part.) A window's `from` is its start or
+  the first scored day, whichever is later.
 - A region needs at least 3 stations (`enough_stations`); stations are always
   rankable on their own.
 - Output: `data/aggregates.parquet` (all columns, including the sums) and
