@@ -321,9 +321,25 @@ hundred requests got `429 Too Many Requests`, so the client must batch and back 
   10,000 a day). `mvd fetch-fc --dry-run` prints the estimate; `--max-calls` stops a
   run before it uses more and keeps what was fetched.
 - **Interpolated hours:** Open-Meteo returns a value for every hour even for AIFS
-  (6-hourly output) and IFS 0.25° (3-hourly); the in-between hours are smooth curves, so
-  they are interpolated (seen 2026-10-12 at Praha-Libuš). Scoring (2.1) should use these
-  models only at their native hours.
+  (6-hourly output) and IFS 0.25° (3-hourly), and for models whose output becomes
+  3-hourly at longer lead times (ICON-EU after 78 h, IFS HRES after 90 h, GFS after
+  120 h, UK Met Office after 54 h; `coarser_after_h` in models.yaml). The in-between
+  hours are interpolated: on 20 stations over 14 days (Sept 2026) the mean temperature
+  curvature at 3-hourly hours is 1.5–1.7 times that at the other hours exactly from the
+  lead day where the step changes (ICON-EU D+4, IFS D+4, GFS D+5, UKMO D+3), and about
+  1.0–1.25 before. See "Pairing" below.
+
+### Pairing (`meteoverdict.align`, roadmap 2.1)
+
+Open-Meteo's docs: temperature and wind are "Instant" values, precipitation the
+"Preceding hour sum". The observations follow the same conventions, so pairs join on
+station, UTC hour and variable. For a model and lead day whose native step is 3 or 6
+hours (`Model.native_step`: the run behind `_previous_dayN` is at least 24·N h old, plus
+6 h for run spacing and delivery), temperature and wind are compared only at native
+hours and precipitation as sums over native periods (`period_h`); incomplete periods
+are dropped. Daily precipitation sums use the UTC day (hours ending 01:00–24:00) and
+need all 24 hours. **Unverified:** whether Open-Meteo's hourly precipitation for
+6-hourly models adds up exactly to the model's 6-hour totals.
 
 ### Models
 
