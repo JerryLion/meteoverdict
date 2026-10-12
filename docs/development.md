@@ -156,10 +156,10 @@ the URL.
 
 | Page | What it shows | URL state |
 |---|---|---|
-| `tv.html` | combined forecast map: day tabs, parts of the day, "play the day" / "play the week" (each round switches the map colour temperature → rain → wind → cloud), values at the okresy, a panel per okres | `#2026-10-13/afternoon/temperature/tpw/CZ0201` |
+| `tv.html` | combined forecast map: day tabs, parts of the day, "play the day" / "play the week" (each round switches the map colour temperature → rain → wind → cloud), values at the okresy, a panel per okres; sunrise and sunset (earliest–latest over the okresy) in the headline box and the okres's own in its panel; symbols get a moon when most of the part of day is after sunset or before sunrise | `#2026-10-13/afternoon/temperature/tpw/CZ0201` |
 | `index.html` | score map: okresy and stations coloured by the best model, legend with win counts, okres finder, a panel explaining why a model wins, per-station error charts | `#temperature_2m/1/90d/CZ0201` |
 | `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day | region |
-| `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser) | okres |
+| `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser); sunrise and sunset per day and the nights shaded in the charts, from `outlook.json` | okres |
 | `api.html` | open data: JSON and CSV per okres under `api/v1/` ([docs](open-data.md)) | – |
 
 GitHub Pages: Settings → Pages → Source: GitHub Actions. A fork without Pages enabled
