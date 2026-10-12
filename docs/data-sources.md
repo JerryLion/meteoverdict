@@ -127,11 +127,35 @@ its `source` (`recent`, `historical`, `now`).
 
 Only stations with a 10-minute `T`, `F` or `SRA10M` in today's `meta2` are fetched
 (about 475; the other ~280 active stations are manual rain gauges with daily data
-only, roadmap 1.5b), plus inactive stations (not in today's `meta2`). One day for all
+only, see below), plus inactive stations (not in today's `meta2`). One day for all
 stations from `now/` took about a minute (468 stations returned data on 2026-10-10).
 A monthly `recent/` or `historical/` file is about 5 MB per station, so a month of
 history for all stations is about 2.5 GB to download; `historical_csv/` (one file per
 element) may be cheaper for the backfill (2.6).
+
+### Manual rain gauges (`mvd fetch-gauges`)
+
+About 280 active stations have no 10-minute data: they are manual rain gauges that
+report one daily precipitation total (`SRA`, mm), read by an observer at 07:00 local
+time. They roughly double the station count for precipitation.
+
+| Path | Content |
+|---|---|
+| `recent/data/daily/MM/dly-{WSI}-{YYYYMM}.json` | daily elements (`SRA`, `SNO`, …) of one month, last 12 months; header `STATION,ELEMENT,VTYPE,DT,VAL,FLAG,QUALITY` |
+| `historical_csv/data/daily/precipitation/dly-{WSI}-SRA.csv` | all `SRA` values of one station up to the last closed year (about 2.5 MB); header `STATION,ELEMENT,TIMEFUNC,DT,VALUE,FLAG,QUALITY` with a trailing comma on every line |
+
+- **Window:** `DT` is the **start** of the 24-hour window: the value stamped
+  `2026-09-04T06:00Z` fell from 4 Sept 06:00 to 5 Sept 06:00 UTC. Checked against the
+  hourly totals of Praha-Libuš, which has both: all 30 days of September 2026
+  matched. `mvd fetch-gauges` stores it as `precipitation_24h` stamped with the
+  window's **end**, like every other value.
+- **Delay:** manual readings are published late. In October 2026 July and August were
+  complete, while most September rows were still `""` with `QUALITY` 4 (missing).
+- **Scoring:** the window is 06–06 UTC, not the calendar UTC day used for automatic
+  stations, so the forecasts must be summed over the same 24 hours (roadmap 2.7).
+
+A live run for August 2026 (`--start 2026-08-01 --end 2026-08-31`) returned 8,370
+daily values from 273 of 307 stations selected as gauges (manual or closed).
 
 ### Metadata files
 
