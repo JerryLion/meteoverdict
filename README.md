@@ -21,7 +21,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   observations, re-scores, and updates this README every morning.
 - **Not yet:** the leaderboard fills as the backfill and ČHMÚ's monthly publication of
   checked observations progress. ALADIN has forecast history only from June 2026.
-- **Next:** data quality checks (3.3), "last updated" badge (3.4), the web map (phase 4).
+- **Data quality:** implausible observations are dropped; stale data or many silent
+  stations make the daily run fail loudly instead of publishing an outdated table
+  (`mvd check`).
+- **Next:** "last updated" badge (3.4), the web map (phase 4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
