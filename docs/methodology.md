@@ -72,7 +72,10 @@ closest to what ČHMÚ measured?
 - Where a model never reaches some stations (ICON-D2 at six stations in the Beskydy),
   those stations are left out of their regions' comparison for every model; on their own
   they are still compared among the other models.
-- A region is ranked only with at least **3 stations**.
+- A region is ranked only with at least **3 stations**. An okres with fewer of its own
+  borrows the nearest stations of its neighbours (at most 30 km beyond its border) up to
+  3, and the map says how many. So every okres has a ranking, but for a third of them it
+  partly describes the surrounding area.
 - Windows: the last 90 days, the current season, all time, and each season over all
   years (all winters, springs, summers, autumns).
 
@@ -92,6 +95,10 @@ ranked. It is compared with the best single model instead: if the average often 
 picking any single model is worse than averaging them.
 
 ## Limitations
+
+- **Borrowed stations.** Where an okres borrows, nearness is the only criterion; a
+  borrowed station may sit higher or lower than the okres itself (a hill-top station
+  next to a lowland okres), which matters most for temperature.
 
 - **Point versus grid cell.** A station measures one point; a model forecasts a grid
   cell average (1 km to about 25 km). Thunderstorm rain, valley inversions and wind in
