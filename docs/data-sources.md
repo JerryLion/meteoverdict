@@ -287,6 +287,32 @@ hundred requests got `429 Too Many Requests`, so the client must batch and back 
   costs the same as one day. Commercial use of this API needs the Professional
   subscription. See [licensing.md](licensing.md).
 
+### Fetching (`mvd fetch-fc`)
+
+- Several locations go in one request as comma-separated `latitude`, `longitude` and
+  `elevation` lists; the answer is a JSON **list** in the same order (every item but
+  the first carries `location_id`). We send the station elevation, which Open-Meteo
+  echoes back and uses for its elevation correction; `elevation=nan` makes it use its
+  own terrain height instead (checked: 286 m at Praha-Libuš).
+- Errors come as HTTP 400 `{"error": true, "reason": "…"}`; the daily limit as HTTP
+  429 with "Daily API request limit exceeded". Days before a model's archive start
+  return `null` values.
+- `mvd fetch-fc` asks one model per request, with only its measured lead days, for up
+  to 14 days and 100 stations, and stores one row per station × hour × model × lead
+  day with `temperature_2m` (°C), `precipitation` (mm in the hour ending at `time`) and
+  `wind_speed_10m` (m/s) in `data/fc/YYYY-MM.parquet`.
+- **Cost** (weighted calls, Open-Meteo's formula): about **6,900 calls for one day** of
+  all 11 enabled models at the ~500 verified stations, the same for any window up to 14
+  days, about 20,600 for a month and about 333,000 for 2024-01-01 to 2026-10-10. So the
+  daily pipeline should fetch forecasts in 14-day windows (≈ 15,000 calls a month), and
+  the full backfill needs more than one month of the free quota (300,000 a month,
+  10,000 a day). `mvd fetch-fc --dry-run` prints the estimate; `--max-calls` stops a
+  run before it uses more and keeps what was fetched.
+- **Interpolated hours:** Open-Meteo returns a value for every hour even for AIFS
+  (6-hourly output) and IFS 0.25° (3-hourly); the in-between hours are smooth curves, so
+  they are interpolated (seen 2026-10-12 at Praha-Libuš). Scoring (2.1) should use these
+  models only at their native hours.
+
 ### Models
 
 The catalogue is [`src/meteoverdict/models.yaml`](../src/meteoverdict/models.yaml)
