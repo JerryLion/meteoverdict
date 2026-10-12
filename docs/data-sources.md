@@ -392,10 +392,14 @@ from its archive start, then the window's daily scores.
   its windows are fetched but scored only once ČHMÚ publishes the month.
 - With `--github-release` the month files and the state are pulled from and pushed to
   GitHub Releases (`data-YYYY-MM`, state in `data-state`) after every window, so the
-  scheduled workflow `.github/workflows/backfill.yml` (daily, 6,000 calls) can continue
+  scheduled workflow `.github/workflows/backfill.yml` (daily, 9,000 calls) can continue
   from any machine.
-- Budget: about 6,900 calls per window for all ~500 stations and 11 models, so about
-  one window a day; 2024-01-01 to now is about 70 windows, i.e. 2–3 months. ČHMÚ
+- Budget: about 6,900 calls per window for all ~500 stations and 11 models, plus about
+  1,550 for the rain gauges (measured on the first real runs, 12 Oct 2026: 5,913 + 3,785
+  calls for the newest window), so about one window a day with 9,000 calls; 2024-01-01
+  to now is about 70 windows, fewer models in older ones (archive starts), i.e. about
+  two months. The free tier counts calls per IP address and GitHub's runners share
+  addresses, so a run can meet the daily limit early; it then stops cleanly. ČHMÚ
   downloads are about 2.5 GB per month of history. Checked live on 3 stations × one
   window (41 calls, 6,270 score rows; a second run did nothing).
 - **Rain gauges** (the ~280 manual gauges; closed stations are already verified
