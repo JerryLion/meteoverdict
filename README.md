@@ -102,20 +102,21 @@ uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecast
 ```
 
 **Web map** (`web/`, Vite + MapLibre, Node 22). It colours each okres (or kraj, where
-the okres level is not published) and each station by its best model, greys out
-regions with too few stations, and explains a region on click. Variable, lead time
-and period (last 90 days, this season, all time, all winters …) are chosen in the
-header and kept in the URL (`#temperature_2m/1/90d`). Clicking a station charts each
-model's daily error there over the last 90 days (D+1 and D+2). A second page,
-`compare.html`, ranks the models for all of Czechia (MAE, difference to the best with
-its interval, bias, RMSE, and the mean of all models as a baseline) and charts their
-bias by elevation class. Both pages are in Czech or English (Czech for Czech and Slovak
-browsers; a button switches and the choice is remembered in the browser). Boundaries are drawn
-on a plain background (no third-party map tiles). It reads the scores and
-`stations.json` from `site/data`, and the per-station series from `site/data/series`
-(published in the release `data-latest`, not committed). `.github/workflows/pages.yml` builds it after every daily update and
-publishes it on GitHub Pages once Pages is enabled for the repository
-(Settings → Pages → Source: GitHub Actions); until then it only builds.
+the okres level is not published) and each station by its best model, greys out regions
+with too few stations, and explains a region on click. Variable, lead time and period
+(last 90 days, this season, all time, all winters …) are chosen in the header and kept
+in the URL (`#temperature_2m/1/90d`). Clicking a station charts each model's daily error
+there over the last 90 days (D+1 and D+2). A second page, `compare.html`, ranks the
+models for all of Czechia (MAE, difference to the best with its interval, bias, RMSE,
+and the mean of all models as a baseline) and charts their bias by elevation class. Both
+pages are in Czech or English (Czech for Czech and Slovak browsers; a button switches
+and the choice is remembered in the browser). Boundaries are drawn on a plain background
+(no third-party map tiles). It reads the scores and `stations.json` and the per-station
+series from `site/data`, which is published in the release `data-latest`
+(`site-data.zip`; unzip it into `site/data` to run the map locally with data) and not
+committed. `.github/workflows/pages.yml` builds it after every daily update and
+publishes it on GitHub Pages once Pages is enabled for the repository (Settings → Pages
+→ Source: GitHub Actions); until then it only builds.
 
 ```bash
 cd web && npm ci && npm test && npm run dev   # local map at http://localhost:5173
