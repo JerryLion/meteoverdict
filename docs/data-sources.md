@@ -152,7 +152,14 @@ time. They roughly double the station count for precipitation.
 - **Delay:** manual readings are published late. In October 2026 July and August were
   complete, while most September rows were still `""` with `QUALITY` 4 (missing).
 - **Scoring:** the window is 06–06 UTC, not the calendar UTC day used for automatic
-  stations, so the forecasts must be summed over the same 24 hours (roadmap 2.7).
+  stations, so the forecasts are summed over the same 24 hours (`precipitation_24h`,
+  see "Daily scores").
+- **Storage:** `data/gauges/YYYY-MM.parquet` (same columns as `data/obs`), a separate
+  kind in the raw data store, so gauge months never overwrite hourly ones.
+- **Cost of history:** the historical CSV is about 2.5 MB per station, about 770 MB
+  for all gauges, and it holds every closed year. So the history is imported once with
+  `mvd fetch-gauges --start 2024-01-01 --end …` (then `mvd store upload`); the
+  scheduled runs read only the small monthly files in `recent/`.
 
 A live run for August 2026 (`--start 2026-08-01 --end 2026-08-31`) returned 8,370
 daily values from 273 of 307 stations selected as gauges (manual or closed).
@@ -320,6 +327,16 @@ from its archive start, then the window's daily scores.
   one window a day; 2024-01-01 to now is about 70 windows, i.e. 2–3 months. ČHMÚ
   downloads are about 2.5 GB per month of history. Checked live on 3 stations × one
   window (41 calls, 6,270 score rows; a second run did nothing).
+- **Rain gauges** (the ~280 manual gauges; closed stations are already verified
+  hourly): precipitation forecasts only, for 28-day windows counted from `--from`
+  (two 14-day windows; progress key `gauges|model|start|end`). With at most 5 lead
+  days that is at most 5 variables, so 28 days still cost one call per location: about
+  3,100 calls per 28 days for 11 models, roughly +22 % on the station forecasts. The
+  newer 14-day window fetches its 28-day gauge window and re-scores both halves, so
+  windows scored before the gauges were added get them too. Gauge observations come
+  from `recent/` per month into `data/gauges`; a month is final once it ended 62 days
+  before `--to` (manual readings arrive about a month late), newer ones are refreshed
+  by the daily run.
 
 ## Daily pipeline (`mvd daily`)
 
@@ -328,7 +345,8 @@ concurrency group because both write release assets). No Open-Meteo calls.
 
 1. Pull the months of the last 100 days from the releases.
 2. Capture the last 3 days of observations from `now/` (the current month reaches
-   `recent/` only after it ends).
+   `recent/` only after it ends), and read the rain gauges' months of the last 62 days
+   again from `recent/` (about 280 small files a month), as the manual readings arrive.
 3. Re-score the last 100 days, so captured observations, forecast windows completed by
    the backfill, and checked data replacing unchecked data all reach the scores.
 4. Push changed months, pull all score months, aggregate and rank, write `site/data`
@@ -361,7 +379,8 @@ precipitation 0…120 mm.
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
-`data/{obs,fc,scores}/YYYY-MM.parquet` as the assets `{obs,fc,scores}-YYYY-MM.parquet`
+`data/{obs,gauges,fc,scores}/YYYY-MM.parquet` as the assets
+`{obs,gauges,fc,scores}-YYYY-MM.parquet`
 of the release `data-YYYY-MM`. GitHub
 cannot overwrite a release asset, so a changed file is deleted and uploaded again; the
 asset label holds the file's SHA-256 so unchanged files are skipped. Downloads go
