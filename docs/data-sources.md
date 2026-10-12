@@ -219,7 +219,7 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 | MAE | Σ\|error\| / n | temperature, wind, precipitation amounts |
 | bias | Σ error / n (positive = forecast too high) | same |
 | RMSE | √(Σ error² / n) | same |
-| POD | a / (a + c) | daily precipitation ≥ 0.1 mm and ≥ 5 mm |
+| POD | a / (a + c) | daily precipitation ≥ 0.1 mm, ≥ 5 mm and ≥ 20 mm (heavy precipitation, the ETCCDI index R20mm) |
 | FAR | b / (a + b) | same |
 | ETS | (a − a_r) / (a + b + c − a_r), a_r = (a + b)(a + c) / n | same |
 
@@ -237,7 +237,7 @@ plus the next day, for the last day's precipitation) and writes
 `data/scores/YYYY-MM.parquet`: one row per `date`, `station_id`, `model`, `lead_day`
 and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_err`,
 `sum_sq_err`; for `precipitation_daily` and `precipitation_24h` also `a_*`, `b_*`,
-`c_*`, `d_*` for 0.1 and 5 mm).
+`c_*`, `d_*` for 0.1, 5 and 20 mm).
 
 | `variable` | `period_h` | Day of a pair |
 |---|---|---|
