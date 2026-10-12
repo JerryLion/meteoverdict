@@ -303,6 +303,26 @@ models).
 - Cost: about 10 s per window for 100 stations × 90 days × all models (measured); the
   full network takes a few minutes, mostly at station level.
 
+### Blend baseline (roadmap 5.3)
+
+Does a plain mean of all models beat every single one? `mvd score` (and the backfill
+and daily runs) also score `blend`, the mean of the models' forecasts per station,
+hour and lead day and variable, wherever at least 3 models have a value.
+
+- **Members** change with the lead day (D+1 has all models, D+5 only the global ones)
+  and with the archive starts; no weighting, no bias correction.
+- **Time resolution:** some members are 3- or 6-hourly (Open-Meteo interpolates the
+  hours in between), so the blend is scored like a 6-hourly model: temperature and wind
+  at 00, 06, 12 and 18 UTC, precipitation over 6-hour periods, the UTC day and the
+  06–06 day.
+- **Fair comparison:** the blend counts as one more model covering a station, so a day
+  without a blend (fewer than 3 members) is dropped for every model there.
+- **Ranking:** the blend is not ranked (`rank` null) and never takes the win from a
+  model. Its `diff_to_best` and interval are relative to the best single model, so
+  `diff_ci_high` below 0 means the mean beats every model in that region. The README
+  states under the leaderboard in how many regions it is better, and significantly
+  better, than the best model.
+
 ## Backfill (`mvd backfill`)
 
 `mvd backfill --from 2024-01-01 [--to D] [--max-calls N] [--github-release]` fills

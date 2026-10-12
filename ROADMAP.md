@@ -158,7 +158,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 ### Phase 5: Depth & outreach
 - [ ] 5.1 Seasonal and diurnal breakdowns (e.g. ALADIN vs ICON-D2 at night inversions)
 - [ ] 5.2 Extreme-event verification (heavy precipitation days, heat days)
-- [ ] 5.3 Ensemble/"best blend" baseline: does a simple mean beat every single model?
+- [x] 5.3 Ensemble/"best blend" baseline: does a simple mean beat every single model?
 - [ ] 5.4 Methodology doc (`docs/methodology.md`) with limitations
 - [ ] 5.5 Upstream contributions where useful (e.g. CHMI coverage in `wetterdienst`, after checking their AI policy)
 - [ ] 5.6 Write-up / blog post with findings
