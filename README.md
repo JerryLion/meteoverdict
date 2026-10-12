@@ -166,10 +166,12 @@ to that okres's forecast. `forecast.html` combines today's forecasts of all mode
 for one okres with weights from their scores there (it asks the Open-Meteo Forecast API
 from the browser). `tv.html` is a TV-style forecast map from `outlook.json` (see
 `mvd outlook` below). Above the map only the time: day tabs and the part of the day
-(with its hours), plus a play button: it runs morning, afternoon and evening of every
-day with smooth transitions (colours and numbers move from one state to the next), and
-when it reaches the last day it starts again with the next value as the map colour
-(temperature → rain → wind → cloud), which is then also shown at the okresy. On the map a
+(with its hours), and two play buttons with smooth transitions (colours and numbers
+move from one state to the next): "Přehrát den" next to the parts of the day runs night,
+morning, afternoon and evening of the chosen day, "Přehrát týden" on the day tabs runs
+them for every day. Each new round switches the map colour to the next value
+(temperature → rain → wind → cloud), which is then also shown at the okresy and named in
+the headline. On the map a
 "what the map shows" box: any of temperature, chance of rain, wind and cloud at each
 okres (temperature as the big number, the others as small chips) and one of them, or
 none, as the colour of the okresy. Markers that would overlap are left out (kraj
