@@ -103,8 +103,13 @@ wind are corrected by its mean error there; precipitation is weighted but not
 corrected. The weights are shrunk towards a plain mean while there are few scored days
 (half-way after 30 days). Hours in the next 24 h use the D+1 weights, later hours those
 of their lead day (up to D+5), and models that do not reach an hour are left out with
-the other weights rescaled. Precipitation weights come from daily totals but are
+the other weights rescaled; a model that ends early fades out over its last 3 hours, so
+the curve does not jump. Precipitation weights come from daily totals but are
 applied to hourly values. Details: [data-sources.md](data-sources.md#combination-weights-roadmap-62).
+
+How this compares with operational practice (Bureau of Meteorology OCF, NOAA's
+National Blend of Models, MeteoSwiss) and what still has to be tested:
+[forecast-research.md](forecast-research.md).
 
 This is a forecast built on the ranking, not yet a verified one: whether it beats the
 best single model has to be shown out of sample (roadmap 6.4). Until then the page
