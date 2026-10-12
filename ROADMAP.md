@@ -123,7 +123,8 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 1.3 Verify which Open-Meteo models cover CZ and their Previous Runs history start; write `models.yaml`
 - [x] 1.4 Station → kraj mapping (point-in-polygon with open kraj boundaries) + elevation class
 - [x] 1.4b Okres boundaries (ČÚZK, same pipeline as kraje) + station → okres column
-- [ ] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
+- [x] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
+- [ ] 1.5b Daily precipitation from the ~280 manual rain-gauge stations (`recent/data/daily`, `SRA`), with ČHMÚ's daily accumulation window
 - [ ] 1.6 `fetch-fc`: Previous Runs client, batched locations, 14-day windows, retries, rate-limit aware (free tier: 600/min, 5k/h, 10k/day, 300k/month)
 - [ ] 1.7 Raw store: monthly Parquet partitions; upload/download to GitHub Release assets
 - [ ] 1.8 Unit tests with recorded fixtures (no network in CI)
@@ -139,7 +140,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 
 ### Phase 3: Publish
 - [ ] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
-- [ ] 3.2 GitHub Actions daily cron: `mvd daily` → commit JSON + README, upload raw data
+- [ ] 3.2 GitHub Actions daily cron: `mvd daily` → commit JSON + README, upload raw data. Must fetch yesterday's observations from `now/` every day (kept ~3 days; the current month is not in `recent/` yet) and re-fetch months from `recent/` once published
 - [ ] 3.3 Data quality checks (missing stations, outliers, stale data) that fail loudly
 - [ ] 3.4 Badge / "last updated" timestamp in README
 
