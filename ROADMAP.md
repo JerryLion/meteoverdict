@@ -139,7 +139,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 2.5 Bootstrap confidence intervals for ranking
 - [x] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; all models and stations since 2024 ≈ 333k Open-Meteo calls, so it must be spread over 2+ months of the free quota)
 - [x] 2.7 Score precipitation over ČHMÚ's 06–06 UTC climatological day (`precipitation_24h`): manual rain gauges plus automatic stations, ranked and shown in the README leaderboard
-- [ ] 2.8 Rain gauges in `backfill` and `daily`: gauge observations per month (they arrive ~1 month late), forecasts at the gauge positions (precipitation only; 28-day requests cost the same as 14-day ones)
+- [x] 2.8 Rain gauges in `backfill` and `daily`: gauge observations per month (they arrive ~1 month late), forecasts at the gauge positions (precipitation only; 28-day requests cost the same as 14-day ones)
 
 ### Phase 3: Publish
 - [x] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
