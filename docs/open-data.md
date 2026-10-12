@@ -35,6 +35,13 @@ Benešov, `CZ020A` Praha-západ, `CZ0100` Praha).
   (`models.from`, `models.to`).
 - `licence`, `attribution`, `docs`.
 
+## On an e-ink display
+
+[MeteoVerdict for TRMNL](https://github.com/JerryWoof/MeteoVerdict-TRMNL) is built on
+these files: today and tomorrow, the next 24 hours or five days for one okres on a TRMNL
+e-ink display. It uses `forecast.hourly` and `forecast.parts`, including `sunrise`,
+`sunset` and `sunshine`, so changes to those fields should keep it in mind.
+
 ## How they are made
 
 `web/scripts/build-api.mjs` (part of `npm run build`, logic in `web/src/api.js`) writes
