@@ -338,6 +338,33 @@ in the whole history, e.g. all summers, so models can be compared by season (the
   last 90 days, for the ranked variables at D+1 and D+2 (about 65 kB per station, so
   only in the release `data-latest`).
 
+## Combination weights (roadmap 6.2)
+
+`mvd aggregate` also writes, for the web map's own forecast, how to combine the models
+in each okres (`meteoverdict.combine`), from the okres scores of the last 90 days
+(window `90d`, same fair station-days, borrowed stations included):
+
+| Open-Meteo variable | Weights from | Bias correction |
+|---|---|---|
+| `temperature_2m` | `temperature_2m` (synoptic hours, where every model is native) | yes |
+| `wind_speed_10m` | `wind_speed_10m` | yes |
+| `precipitation` | `precipitation_daily` (daily totals) | no |
+
+- Weight of a model ∝ `1 / (RMSE² − bias²)` (the error left after removing its mean
+  error) where it is bias-corrected, `1 / RMSE²` for precipitation; error variances
+  below 0.01 count as 0.01.
+- Shrinkage towards the plain mean, by the number of scored days:
+  `s = days / (days + 30)`, weight `s · w + (1 − s) / models`, correction `s · bias`.
+- Combined forecast: `Σ weight · (forecast − correction)` over the models available
+  for the hour, weights rescaled to sum to 1.
+- Files: `site/data/forecast/okresy.json` (`code`, `name`, `lat`, `lon` of a point
+  inside each okres: the centroid of its largest part, or the nearest inside point;
+  `weights` false where the okres has no scores yet) and
+  `site/data/forecast/<okres>.json` (`variable`, `lead_day`, `model`, `weight`,
+  `correction`, `mae`, `rank`, `days`; about 8 kB each). Only in the release
+  `data-latest`, like the okres scores.
+- Not yet verified: whether the combination beats the best single model is roadmap 6.4.
+
 ## Ranking with confidence intervals (roadmap 2.5)
 
 `meteoverdict.ranking` (run by `mvd aggregate`) ranks the models of every level,
