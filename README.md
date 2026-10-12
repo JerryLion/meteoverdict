@@ -58,6 +58,10 @@ per kraj (region) and elevation class. Scope of v1: 2 m temperature, precipitati
    (kraj) and elevation.
 4. Publish the results to this README and to a web map (GitHub Pages).
 
+What the results mean and where they can mislead (point versus grid cell, Open-Meteo's
+elevation correction, manual gauge timing, statistics):
+[docs/methodology.md](docs/methodology.md).
+
 ## Data sources
 
 | Source | What we use | Licence |
