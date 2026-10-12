@@ -264,8 +264,8 @@ value is used where there is one; at automatic stations the 24 hourly sums endin
 07:00 … 06:00 (all must exist). The forecast is the sum of the same 24 hourly values;
 like the UTC-day total, each hour comes from its own lead day (the hours after midnight
 from the run one day later). Every native period of 3 or 6 hours fits into the window,
-so this works for every model. The README leaderboard shows this column for
-precipitation; `precipitation_daily` stays in the map data.
+so this works for every model. The maps rank precipitation by this score by default;
+`precipitation_daily` is also in the map data.
 
 The temperature at the four **synoptic hours** 00, 06, 12 and 18 UTC (roadmap 5.1b)
 is also scored on its own (`temperature_2m_00utc` …). Every model, the 6-hourly ones
@@ -435,9 +435,8 @@ hour and lead day and variable, wherever at least 3 models have a value.
   without a blend (fewer than 3 members) is dropped for every model there.
 - **Ranking:** the blend is not ranked (`rank` null) and never takes the win from a
   model. Its `diff_to_best` and interval are relative to the best single model, so
-  `diff_ci_high` below 0 means the mean beats every model in that region. The README
-  states under the leaderboard in how many regions it is better, and significantly
-  better, than the best model.
+  `diff_ci_high` below 0 means the mean beats every model in that region; the model
+  comparison page shows it next to the ranked models.
 
 ## Backfill (`mvd backfill`)
 
@@ -493,9 +492,10 @@ concurrency group because both write release assets). No Open-Meteo calls.
 3. Re-score the last 100 days, so captured observations, forecast windows completed by
    the backfill, and checked data replacing unchecked data all reach the scores.
 4. Push changed months, pull all score months, aggregate and rank, write `site/data`
-   and the README leaderboard, and replace `aggregates.parquet` and `site-data.zip` in
+   and `site/data/badge.json`, and replace `aggregates.parquet` and `site-data.zip` in
    the release `data-latest`.
-5. The workflow commits `README.md`, `site/data/badge.json` and `site/data/meta.json`.
+5. The workflow commits `site/data/badge.json` and `site/data/meta.json` (the README
+   no longer has a generated leaderboard; roadmap 6.14).
    The score JSON is only in `data-latest` and on GitHub Pages: even the summary levels
    are about 3 MB a day (first real data, October 2026), too much for the git history.
 
@@ -505,7 +505,7 @@ daily (unchecked first, replaced by checked data once ČHMÚ publishes the month
 ## Data quality (`mvd check`)
 
 Run by the daily workflow after `mvd daily` and before the commit. An **error** fails
-the run, so GitHub notifies the owner and the leaderboard is not committed; the report
+the run, so GitHub notifies the owner and nothing is committed; the report
 also appears on the run page (job summary).
 
 | Check | Error | Warning |
