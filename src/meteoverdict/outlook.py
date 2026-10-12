@@ -152,14 +152,14 @@ def _lead_weights(weights: pl.DataFrame) -> pl.DataFrame:
     )
 
 
-def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.DataFrame:
-    """One row per okres and hour: the combined temperature, precipitation and wind,
-    the plain mean of cloud cover, and the number of models."""
+def with_lead_and_fade(fc: pl.DataFrame, now: datetime) -> pl.DataFrame:
+    """Add ``lead_day`` (whole days ahead of ``now``, 1 to MAX_LEAD_DAY) and ``fade``
+    (1, then 3/4, 1/2, 1/4 in the last hours of a model that ends before the others)."""
     hours = (pl.col("time") - pl.lit(now)).dt.total_hours()
     last = (
         pl.col("time").filter(pl.col("temperature_2m").is_not_null()).max().over("okres", "model")
     )
-    fc = fc.with_columns(
+    return fc.with_columns(
         pl.min_horizontal(pl.lit(MAX_LEAD_DAY), pl.max_horizontal(pl.lit(1), hours // 24))
         .cast(pl.Int8)
         .alias("lead_day"),
@@ -174,6 +174,12 @@ def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl
         )
         .alias("fade"),
     )
+
+
+def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.DataFrame:
+    """One row per okres and hour: the combined temperature, precipitation and wind,
+    the plain mean of cloud cover, and the number of models."""
+    fc = with_lead_and_fade(fc, now)
     lead = _lead_weights(weights)
     out = fc.group_by("okres", "time").agg(
         pl.col("cloud_cover").mean(), pl.col("model").n_unique().alias("models")
@@ -218,15 +224,8 @@ def probability(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.Da
     """Per okres, day and part (and ``part`` = "day" for whole days): the weighted share
     of models whose own precipitation total is at least ``WET_MM``. Only models that
     cover as many hours of the period as the longest one count."""
-    hours = (pl.col("time") - pl.lit(now)).dt.total_hours()
     lead = _lead_weights(weights).filter(pl.col("variable") == "precipitation")
-    rows = _local(
-        fc.drop_nulls("precipitation").with_columns(
-            pl.min_horizontal(pl.lit(MAX_LEAD_DAY), pl.max_horizontal(pl.lit(1), hours // 24))
-            .cast(pl.Int8)
-            .alias("lead_day")
-        )
-    )
+    rows = _local(with_lead_and_fade(fc, now).drop_nulls("precipitation"))
     frames = []
     for period in ("part", "day"):
         keys = ["okres", "day"] if period == "day" else ["okres", "day", "part"]
