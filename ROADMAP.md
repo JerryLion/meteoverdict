@@ -151,7 +151,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 ### Phase 4: Web app
 - [x] 4.1 Vite + MapLibre scaffold, GitHub Pages deploy workflow
 - [x] 4.2 Map: stations as dots and okresy/kraje as choropleth, coloured by best model; legend; "too few stations" state
-- [ ] 4.3 Controls: variable, lead time, window (90 d / season / all)
+- [x] 4.3 Controls: variable, lead time, window (90 d / season / all)
 - [ ] 4.4 Station layer + click → per-model error time series (Observable Plot)
 - [ ] 4.5 Model comparison page: overall ranking, bias by elevation class
 - [ ] 4.6 Czech / English toggle
