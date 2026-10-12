@@ -111,6 +111,11 @@ How this compares with operational practice (Bureau of Meteorology OCF, NOAA's
 National Blend of Models, MeteoSwiss) and what still has to be tested:
 [forecast-research.md](forecast-research.md).
 
+The forecast map (`tv.html`) shows the same combination for every okres, made twice a
+day by `mvd outlook`: by part of day, with the probability of precipitation (the
+weighted share of models forecasting at least 0.2 mm) and a symbol; cloud cover there is
+a plain mean of the models and not verified.
+
 This is a forecast built on the ranking, not yet a verified one: whether it beats the
 best single model has to be shown out of sample (roadmap 6.4). Until then the page
 says so.
