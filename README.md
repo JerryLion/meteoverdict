@@ -12,7 +12,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 
 - **Works today:** the whole pipeline. Station table with okres, kraj and elevation
   class (782 stations); hourly ČHMÚ observations (~470 automatic stations) and daily
-  totals of the ~280 manual rain gauges (`mvd fetch-gauges`); forecasts of
+  totals of the ~280 manual rain gauges (`mvd fetch-gauges`), scored over ČHMÚ's
+  06–06 UTC climatological day; forecasts of
   11 models from Open-Meteo at D+1…D+5 (archive starts and lead days measured live);
   pairing at each model's native time resolution; additive daily scores; aggregates per
   station, okres, kraj, elevation class and Czechia with bootstrap confidence intervals;
@@ -28,7 +29,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   (`mvd check`).
 - **Freshness:** the "last updated" badge above and a line under the leaderboard show
   when the daily run last updated the table and how recent the scores are.
-- **Next:** scoring the rain gauges (2.7) and the web map (phase 4).
+- **Next:** fetching forecasts at the rain gauges in the backfill and daily runs (2.8),
+  then the web map (phase 4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
