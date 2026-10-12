@@ -179,6 +179,26 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
   (checked 2026-10-12, see [licensing.md](licensing.md)). Credit "Czech
   Hydrometeorological Institute (ČHMÚ), opendata.chmi.cz, CC BY 4.0".
 
+## Metrics
+
+`meteoverdict.metrics` (roadmap 2.2). Error = forecast − observed.
+
+| Metric | Formula | Used for |
+|---|---|---|
+| MAE | Σ\|error\| / n | temperature, wind, precipitation amounts |
+| bias | Σ error / n (positive = forecast too high) | same |
+| RMSE | √(Σ error² / n) | same |
+| POD | a / (a + c) | daily precipitation ≥ 0.1 mm and ≥ 5 mm |
+| FAR | b / (a + b) | same |
+| ETS | (a − a_r) / (a + b + c − a_r), a_r = (a + b)(a + c) / n | same |
+
+a = hits, b = false alarms, c = misses, d = correct negatives; an event is "at least the
+threshold". Scores are stored as additive sums (`n`, `sum_err`, `sum_abs_err`,
+`sum_sq_err`, `a_*`, `b_*`, `c_*`, `d_*`), so they can be summed over days, stations and
+regions before the metrics are computed; a metric whose denominator is zero is null.
+Checked against Finley's (1884) tornado forecasts (a = 28, b = 72, c = 23, d = 2680:
+POD 0.549, FAR 0.72, ETS 0.216).
+
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
