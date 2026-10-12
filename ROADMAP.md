@@ -157,7 +157,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 
 ### Phase 5: Depth & outreach
 - [x] 5.1a Seasonal breakdowns: windows of all winters, springs, summers and autumns
-- [ ] 5.1b Diurnal breakdowns: errors by hour of the day (e.g. ALADIN vs ICON-D2 at night inversions)
+- [x] 5.1b Diurnal breakdowns: temperature errors at 00, 06, 12 and 18 UTC, where every model is native (e.g. ALADIN vs ICON-D2 at night inversions)
 - [x] 5.2a Heavy precipitation: POD/FAR/ETS for days with at least 20 mm (ETCCDI index R20mm), daily and 06–06 totals
 - [x] 5.2b Heat days: daily maximum temperature (≥ 30 °C) for models with hourly output at that lead day
 - [x] 5.3 Ensemble/"best blend" baseline: does a simple mean beat every single model?
