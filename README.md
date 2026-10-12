@@ -30,7 +30,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   (`mvd check`).
 - **Freshness:** the "last updated" badge above and a line under the leaderboard show
   when the daily run last updated the table and how recent the scores are.
-- **Next:** the web map (phase 4).
+- **Next:** the web map (phase 4): the scaffold builds; colouring regions by the best
+  model comes next. Publishing needs GitHub Pages enabled.
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -95,6 +96,16 @@ uv run ruff check . && uv run ruff format --check . && uv run pytest
 uv run mvd stations             # download ČHMÚ station metadata → data/stations.parquet
 uv run mvd models [--all]       # list the compared weather models (from models.yaml)
 uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecasts locally
+```
+
+**Web map** (`web/`, Vite + MapLibre, Node 22). It shows the kraj and okres
+boundaries on a plain background (no third-party map tiles) and reads the scores from
+`site/data`. `.github/workflows/pages.yml` builds it after every daily update and
+publishes it on GitHub Pages once Pages is enabled for the repository
+(Settings → Pages → Source: GitHub Actions); until then it only builds.
+
+```bash
+cd web && npm ci && npm test && npm run dev   # local map at http://localhost:5173
 ```
 
 **ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so a GitHub
