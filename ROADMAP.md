@@ -140,7 +140,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; all models and stations since 2024 ≈ 333k Open-Meteo calls, so it must be spread over 2+ months of the free quota)
 
 ### Phase 3: Publish
-- [ ] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
+- [x] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
 - [ ] 3.2 GitHub Actions daily cron: `mvd daily` → commit JSON + README, upload raw data. Forecasts in 14-day windows (≈ 6,900 calls each, any shorter window costs the same). Must fetch yesterday's observations from `now/` every day (kept ~3 days; the current month is not in `recent/` yet) and re-fetch months from `recent/` once published
 - [ ] 3.3 Data quality checks (missing stations, outliers, stale data) that fail loudly
 - [ ] 3.4 Badge / "last updated" timestamp in README

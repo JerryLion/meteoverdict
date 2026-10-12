@@ -40,7 +40,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   statistically tied with it.
 - **Backfill:** a daily workflow fills the history since 2024 newest first within the
   free Open-Meteo quota (about 2–3 months in total).
-- **Next:** the README leaderboard (3.1) and the daily pipeline (3.2).
+- **Leaderboard:** `mvd report --readme` writes the table above from the aggregates;
+  it stays empty until the daily pipeline publishes real scores.
+- **Next:** the daily pipeline (3.2).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -176,12 +178,16 @@ Open-Meteo quota and remembers its progress, so it can run a little every day; a
 Actions workflow does that with 6,000 calls a day (all history takes 2–3 months)
 ([details](docs/data-sources.md#backfill-mvd-backfill)).
 
+```bash
+uv run mvd report            # print the leaderboard
+uv run mvd report --readme   # rewrite the block between the LEADERBOARD markers above
+```
+
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
 
 | Command | Purpose | Roadmap |
 |---|---|---|
-| `mvd report [--readme]` | leaderboard (optionally into this README) | 3.1 |
 | `mvd daily [--date D]` | whole pipeline for one day (default: yesterday, UTC) | 3.2 |
 
 Dates are `YYYY-MM-DD` in UTC.
