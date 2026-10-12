@@ -153,7 +153,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 4.2 Map: stations as dots and okresy/kraje as choropleth, coloured by best model; legend; "too few stations" state
 - [x] 4.3 Controls: variable, lead time, window (90 d / season / all)
 - [x] 4.4 Station layer + click → per-model error time series (Observable Plot)
-- [ ] 4.5 Model comparison page: overall ranking, bias by elevation class
+- [x] 4.5 Model comparison page: overall ranking, bias by elevation class
 - [ ] 4.6 Czech / English toggle
 
 ### Phase 5: Depth & outreach
