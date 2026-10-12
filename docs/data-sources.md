@@ -222,6 +222,7 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 | POD | a / (a + c) | daily precipitation ≥ 0.1 mm, ≥ 5 mm and ≥ 20 mm (heavy precipitation, the ETCCDI index R20mm) |
 | FAR | b / (a + b) | same |
 | ETS | (a − a_r) / (a + b + c − a_r), a_r = (a + b)(a + c) / n | same |
+| POD, FAR, ETS | as above | daily maximum temperature ≥ 30 °C (a "tropický den", tropical day) |
 
 a = hits, b = false alarms, c = misses, d = correct negatives; an event is "at least the
 threshold". Scores are stored as additive sums (`n`, `sum_err`, `sum_abs_err`,
@@ -237,7 +238,7 @@ plus the next day, for the last day's precipitation) and writes
 `data/scores/YYYY-MM.parquet`: one row per `date`, `station_id`, `model`, `lead_day`
 and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_err`,
 `sum_sq_err`; for `precipitation_daily` and `precipitation_24h` also `a_*`, `b_*`,
-`c_*`, `d_*` for 0.1, 5 and 20 mm).
+`c_*`, `d_*` for 0.1, 5 and 20 mm; for `temperature_max` for 30 °C).
 
 | `variable` | `period_h` | Day of a pair |
 |---|---|---|
@@ -245,6 +246,7 @@ and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_e
 | `precipitation` | 1, 3 or 6 (the model's native period) | UTC date the period ends in (01:00 … 24:00) |
 | `precipitation_daily` | 24 | the UTC day |
 | `precipitation_24h` | 24 | the day ČHMÚ's climatological day starts (06:00 to 06:00 UTC) |
+| `temperature_max` | 24 | the UTC day (highest of the 24 hourly values, 00:00 … 23:00) |
 
 Hourly precipitation MAEs of different periods are not comparable, so models are
 ranked on `precipitation_daily` and `precipitation_24h`.
@@ -257,6 +259,13 @@ like the UTC-day total, each hour comes from its own lead day (the hours after m
 from the run one day later). Every native period of 3 or 6 hours fits into the window,
 so this works for every model. The README leaderboard shows this column for
 precipitation; `precipitation_daily` stays in the map data.
+
+`temperature_max` (roadmap 5.2b) compares the highest hourly temperature of each UTC
+day, forecast and observed, and counts heat days (at least 30 °C). It is scored only
+for models with hourly output at that lead day (not AIFS, IFS 0.25°, nor the
+3-hourly lead days of ICON-EU, IFS HRES, GFS and UKMO, nor the blend): the highest
+interpolated hour would cut off the afternoon peak. Both sides use values at the full
+hour, so the observed maximum is a little below ČHMÚ's own daily maximum (`TMA`).
 
 A day can only be scored once its observations are
 published: on 2026-10-12 the latest complete checked month was September 2026 (see

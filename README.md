@@ -15,10 +15,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   totals of the ~280 manual rain gauges, scored over ČHMÚ's 06–06 UTC climatological
   day; forecasts of 11 models from Open-Meteo at D+1…D+5 (archive starts and lead days
   measured live); pairing at each model's native time resolution; additive daily scores
-  (with hit rates for wet, ≥ 5 mm and heavy ≥ 20 mm days); aggregates per station,
-  okres, kraj, elevation class and Czechia with bootstrap confidence intervals; the
-  leaderboard below and JSON for the web map; a mean of all models as a baseline that
-  every model has to beat.
+  (with hit rates for wet, ≥ 5 mm and heavy ≥ 20 mm days, and for heat days ≥ 30 °C);
+  aggregates per station, okres, kraj, elevation class and Czechia with bootstrap
+  confidence intervals; the leaderboard below and JSON for the web map; a mean of all
+  models as a baseline that every model has to beat.
 - **Running automatically:** ALADIN runs are archived every 3 hours (ČHMÚ keeps them 3
   days); the backfill fills the history since 2024, stations and rain gauges, newest
   first within the free Open-Meteo quota (about 3 months in total); the daily workflow
