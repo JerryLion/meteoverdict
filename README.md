@@ -43,6 +43,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
+- **Model comparison per region:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html)
+  ranks the models in Czechia, every kraj and every okres, with intervals, skill against
+  the mean of all models and errors by lead day.
 - **Forecast map:** the [TV-style map](https://jerrylion.github.io/meteoverdict/tv.html)
   shows our combined forecast for every okres for six days, by night, morning,
   afternoon and evening: weather symbols with temperature, chance of rain, wind and
@@ -169,9 +172,12 @@ t/p/w/c for the values shown). Variable, lead time and period
 (last 90 days, this season, all time, all winters …) are chosen in the header and kept
 in the URL (`#temperature_2m/1/90d`). Clicking a station charts each model's daily error
 there over the last 90 days (D+1 and D+2). A second page, `compare.html`, ranks the
-models for all of Czechia (MAE, difference to the best with its interval, bias, RMSE,
-and the mean of all models as a baseline) and charts their bias by elevation class. Both
-pages are in Czech or English (Czech for Czech and Slovak browsers; a button switches
+models for Czechia, any kraj or any okres (chosen in a list or on a small map coloured
+by the best model per okres): MAE, difference to the best with its 95 % interval (also
+as a chart, so ties are visible), skill against the mean of all models, bias, RMSE,
+ETS/POD/FAR for precipitation, stations (borrowed ones in brackets) and days; it charts
+each model's MAE by lead day and, for Czechia, the bias by elevation class. The pages
+are in Czech or English (Czech for Czech and Slovak browsers; a button switches
 and the choice is remembered in the browser). Boundaries are drawn on a plain background
 (no third-party map tiles). It reads the scores and `stations.json` and the per-station
 series from `site/data`, which is published in the release `data-latest`
