@@ -229,16 +229,29 @@ POD 0.549, FAR 0.72, ETS 0.216).
 plus the next day, for the last day's precipitation) and writes
 `data/scores/YYYY-MM.parquet`: one row per `date`, `station_id`, `model`, `lead_day`
 and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_err`,
-`sum_sq_err`; for `precipitation_daily` also `a_*`, `b_*`, `c_*`, `d_*` for 0.1 and 5 mm).
+`sum_sq_err`; for `precipitation_daily` and `precipitation_24h` also `a_*`, `b_*`,
+`c_*`, `d_*` for 0.1 and 5 mm).
 
 | `variable` | `period_h` | Day of a pair |
 |---|---|---|
 | `temperature_2m`, `wind_speed_10m` | 0 | UTC date of the hour |
 | `precipitation` | 1, 3 or 6 (the model's native period) | UTC date the period ends in (01:00 … 24:00) |
 | `precipitation_daily` | 24 | the UTC day |
+| `precipitation_24h` | 24 | the day ČHMÚ's climatological day starts (06:00 to 06:00 UTC) |
 
 Hourly precipitation MAEs of different periods are not comparable, so models are
-ranked on `precipitation_daily`. A day can only be scored once its observations are
+ranked on `precipitation_daily` and `precipitation_24h`.
+
+`precipitation_24h` is the window of the manual rain gauges (see "Manual rain gauges"),
+so it is the one precipitation score that covers all ~750 stations. A gauge's own
+value is used where there is one; at automatic stations the 24 hourly sums ending
+07:00 … 06:00 (all must exist). The forecast is the sum of the same 24 hourly values;
+like the UTC-day total, each hour comes from its own lead day (the hours after midnight
+from the run one day later). Every native period of 3 or 6 hours fits into the window,
+so this works for every model. The README leaderboard shows this column for
+precipitation; `precipitation_daily` stays in the map data.
+
+A day can only be scored once its observations are
 published: on 2026-10-12 the latest complete checked month was September 2026 (see
 "File names" above). A run over 20 stations and 14 days took 0.2 s.
 
@@ -265,7 +278,8 @@ published: on 2026-10-12 the latest complete checked month was September 2026 (s
 `meteoverdict.ranking` (run by `mvd aggregate`) ranks the models of every level,
 region, window, variable and lead day by MAE, on the same fair station-days as the
 aggregates. Ranked variables: `temperature_2m`, `wind_speed_10m`,
-`precipitation_daily` (hourly precipitation periods differ between models).
+`precipitation_daily`, `precipitation_24h` (hourly precipitation periods differ between
+models).
 
 - **Bootstrap:** 1,000 resamples of whole **days** with replacement. All stations and
   models of a day stay together, because forecast errors on one day are correlated
