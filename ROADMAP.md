@@ -176,6 +176,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 6.5 Review the combination method against operational practice and the literature (`docs/forecast-research.md`); taper models that end early
 - [x] 6.6 TV-style forecast: combined forecast for all okresy by part of day (night, morning, afternoon, evening), with precipitation probability and cloud symbols, refreshed twice a day
 - [x] 6.7 TV-style forecast map: symbols and temperatures per okres, day and part-of-day controls, click an okres for details
+- [x] 6.8 Forecast map: time controls apart from what the map shows; temperature, rain, wind and cloud at once
 
 ---
 
