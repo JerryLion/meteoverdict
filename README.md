@@ -144,7 +144,8 @@ from the browser). `tv.html` is a TV-style forecast map from `outlook.json` (see
 move from one state to the next): "Přehrát den" next to the parts of the day runs night,
 morning, afternoon and evening of the chosen day, "Přehrát týden" on the day tabs runs
 them for every day. Each new round switches the map colour to the next value
-(temperature → rain → wind → cloud) at once, without blending two different values,
+(temperature → rain → wind → cloud) with a quick half-second fade through the background,
+so two different values are never blended,
 and the new value is also shown at the okresy and named in the headline. On the map a
 "what the map shows" box: any of temperature, chance of rain, wind and cloud at each
 okres (temperature as the big number, the others as small chips) and one of them as
