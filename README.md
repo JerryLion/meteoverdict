@@ -20,7 +20,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   still empty.
 - **Archiving:** every ALADIN run (1 km and 2.3 km) is saved at all stations every three
   hours, since ČHMÚ deletes runs after three days.
-- **Next:** fetching observations (1.5) and forecasts (1.6).
+- **Observations:** `mvd fetch-obs` turns ČHMÚ 10-minute data into hourly
+  temperature, wind and precipitation for ~470 automatic stations.
+- **Next:** fetching forecasts from Open-Meteo (1.6).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -97,12 +99,21 @@ since 2024-01-01 are kept as inactive so the backfill can still use them. Statio
 outside Czechia are dropped (up to 2 km outside the border still counts, for stations
 on the border line). Use `--out PATH` to write elsewhere.
 
+```bash
+uv run mvd fetch-obs --start 2026-09-01 --end 2026-09-30   # hourly observations → data/obs/2026-09.parquet
+```
+
+`mvd fetch-obs` writes one Parquet file per month (`station_id`, `time` in UTC,
+`variable`, `value`, ČHMÚ `quality` code, `source`) for `temperature_2m` (°C),
+`wind_speed_10m` (m/s) and `precipitation` (mm in the hour ending at `time`). Running it
+again replaces the values for the same station, time and variable. How the hourly
+values are built: [docs/data-sources.md](docs/data-sources.md#hourly-observations-mvd-fetch-obs).
+
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
 
 | Command | Purpose | Roadmap |
 |---|---|---|
-| `mvd fetch-obs --start D --end D` | ČHMÚ hourly observations | 1.5 |
 | `mvd fetch-fc --start D --end D [--model M ...]` | Open-Meteo Previous Runs forecasts | 1.6 |
 | `mvd score --start D --end D` | daily scores table | 2.3 |
 | `mvd report [--readme]` | leaderboard (optionally into this README) | 3.1 |
