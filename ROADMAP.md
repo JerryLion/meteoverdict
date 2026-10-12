@@ -52,6 +52,7 @@ start later for one variable (ARPEGE wind); see `docs/data-sources.md#models`.
 | README leaderboard | Generated block between `<!-- LEADERBOARD:START/END -->` | repo |
 | Web app | Static: Vite + MapLibre GL + Observable Plot, reads JSON | GitHub Pages |
 | ALADIN archive | `mvd archive-aladin` every 3 h, one Parquet per run as Release assets (`aladin-YYYY-MM`) | GitHub Actions |
+| Backfill | `mvd backfill` daily with 6,000 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
 | Development | Claude scheduled task, weekdays, works from this roadmap, opens PRs | Claude (Cowork) |
 
 Two separate loops:
@@ -136,7 +137,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 2.3 `score`: daily scores table → `scores/YYYY-MM.parquet`
 - [x] 2.4 Aggregations: station / okres / kraj × model × variable × lead × window (90 d, season, all) → JSON, with a minimum station count per region
 - [x] 2.5 Bootstrap confidence intervals for ranking
-- [ ] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; all models and stations since 2024 ≈ 333k Open-Meteo calls, so it must be spread over 2+ months of the free quota)
+- [x] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; all models and stations since 2024 ≈ 333k Open-Meteo calls, so it must be spread over 2+ months of the free quota)
 
 ### Phase 3: Publish
 - [ ] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
