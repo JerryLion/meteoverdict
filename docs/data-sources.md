@@ -199,11 +199,30 @@ regions before the metrics are computed; a metric whose denominator is zero is n
 Checked against Finley's (1884) tornado forecasts (a = 28, b = 72, c = 23, d = 2680:
 POD 0.549, FAR 0.72, ETS 0.216).
 
+## Daily scores (`mvd score`)
+
+`mvd score --start D --end D` reads `data/obs` and `data/fc` (the months of the range
+plus the next day, for the last day's precipitation) and writes
+`data/scores/YYYY-MM.parquet`: one row per `date`, `station_id`, `model`, `lead_day`
+and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_err`,
+`sum_sq_err`; for `precipitation_daily` also `a_*`, `b_*`, `c_*`, `d_*` for 0.1 and 5 mm).
+
+| `variable` | `period_h` | Day of a pair |
+|---|---|---|
+| `temperature_2m`, `wind_speed_10m` | 0 | UTC date of the hour |
+| `precipitation` | 1, 3 or 6 (the model's native period) | UTC date the period ends in (01:00 … 24:00) |
+| `precipitation_daily` | 24 | the UTC day |
+
+Hourly precipitation MAEs of different periods are not comparable, so models are
+ranked on `precipitation_daily`. A day can only be scored once its observations are
+published: on 2026-10-12 the latest complete checked month was September 2026 (see
+"File names" above). A run over 20 stations and 14 days took 0.2 s.
+
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
-`data/obs/YYYY-MM.parquet` and `data/fc/YYYY-MM.parquet` as the assets
-`obs-YYYY-MM.parquet` and `fc-YYYY-MM.parquet` of the release `data-YYYY-MM`. GitHub
+`data/{obs,fc,scores}/YYYY-MM.parquet` as the assets `{obs,fc,scores}-YYYY-MM.parquet`
+of the release `data-YYYY-MM`. GitHub
 cannot overwrite a release asset, so a changed file is deleted and uploaded again; the
 asset label holds the file's SHA-256 so unchanged files are skipped. Downloads go
 through the API (`Accept: application/octet-stream`), which redirects to GitHub's storage
