@@ -94,6 +94,22 @@ The plain average of all models (at least 3 per hour) is scored like a model, bu
 ranked. It is compared with the best single model instead: if the average often wins,
 picking any single model is worse than averaging them.
 
+## Our own forecast (roadmap 6.2, 6.3)
+
+The forecast page combines, for one okres, the current forecasts of all models from the
+Open-Meteo Forecast API at a point inside the okres. Each model is weighted by how well
+it did there over the last 90 days (inverse of its error variance), and temperature and
+wind are corrected by its mean error there; precipitation is weighted but not
+corrected. The weights are shrunk towards a plain mean while there are few scored days
+(half-way after 30 days). Hours in the next 24 h use the D+1 weights, later hours those
+of their lead day (up to D+5), and models that do not reach an hour are left out with
+the other weights rescaled. Precipitation weights come from daily totals but are
+applied to hourly values. Details: [data-sources.md](data-sources.md#combination-weights-roadmap-62).
+
+This is a forecast built on the ranking, not yet a verified one: whether it beats the
+best single model has to be shown out of sample (roadmap 6.4). Until then the page
+says so.
+
 ## Limitations
 
 - **Borrowed stations.** Where an okres borrows, nearness is the only criterion; a
