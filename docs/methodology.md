@@ -104,7 +104,9 @@ corrected. The weights are shrunk towards a plain mean while there are few score
 (half-way after 30 days). Hours in the next 24 h use the D+1 weights, later hours those
 of their lead day (up to D+5), and models that do not reach an hour are left out with
 the other weights rescaled; a model that ends early fades out over its last 3 hours, so
-the curve does not jump. Precipitation weights come from daily totals but are
+the curve does not jump. The page draws, next to the combination, the model ranked
+best in the okres for each day of the forecast (it can be a different model on D+1 and
+D+3), and lists the largest weights of every lead day. Precipitation weights come from daily totals but are
 applied to hourly values. Details: [data-sources.md](data-sources.md#combination-weights-roadmap-62).
 
 How this compares with operational practice (Bureau of Meteorology OCF, NOAA's
