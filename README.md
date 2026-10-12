@@ -31,7 +31,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   on interpolated hours).
 - **Metrics:** MAE, bias, RMSE and, for daily precipitation, POD, FAR and ETS, stored
   as additive sums so they can be combined over any window or region.
-- **Next:** the daily scores table (2.3).
+- **Daily scores:** `mvd score` writes the daily scores table per station, model, lead
+  day and variable.
+- **Next:** aggregations per station, okres and kraj (2.4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -130,7 +132,7 @@ for all models and stations costs about 6,900, so `--max-calls` (default 9,000) 
 run in time and keeps what was fetched ([details](docs/data-sources.md#fetching-mvd-fetch-fc)).
 
 **Raw data store.** Monthly files are kept as assets of the GitHub release
-`data-YYYY-MM` (`obs-YYYY-MM.parquet`, `fc-YYYY-MM.parquet`, CC BY-SA 4.0):
+`data-YYYY-MM` (`obs-`, `fc-` and `scores-YYYY-MM.parquet`, CC BY-SA 4.0):
 
 ```bash
 export GITHUB_TOKEN=… GITHUB_REPOSITORY=JerryLion/meteoverdict
@@ -141,12 +143,19 @@ uv run mvd store upload                                  # only files that chang
 Each asset's label is the file's SHA-256, so unchanged files are skipped in both
 directions; a changed file replaces the stored one.
 
+```bash
+uv run mvd score --start 2026-09-01 --end 2026-09-30   # → data/scores/2026-09.parquet
+```
+
+`mvd score` pairs the stored observations and forecasts and writes one row per day,
+station, model, lead day and variable with additive error sums (and rain/no-rain
+counts for daily precipitation) ([details](docs/data-sources.md#daily-scores-mvd-score)).
+
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
 
 | Command | Purpose | Roadmap |
 |---|---|---|
-| `mvd score --start D --end D` | daily scores table | 2.3 |
 | `mvd report [--readme]` | leaderboard (optionally into this README) | 3.1 |
 | `mvd daily [--date D]` | whole pipeline for one day (default: yesterday, UTC) | 3.2 |
 | `mvd backfill --from D [--to D]` | history, month by month | 2.6 |
