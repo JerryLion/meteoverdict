@@ -30,10 +30,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   (`mvd check`).
 - **Freshness:** the "last updated" badge above and a line under the leaderboard show
   when the daily run last updated the table and how recent the scores are.
-- **Next:** the web map (phase 4): regions and stations are coloured by the best model,
-  with controls for variable, lead time and period, per-station error charts and a model
-  comparison page; a Czech/English switch comes next.
-  Publishing needs GitHub Pages enabled.
+- **Web map:** regions and stations coloured by the best model, controls for variable,
+  lead time and period, per-station error charts, a model comparison page, in Czech and
+  English. It goes live on GitHub Pages once Pages is enabled for the repository.
+- **Next:** results fill in as the backfill progresses; every roadmap item is done.
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -108,7 +108,8 @@ header and kept in the URL (`#temperature_2m/1/90d`). Clicking a station charts 
 model's daily error there over the last 90 days (D+1 and D+2). A second page,
 `compare.html`, ranks the models for all of Czechia (MAE, difference to the best with
 its interval, bias, RMSE, and the mean of all models as a baseline) and charts their
-bias by elevation class. Boundaries are drawn
+bias by elevation class. Both pages are in Czech or English (Czech for Czech and Slovak
+browsers; a button switches and the choice is remembered in the browser). Boundaries are drawn
 on a plain background (no third-party map tiles). It reads the scores and
 `stations.json` from `site/data`, and the per-station series from `site/data/series`
 (published in the release `data-latest`, not committed). `.github/workflows/pages.yml` builds it after every daily update and
