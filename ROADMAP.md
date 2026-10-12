@@ -131,7 +131,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 1.9 Archive ALADIN runs from ČHMÚ open data (kept there only 3 days): station values per run → GitHub Release assets, every 3 h
 
 ### Phase 2: Scoring
-- [ ] 2.1 Align obs/fc (time zones, accumulation periods for precip; AIFS and IFS 0.25° only at their native 6-/3-hourly hours, Open-Meteo interpolates the rest)
+- [x] 2.1 Align obs/fc (time zones, accumulation periods for precip; AIFS and IFS 0.25° only at their native 6-/3-hourly hours, Open-Meteo interpolates the rest)
 - [ ] 2.2 Metrics module (MAE, bias, RMSE, POD/FAR/ETS) + tests against hand-computed cases
 - [ ] 2.3 `score`: daily scores table → `scores/YYYY-MM.parquet`
 - [ ] 2.4 Aggregations: station / okres / kraj × model × variable × lead × window (90 d, season, all) → JSON, with a minimum station count per region
