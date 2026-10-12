@@ -85,7 +85,7 @@ closest to what ČHMÚ measured?
   resampled 1,000 times (all stations of a day together, because errors on one day are
   correlated across the country) and the MAE difference to the best model gets a 95 %
   interval.
-- A model whose interval includes zero is **tied with the best** ("≈" in the README);
+- A model whose interval includes zero is **tied with the best** ("≈" on the comparison page);
   the best model is a **clear winner** only if nobody is tied.
 
 ## Baseline: the mean of all models
