@@ -142,10 +142,10 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 - The ČHMÚ page ["Mohu získat vaše data pro svůj projekt?"](https://www.chmi.cz/-/mohu-z%C3%ADskat-va%C5%A1e-data-pro-sv%C5%AFj-projekt-)
   sends open-data users to opendata.chmi.cz and carries a **CC BY 4.0** badge in its
   footer. This suggests CC BY 4.0, but it is not an explicit statement for the dataset.
-- **Status: likely CC BY 4.0, not confirmed.** Until confirmed, credit "Czech
-  Hydrometeorological Institute (ČHMÚ), opendata.chmi.cz" wherever we show derived
-  data. To confirm: the dataset's record in the National Open Data Catalogue (NKOD,
-  data.gov.cz), or ask klima@chmi.cz.
+- **Confirmed: CC BY 4.0.** The National Open Data Catalogue (data.gov.cz) records
+  for the ČHMÚ station data and the ALADIN forecasts list CC BY 4.0, author ČHMÚ
+  (checked 2026-10-12, see [licensing.md](licensing.md)). Credit "Czech
+  Hydrometeorological Institute (ČHMÚ), opendata.chmi.cz, CC BY 4.0".
 
 ## ALADIN archive
 
@@ -241,8 +241,11 @@ hundred requests got `429 Too Many Requests`, so the client must batch and back 
   `wind_speed_10m`, the three we verify.
 - Archive: the docs say "most models are archived from January 2024"; measured per
   model below.
-- Licence: CC BY 4.0. Non-commercial use is free under 10,000 calls a day; commercial
-  use of this API needs the Professional subscription.
+- Licence: CC BY 4.0 (UK Met Office data: CC BY-SA 4.0). Free tier: non-commercial
+  only, 600 calls/min, 5,000/hour, 10,000/day, 300,000/month. A call is weighted:
+  locations × max(1, variables × models / 10 × max(1, days / 14)), so a 14-day window
+  costs the same as one day. Commercial use of this API needs the Professional
+  subscription. See [licensing.md](licensing.md).
 
 ### Models
 
