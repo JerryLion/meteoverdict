@@ -125,22 +125,22 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 1.4b Okres boundaries (ČÚZK, same pipeline as kraje) + station → okres column
 - [x] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
 - [ ] 1.5b Daily precipitation from the ~280 manual rain-gauge stations (`recent/data/daily`, `SRA`), with ČHMÚ's daily accumulation window
-- [ ] 1.6 `fetch-fc`: Previous Runs client, batched locations, 14-day windows, retries, rate-limit aware (free tier: 600/min, 5k/h, 10k/day, 300k/month)
+- [x] 1.6 `fetch-fc`: Previous Runs client, batched locations, 14-day windows, retries, rate-limit aware (free tier: 600/min, 5k/h, 10k/day, 300k/month)
 - [ ] 1.7 Raw store: monthly Parquet partitions; upload/download to GitHub Release assets
 - [ ] 1.8 Unit tests with recorded fixtures (no network in CI)
 - [x] 1.9 Archive ALADIN runs from ČHMÚ open data (kept there only 3 days): station values per run → GitHub Release assets, every 3 h
 
 ### Phase 2: Scoring
-- [ ] 2.1 Align obs/fc (time zones, accumulation periods for precip)
+- [ ] 2.1 Align obs/fc (time zones, accumulation periods for precip; AIFS and IFS 0.25° only at their native 6-/3-hourly hours, Open-Meteo interpolates the rest)
 - [ ] 2.2 Metrics module (MAE, bias, RMSE, POD/FAR/ETS) + tests against hand-computed cases
 - [ ] 2.3 `score`: daily scores table → `scores/YYYY-MM.parquet`
 - [ ] 2.4 Aggregations: station / okres / kraj × model × variable × lead × window (90 d, season, all) → JSON, with a minimum station count per region
 - [ ] 2.5 Bootstrap confidence intervals for ranking
-- [ ] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; spread over several months to stay within the free Open-Meteo quota)
+- [ ] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; all models and stations since 2024 ≈ 333k Open-Meteo calls, so it must be spread over 2+ months of the free quota)
 
 ### Phase 3: Publish
 - [ ] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
-- [ ] 3.2 GitHub Actions daily cron: `mvd daily` → commit JSON + README, upload raw data. Must fetch yesterday's observations from `now/` every day (kept ~3 days; the current month is not in `recent/` yet) and re-fetch months from `recent/` once published
+- [ ] 3.2 GitHub Actions daily cron: `mvd daily` → commit JSON + README, upload raw data. Forecasts in 14-day windows (≈ 6,900 calls each, any shorter window costs the same). Must fetch yesterday's observations from `now/` every day (kept ~3 days; the current month is not in `recent/` yet) and re-fetch months from `recent/` once published
 - [ ] 3.3 Data quality checks (missing stations, outliers, stale data) that fail loudly
 - [ ] 3.4 Badge / "last updated" timestamp in README
 
