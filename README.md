@@ -41,11 +41,15 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
+- **Own forecast (in progress):** every day `mvd aggregate` publishes, per okres,
+  variable and lead day, how to weight and bias-correct the models by their scores there
+  ([details](docs/data-sources.md#combination-weights-roadmap-62)); the web page that
+  combines today's forecasts with them is next.
 - **Upstream:** wetterdienst already reads ČHMÚ data, but only closed years; what we
   learned about the current-year files could fill that gap
   ([docs/upstream.md](docs/upstream.md)).
-- **Next:** a meteoverdict forecast per okres that combines the models by their scores
-  there (roadmap 6.2, 6.3); results fill in as the backfill progresses (each run's
+- **Next:** the combined forecast on the web map (roadmap 6.3) and checking it against
+  the best single model (6.4); results fill in as the backfill progresses (each run's
   progress is on its workflow page); then a write-up of the findings (roadmap 5.6).
   See [ROADMAP.md](ROADMAP.md).
 
