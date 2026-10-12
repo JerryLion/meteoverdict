@@ -149,7 +149,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 3.5 Compact score files (float32 sums, small integer counts, summed in 64 bits): about a third smaller, as the daily run downloads all score months
 
 ### Phase 4: Web app
-- [ ] 4.1 Vite + MapLibre scaffold, GitHub Pages deploy workflow
+- [x] 4.1 Vite + MapLibre scaffold, GitHub Pages deploy workflow
 - [ ] 4.2 Map: stations as dots and okresy/kraje as choropleth, coloured by best model; legend; "too few stations" state
 - [ ] 4.3 Controls: variable, lead time, window (90 d / season / all)
 - [ ] 4.4 Station layer + click → per-model error time series (Observable Plot)
