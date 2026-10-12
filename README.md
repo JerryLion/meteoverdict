@@ -38,7 +38,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Ranking:** models are ranked by MAE with bootstrap confidence intervals (whole days
   resampled); a model is only shown as the winner when no other model is
   statistically tied with it.
-- **Next:** backfill of the history (2.6).
+- **Backfill:** a daily workflow fills the history since 2024 newest first within the
+  free Open-Meteo quota (about 2–3 months in total).
+- **Next:** the README leaderboard (3.1) and the daily pipeline (3.2).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -165,6 +167,15 @@ for all of Czechia over the last 90 days, the current season and all time. Model
 compared only on the station-days they all cover, and regions with fewer than 3
 stations are flagged ([details](docs/data-sources.md#aggregates-mvd-aggregate)).
 
+```bash
+uv run mvd backfill --from 2024-01-01 --max-calls 6000   # resumable; run again to continue
+```
+
+`mvd backfill` fills the history newest first in 14-day windows within the free
+Open-Meteo quota and remembers its progress, so it can run a little every day; a GitHub
+Actions workflow does that with 6,000 calls a day (all history takes 2–3 months)
+([details](docs/data-sources.md#backfill-mvd-backfill)).
+
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
 
@@ -172,7 +183,6 @@ code 1, naming the roadmap item that will implement them.
 |---|---|---|
 | `mvd report [--readme]` | leaderboard (optionally into this README) | 3.1 |
 | `mvd daily [--date D]` | whole pipeline for one day (default: yesterday, UTC) | 3.2 |
-| `mvd backfill --from D [--to D]` | history, month by month | 2.6 |
 
 Dates are `YYYY-MM-DD` in UTC.
 
