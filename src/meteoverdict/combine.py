@@ -127,17 +127,21 @@ def _write(path: Path, frame: pl.DataFrame) -> Path:
     return path
 
 
+def okres_points() -> pl.DataFrame:
+    """``code``, ``name``, ``lat``, ``lon`` of the forecast point of every okres."""
+    points = []
+    for region in load_regions("okres"):
+        lon, lat = representative_point(region)
+        points.append((region.code, region.name, round(lat, 4), round(lon, 4)))
+    return pl.DataFrame(points, schema=["code", "name", "lat", "lon"], orient="row")
+
+
 def write_forecast(table: pl.DataFrame, out_dir: Path) -> list[Path]:
     """``out_dir/forecast/okresy.json`` and one ``out_dir/forecast/<okres>.json`` each."""
     folder = out_dir / "forecast"
     folder.mkdir(parents=True, exist_ok=True)
     w = weights(table)
-    points = []
-    for region in load_regions("okres"):
-        lon, lat = representative_point(region)
-        points.append((region.code, region.name, round(lat, 4), round(lon, 4)))
-    index = pl.DataFrame(points, schema=["code", "name", "lat", "lon"], orient="row")
-    index = index.with_columns(
+    index = okres_points().with_columns(
         pl.col("code").is_in(w["region"].unique().to_list()).alias("weights")
     )
     written = [_write(folder / "okresy.json", index.sort("code"))]
