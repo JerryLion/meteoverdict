@@ -31,10 +31,12 @@ def test_request_and_cost():
     points = pl.DataFrame({"code": CODES, "lat": [50.0668, 49.717], "lon": [14.466, 14.7767]})
     params = outlook.request_params(points, ["a", "b"])
     assert params["latitude"] == "50.0668,49.717"
-    assert params["hourly"] == "temperature_2m,precipitation,wind_speed_10m,cloud_cover"
+    assert params["hourly"] == (
+        "temperature_2m,precipitation,wind_speed_10m,cloud_cover,sunshine_duration"
+    )
     assert params["models"] == "a,b" and params["timezone"] == "GMT"
-    # 77 okresy, 4 variables x 11 models: 4.4 calls each
-    assert outlook.cost(77, 11) == pytest.approx(338.8)
+    # 77 okresy, 5 variables x 11 models: 5.5 calls each
+    assert outlook.cost(77, 11) == pytest.approx(423.5)
 
 
 def test_parse_the_saved_answer():
@@ -162,6 +164,7 @@ def test_parts_and_days_in_prague_time(tmp_path):
     points = pl.DataFrame(
         {"code": CODES, "name": ["Praha", "Benešov"], "lat": [50.0, 49.7], "lon": [14.4, 14.7]}
     )
+    table = outlook.with_sun(table, points)
     path = outlook.write(table, points, tmp_path / "outlook.json", NOW)
     doc = json.loads(path.read_text("utf-8"))
     assert doc["parts"] == ["night", "morning", "afternoon", "evening"]
@@ -169,6 +172,25 @@ def test_parts_and_days_in_prague_time(tmp_path):
     assert doc["columns"] == list(outlook.COLUMNS)
     assert doc["okresy"][1]["name"] == "Benešov"
     assert {r[0] for r in doc["rows"]} == set(CODES)
+    row = dict(zip(doc["columns"], doc["rows"][0], strict=True))
+    # 50.0 N 14.4 E on 12 October 2026: 07:19:34 and 18:17:21 Prague time (astral)
+    assert (row["okres"], row["day"]) == ("CZ0100", "2026-10-12")
+    assert (row["sunrise"], row["sunset"]) == ("07:19", "18:17")
+    # the saved answer has no sunshine: null, not 0 h
+    assert row["sunshine"] is None
+
+
+def test_sunshine_hours_are_the_sum_of_the_plain_hourly_mean():
+    # every model: 30 minutes of sunshine in each hour 08-15 Prague time (06-13 UTC)
+    hour = pl.col("time").dt.hour()
+    fc = FC.with_columns(
+        pl.when(hour.is_between(6, 13)).then(1800.0).otherwise(0.0).alias("sunshine_duration")
+    )
+    hourly = outlook.combine_hourly(fc, WEIGHTS, NOW)
+    table = outlook.summarise(hourly, outlook.probability(fc, WEIGHTS, NOW))
+    tomorrow = table.filter(pl.col("okres") == "CZ0201", pl.col("day") == date(2026, 10, 13))
+    by_part = dict(zip(tomorrow["part"], tomorrow["sunshine"], strict=True))
+    assert by_part == {"night": 0, "morning": 2.0, "afternoon": 2.0, "evening": 0, "day": 4.0}
 
 
 def test_outlook_end_to_end_with_a_mocked_api():

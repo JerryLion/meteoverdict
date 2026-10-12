@@ -19,11 +19,14 @@ Benešov, `CZ020A` Praha-západ, `CZ0100` Praha).
 - `okres`: code, name, and the forecast point inside the okres (`combine.okres_points`).
 - `forecast.generated`, `forecast.hourly`: `time` (UTC, `2026-10-12T00:00Z`) and the
   combined hourly series `temperature_2m` (°C), `precipitation` (mm in the hour ending at
-  the time), `wind_speed_10m` (m/s), `cloud_cover` (%, plain mean of the models, not
+  the time), `wind_speed_10m` (m/s), `cloud_cover` (%) and `sunshine_duration` (s of
+  sunshine in the hour ending at the time; both plain means of the models, not
   verified); 6 days; `null` where fewer than two models cover an hour.
 - `forecast.parts`: per day and part of day in Prague time (`night`, `morning`,
   `afternoon`, `evening`, `day`): `tmin`, `tmax`, `precipitation`, `rain_probability`,
-  `wind`, `cloud`, `symbol` (as on the forecast map; [data-sources.md](data-sources.md#outlook-mvd-outlook-roadmap-66)).
+  `wind`, `cloud`, `sunshine` (hours), `symbol` (as on the forecast map;
+  [data-sources.md](data-sources.md#outlook-mvd-outlook-roadmap-66)), and `sunrise`,
+  `sunset` (Prague time, `"07:21"`, at the okres point, the same on every row of a day).
 - `models.variables.<variable>` for `temperature_2m`, `wind_speed_10m`,
   `precipitation_daily` and `precipitation_24h`: `stations`, `borrowed`, `days`, and
   `lead_days."1"…"5"`: the models in rank order with `rank`, `mae`, `bias`, `rmse`,

@@ -372,29 +372,33 @@ The TV-style forecast for every okres (`meteoverdict.outlook`):
 
 - **Request:** one Open-Meteo **Forecast API** request (`api.open-meteo.com/v1/forecast`)
   for the forecast points of all 77 okresy, all models with weights,
-  `hourly=temperature_2m,precipitation,wind_speed_10m,cloud_cover`, `forecast_days=6`,
-  UTC; 77 × 4 × 11 / 10 ≈ 340 weighted calls (refused above 500). Checked live on
+  `hourly=temperature_2m,precipitation,wind_speed_10m,cloud_cover,sunshine_duration`,
+  `forecast_days=6`, UTC; 77 × 5 × 11 / 10 ≈ 420 weighted calls (refused above 500). Checked live on
   2026-10-12: a JSON list of 77 results, columns `<variable>_<model>`, 2.7 MB, under a
   second.
 - **Combination:** as on the forecast page (bias correction, weights of the hour's lead
-  day, models fading out over their last 3 hours, at least 2 models). Cloud cover is the
-  plain mean of the models (not verified).
+  day, models fading out over their last 3 hours, at least 2 models). Cloud cover and
+  sunshine are the plain mean of the models (not verified; all 13 models report
+  sunshine, checked 2026-10-12).
 - **Periods** in Prague time: night 0–6, morning 6–12, afternoon 12–18, evening 18–24,
   and the whole day; a part needs at least 4 hours and a day 18 (the answer starts at
   00 UTC, 02:00 in Prague in summer time).
 - **Per period:** `tmin`, `tmax`, `precipitation` (sum of the combined hourly values),
   `rain_probability` (weighted share of the models whose own total is ≥ 0.2 mm, among
   those covering the whole period), `wind` (highest combined hourly mean, m/s), `cloud`
-  (%), `symbol`: `rain` / `sleet` / `snow` (≤ 2 / ≤ 0.5 °C mean temperature) when the
+  (%), `sunshine` (hours, sum of the hourly mean), `symbol`: `rain` / `sleet` / `snow` (≤ 2 / ≤ 0.5 °C mean temperature) when the
   probability is ≥ 50 % and the total ≥ 0.2 mm, `showers` at ≥ 30 %, otherwise `clear`
   (< 25 % cloud), `partly` (< 70 %) or `cloudy`. The whole day's symbol uses the cloud
   of 6–18.
+- **Sunrise and sunset** (`sunrise`, `sunset`, Prague time "HH:MM") at the okres point,
+  computed with the NOAA solar equations (`meteoverdict.sun`, no request; within half a
+  minute of almanacs), the same on every row of a day.
 - **Output:** `site/data/outlook.json` `{"generated", "time_zone", "parts", "days",
   "okresy": [{code, name, lat, lon}], "columns", "rows"}` (about 110 kB);
   `.github/workflows/outlook.yml` runs it at 05:52 and 17:52 UTC and uploads it to the
   release `data-latest`, after which the Pages workflow rebuilds the map.
-- **Budget:** two runs a day ≈ 680 calls; the backfill's daily budget went from 9,000
-  to 8,500 so that both stay under 10,000 a day and 300,000 a month.
+- **Budget:** two runs a day ≈ 850 calls; with the backfill's daily budget of 8,500
+  both stay under 10,000 a day (9,350) and 300,000 a month.
 
 ## Ranking with confidence intervals (roadmap 2.5)
 
