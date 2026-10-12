@@ -9,40 +9,19 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 
 ## Status
 
-- **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
-  the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
-  data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples,
-  `mvd stations`, which builds the ČHMÚ station table with each station's okres, kraj
-  and elevation class (782 stations in all 77 okresy on 2026-10-12), and the model catalogue (`mvd models`):
-  11 Open-Meteo models that cover Czechia, with archive start dates and lead days
-  measured against the live API.
-- **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
-  still empty.
-- **Archiving:** every ALADIN run (1 km and 2.3 km) is saved at all stations every three
-  hours, since ČHMÚ deletes runs after three days.
-- **Observations:** `mvd fetch-obs` turns ČHMÚ 10-minute data into hourly
-  temperature, wind and precipitation for ~470 automatic stations.
-- **Forecasts:** `mvd fetch-fc` fetches what 11 models forecast 1–5 days ahead at
-  those stations, within the free Open-Meteo quota.
-- **Storage:** `mvd store` keeps the monthly observation and forecast files in GitHub
-  Releases.
-- **Scoring:** observations and forecasts are paired per station, hour and lead day at
-  each model's native time resolution (models with 3- or 6-hourly output are not judged
-  on interpolated hours).
-- **Metrics:** MAE, bias, RMSE and, for daily precipitation, POD, FAR and ETS, stored
-  as additive sums so they can be combined over any window or region.
-- **Daily scores:** `mvd score` writes the daily scores table per station, model, lead
-  day and variable.
-- **Aggregates:** `mvd aggregate` writes results per station, okres, kraj, elevation
-  class and Czechia for three time windows as JSON for the web map.
-- **Ranking:** models are ranked by MAE with bootstrap confidence intervals (whole days
-  resampled); a model is only shown as the winner when no other model is
-  statistically tied with it.
-- **Backfill:** a daily workflow fills the history since 2024 newest first within the
-  free Open-Meteo quota (about 2–3 months in total).
-- **Leaderboard:** `mvd report --readme` writes the table above from the aggregates;
-  it stays empty until the daily pipeline publishes real scores.
-- **Next:** the daily pipeline (3.2).
+- **Works today:** the whole pipeline. Station table with okres, kraj and elevation
+  class (782 stations); hourly ČHMÚ observations (~470 automatic stations); forecasts of
+  11 models from Open-Meteo at D+1…D+5 (archive starts and lead days measured live);
+  pairing at each model's native time resolution; additive daily scores; aggregates per
+  station, okres, kraj, elevation class and Czechia with bootstrap confidence intervals;
+  the leaderboard below and JSON for the web map.
+- **Running automatically:** ALADIN runs are archived every 3 hours (ČHMÚ keeps them 3
+  days); the backfill fills the history since 2024 newest first within the free
+  Open-Meteo quota (about 2–3 months in total); the daily workflow captures
+  observations, re-scores, and updates this README every morning.
+- **Not yet:** the leaderboard fills as the backfill and ČHMÚ's monthly publication of
+  checked observations progress. ALADIN has forecast history only from June 2026.
+- **Next:** data quality checks (3.3), "last updated" badge (3.4), the web map (phase 4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -183,12 +162,15 @@ uv run mvd report            # print the leaderboard
 uv run mvd report --readme   # rewrite the block between the LEADERBOARD markers above
 ```
 
-The commands below exist as stubs: they validate their options and exit with
-code 1, naming the roadmap item that will implement them.
+```bash
+uv run mvd daily             # capture observations, re-score, aggregate, update README
+```
 
-| Command | Purpose | Roadmap |
-|---|---|---|
-| `mvd daily [--date D]` | whole pipeline for one day (default: yesterday, UTC) | 3.2 |
+`mvd daily` (run every morning by `.github/workflows/daily.yml` with `--github-release`)
+uses no Open-Meteo calls: forecasts come from the backfill. It captures the last three
+days of observations, re-scores the last 100 days, aggregates and ranks everything,
+writes `site/data` and the leaderboard above, and publishes the full data to the release
+`data-latest` ([details](docs/data-sources.md#daily-pipeline-mvd-daily)).
 
 Dates are `YYYY-MM-DD` in UTC.
 

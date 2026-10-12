@@ -261,7 +261,10 @@ aggregates. Ranked variables: `temperature_2m`, `wind_speed_10m`,
 
 `mvd backfill --from 2024-01-01 [--to D] [--max-calls N] [--github-release]` fills
 history newest first in 14-day windows counted from `--from` (a window costs the same
-Open-Meteo quota as one day, so windows run across month boundaries). For each window:
+Open-Meteo quota as one day, so windows run across month boundaries). Only **complete**
+windows are processed; the newest one is picked up once its 14th day has passed, so
+fresh forecasts reach the scores within two weeks. Progress keys include the window's
+start and end. For each window:
 the observations of its months (once per month), the forecasts of every enabled model
 from its archive start, then the window's daily scores.
 
@@ -278,6 +281,26 @@ from its archive start, then the window's daily scores.
   one window a day; 2024-01-01 to now is about 70 windows, i.e. 2–3 months. ČHMÚ
   downloads are about 2.5 GB per month of history. Checked live on 3 stations × one
   window (41 calls, 6,270 score rows; a second run did nothing).
+
+## Daily pipeline (`mvd daily`)
+
+Run every morning by `.github/workflows/daily.yml` (05:17 UTC, after the backfill, same
+concurrency group because both write release assets). No Open-Meteo calls.
+
+1. Pull the months of the last 100 days from the releases.
+2. Capture the last 3 days of observations from `now/` (the current month reaches
+   `recent/` only after it ends).
+3. Re-score the last 100 days, so captured observations, forecast windows completed by
+   the backfill, and checked data replacing unchecked data all reach the scores.
+4. Push changed months, pull all score months, aggregate and rank, write `site/data`
+   and the README leaderboard, and replace `aggregates.parquet` and `site-data.zip` in
+   the release `data-latest`.
+5. The workflow commits `README.md` and the summary JSON levels (`cz`, `kraj`,
+   `elevation`); okres and station levels are only in `data-latest`, to keep the git
+   history small.
+
+Freshness: forecasts up to 2 weeks behind (complete backfill windows); observations
+daily (unchecked first, replaced by checked data once ČHMÚ publishes the month).
 
 ## Raw data store
 
