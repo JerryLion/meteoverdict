@@ -250,7 +250,7 @@ aggregates. Ranked variables: `temperature_2m`, `wind_speed_10m`,
   and its 95 % interval. `tied_with_best` when that interval contains 0;
   `clear_winner` for the best model when no other model is tied with it (never with a
   single model).
-- Each group draws from its own seed (from `--seed` and the group's key), so results
+- Each group draws from its own seed (a fixed base seed and the group's key), so results
   are reproducible and do not depend on which other groups are computed.
 - **Not handled:** autocorrelation between consecutive days (a moving-block bootstrap
   would widen intervals slightly).
