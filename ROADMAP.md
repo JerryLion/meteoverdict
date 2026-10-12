@@ -163,7 +163,8 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 5.2b Heat days: daily maximum temperature (≥ 30 °C) for models with hourly output at that lead day
 - [x] 5.3 Ensemble/"best blend" baseline: does a simple mean beat every single model?
 - [x] 5.4 Methodology doc (`docs/methodology.md`) with limitations
-- [ ] 5.5 Upstream contributions where useful (e.g. CHMI coverage in `wetterdienst`, after checking their AI policy)
+- [x] 5.5a Upstream survey: ČHMÚ coverage in `wetterdienst` and their AI policy, measured against the live data (`docs/upstream.md`)
+- [ ] 5.5b Propose a `recent`/`now` period for wetterdienst's `chmi/observation` in an upstream issue (from the maintainer's account)
 - [ ] 5.6 Write-up / blog post with findings
 
 ---
