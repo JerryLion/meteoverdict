@@ -45,8 +45,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Own forecast:** the [forecast page](https://jerrylion.github.io/meteoverdict/forecast.html)
   shows, for a chosen okres, the next six days combined from all models, each weighted
   and bias-corrected by how well it did there over the last 90 days, next to the best
-  single model ([method](docs/methodology.md#our-own-forecast-roadmap-62-63)). Not yet
-  verified to beat the best model (roadmap 6.4).
+  single model ([method](docs/methodology.md#our-own-forecast-roadmap-62-63)). The
+  approach follows operational consensus forecasts (Bureau of Meteorology, NOAA's
+  National Blend of Models; [review](docs/forecast-research.md)); not yet verified to
+  beat the best model (roadmap 6.4).
 - **Upstream:** wetterdienst already reads ČHMÚ data, but only closed years; what we
   learned about the current-year files could fill that gap
   ([docs/upstream.md](docs/upstream.md)).

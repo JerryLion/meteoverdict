@@ -356,7 +356,8 @@ in each okres (`meteoverdict.combine`), from the okres scores of the last 90 day
 - Shrinkage towards the plain mean, by the number of scored days:
   `s = days / (days + 30)`, weight `s · w + (1 − s) / models`, correction `s · bias`.
 - Combined forecast: `Σ weight · (forecast − correction)` over the models available
-  for the hour, weights rescaled to sum to 1.
+  for the hour, weights rescaled to sum to 1; a model ending before the others gets ¾,
+  ½ and ¼ of its weight in its last three hours.
 - Files: `site/data/forecast/okresy.json` (`code`, `name`, `lat`, `lon` of a point
   inside each okres: the centroid of its largest part, or the nearest inside point;
   `weights` false where the okres has no scores yet) and
