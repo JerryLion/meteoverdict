@@ -31,7 +31,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Freshness:** the "last updated" badge above and a line under the leaderboard show
   when the daily run last updated the table and how recent the scores are.
 - **Next:** the web map (phase 4): regions and stations are coloured by the best model,
-  with controls for variable, lead time and period; per-station error charts come next.
+  with controls for variable, lead time and period, and per-station error charts; a model
+  comparison page comes next.
   Publishing needs GitHub Pages enabled.
   See [ROADMAP.md](ROADMAP.md).
 
@@ -103,9 +104,11 @@ uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecast
 the okres level is not published) and each station by its best model, greys out
 regions with too few stations, and explains a region on click. Variable, lead time
 and period (last 90 days, this season, all time, all winters …) are chosen in the
-header and kept in the URL (`#temperature_2m/1/90d`). Boundaries are drawn
+header and kept in the URL (`#temperature_2m/1/90d`). Clicking a station charts each
+model's daily error there over the last 90 days (D+1 and D+2). Boundaries are drawn
 on a plain background (no third-party map tiles). It reads the scores and
-`stations.json` from `site/data`. `.github/workflows/pages.yml` builds it after every daily update and
+`stations.json` from `site/data`, and the per-station series from `site/data/series`
+(published in the release `data-latest`, not committed). `.github/workflows/pages.yml` builds it after every daily update and
 publishes it on GitHub Pages once Pages is enabled for the repository
 (Settings → Pages → Source: GitHub Actions); until then it only builds.
 
