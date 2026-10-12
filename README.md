@@ -4,7 +4,7 @@
 [![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryWoof%2Fmeteoverdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryWoof/meteoverdict/actions/workflows/daily.yml)
 
 **Which weather model gets Czechia right?**
-Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
+Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region ranking on a map and our own combined forecast.
 
 **Forecast map:** [tv.html](https://jerrywoof.github.io/meteoverdict/tv.html) ·
 **score map:** [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/) ·
@@ -23,20 +23,20 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   measured live); pairing at each model's native time resolution; additive daily scores
   (with hit rates for wet, ≥ 5 mm and heavy ≥ 20 mm days, and for heat days ≥ 30 °C);
   aggregates per station, okres, kraj, elevation class and Czechia with bootstrap
-  confidence intervals; the leaderboard below and JSON for the web map; a mean of all
+  confidence intervals; JSON for the web map; a mean of all
   models as a baseline that every model has to beat.
 - **Running automatically:** ALADIN runs are archived every 3 hours (ČHMÚ keeps them 3
   days); the backfill fills the history since 2024, stations and rain gauges, newest
   first within the free Open-Meteo quota (about two months in total); the daily workflow
-  captures observations, re-scores, and updates this README every morning.
+  captures observations, re-scores, and updates the maps every morning.
 - **Not yet:** the first real results (12 Oct 2026) cover late September only; the
-  leaderboard fills as the backfill and ČHMÚ's monthly publication of checked
+  rankings fill as the backfill and ČHMÚ's monthly publication of checked
   observations progress. ALADIN has forecast history only from June 2026.
 - **Data quality:** implausible observations are dropped; stale data or many silent
   stations make the daily run fail loudly instead of publishing an outdated table
   (`mvd check`).
-- **Freshness:** the "last updated" badge above and a line under the leaderboard show
-  when the daily run last updated the table and how recent the scores are.
+- **Freshness:** the "last updated" badge above shows when the daily run last updated
+  the scores and how recent they are.
 - **Web map:** regions and stations coloured by the best model, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
   English, live at [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/)
@@ -69,38 +69,6 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Next:** checking the combined forecast against the best single model (roadmap 6.4); results fill in as the backfill progresses (each run's
   progress is on its workflow page); then a write-up of the findings (roadmap 5.6).
   See [ROADMAP.md](ROADMAP.md).
-
-## Leaderboard
-
-Best model per region (D+1, rolling 90 days):
-
-<!-- LEADERBOARD:START -->
-Best model per region, forecasts for the next day (D+1), last 90 days (2026-09-07 to 2026-09-30). Mean absolute error in brackets (°C, m/s, mm/day); "≈" lists models whose difference from the best is not significant (95 % bootstrap interval).
-
-| Region | Temperature (2 m) | Wind (10 m) | Precipitation (24 h) |
-|---|---|---|---|
-| **Česko** | **GeoSphere Austria AROME 2.5 km** (1.30) | **DWD ICON-D2** (1.08) | ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ UK Met Office Global 10 km ≈ NOAA GFS 0.11°/0.25° ≈ +4 |
-| Hlavní město Praha | DWD ICON-D2 ≈ GeoSphere Austria AROME 2.5 km ≈ DWD ICON-EU | DWD ICON-D2 ≈ DWD ICON-EU ≈ GeoSphere Austria AROME 2.5 km | DWD ICON-D2 ≈ Météo-France ARPEGE Europe ≈ DWD ICON-EU ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +4 |
-| Středočeský kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ECMWF AIFS 0.25° | **DWD ICON-EU** (0.95) | Météo-France ARPEGE Europe ≈ UK Met Office Global 10 km ≈ NOAA GFS 0.11°/0.25° ≈ DWD ICON-EU ≈ +2 |
-| Jihočeský kraj | **GeoSphere Austria AROME 2.5 km** (1.39) | DWD ICON-D2 ≈ DWD ICON-EU | Météo-France ARPEGE Europe ≈ NOAA GFS 0.11°/0.25° ≈ UK Met Office Global 10 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +4 |
-| Plzeňský kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 | DWD ICON-EU ≈ DWD ICON-D2 | NOAA GFS 0.11°/0.25° ≈ Météo-France ARPEGE Europe ≈ ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +3 |
-| Karlovarský kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ECMWF IFS 0.25° ≈ ECMWF IFS HRES 9 km | **DWD ICON-D2** (1.02) | Météo-France ARPEGE Europe ≈ GeoSphere Austria AROME 2.5 km ≈ UK Met Office Global 10 km ≈ ČHMÚ ALADIN CZ 1 km ≈ +6 |
-| Ústecký kraj | **DWD ICON-D2** (1.18) | DWD ICON-D2 ≈ DWD ICON-EU | UK Met Office Global 10 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ Météo-France ARPEGE Europe ≈ +4 |
-| Liberecký kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +1 | DWD ICON-D2 ≈ DWD ICON-EU | DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ ČHMÚ ALADIN CZ 1 km ≈ ECMWF IFS 0.25° ≈ +4 |
-| Královéhradecký kraj | **GeoSphere Austria AROME 2.5 km** (1.24) | **DWD ICON-D2** (1.23) | ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ GeoSphere Austria AROME 2.5 km ≈ NOAA GFS 0.11°/0.25° ≈ +4 |
-| Pardubický kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ ČHMÚ ALADIN CZ 1 km ≈ +1 | DWD ICON-D2 ≈ GeoSphere Austria AROME 2.5 km | Météo-France ARPEGE Europe ≈ DWD ICON-EU ≈ ECMWF AIFS 0.25° ≈ GeoSphere Austria AROME 2.5 km ≈ +6 |
-| Kraj Vysočina | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ Météo-France ARPEGE Europe ≈ ECMWF AIFS 0.25° ≈ +4 | DWD ICON-D2 ≈ DWD ICON-EU | Météo-France ARPEGE Europe ≈ UK Met Office Global 10 km ≈ ECMWF AIFS 0.25° ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +3 |
-| Jihomoravský kraj | GeoSphere Austria AROME 2.5 km ≈ ECMWF AIFS 0.25° | DWD ICON-D2 ≈ DWD ICON-EU | NOAA GFS 0.11°/0.25° ≈ DWD ICON-EU ≈ DWD ICON-D2 ≈ Météo-France ARPEGE Europe ≈ +3 |
-| Olomoucký kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ ČHMÚ ALADIN CZ 1 km ≈ +1 | DWD ICON-D2 ≈ DWD ICON-EU | GeoSphere Austria AROME 2.5 km ≈ ČHMÚ ALADIN CZ 1 km ≈ DWD ICON-EU ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +7 |
-| Zlínský kraj | **GeoSphere Austria AROME 2.5 km** (1.31) | DWD ICON-EU ≈ DWD ICON-D2 | UK Met Office Global 10 km ≈ DWD ICON-EU ≈ ECMWF AIFS 0.25° ≈ ČHMÚ ALADIN CZ 1 km ≈ +4 |
-| Moravskoslezský kraj | ČHMÚ ALADIN Central Europe 2.3 km ≈ GeoSphere Austria AROME 2.5 km | **DWD ICON-D2** (1.32) | ECMWF AIFS 0.25° ≈ ČHMÚ ALADIN CZ 1 km ≈ UK Met Office Global 10 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +7 |
-
-The mean of all models beats the best single model in: temperature (2 m) 1 of 15 (0 significantly); wind (10 m) 0 of 15 (0 significantly); precipitation (24 h) 7 of 15 (1 significantly).
-
-_Last updated 2026-10-12 08:12 UTC; scores up to 2026-09-30._
-
-Forecasts: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0; UK Met Office data CC BY-SA 4.0). Observations: [ČHMÚ](https://opendata.chmi.cz/) (CC BY 4.0). Table: CC BY-SA 4.0.
-<!-- LEADERBOARD:END -->
 
 ## Goal
 
@@ -286,18 +254,17 @@ precipitation, wind, cloud cover and a weather symbol. A workflow runs it at 05:
 ([details](docs/data-sources.md#outlook-mvd-outlook-roadmap-66)).
 
 ```bash
-uv run mvd report            # print the leaderboard
-uv run mvd report --readme   # rewrite the block between the LEADERBOARD markers above
+uv run mvd report            # print the best model per kraj as a Markdown table
 ```
 
 ```bash
-uv run mvd daily             # capture observations, re-score, aggregate, update README
+uv run mvd daily             # capture observations, re-score, aggregate, write the JSON
 ```
 
 `mvd daily` (run every morning by `.github/workflows/daily.yml` with `--github-release`)
 uses no Open-Meteo calls: forecasts come from the backfill. It captures the last three
 days of observations, re-scores the last 100 days, aggregates and ranks everything,
-writes `site/data` and the leaderboard above, and publishes the full data to the release
+writes `site/data` and the "last updated" badge, and publishes the full data to the release
 `data-latest` ([details](docs/data-sources.md#daily-pipeline-mvd-daily)).
 
 Dates are `YYYY-MM-DD` in UTC.
