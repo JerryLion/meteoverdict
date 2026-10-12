@@ -136,8 +136,10 @@ element) may be cheaper for the backfill (2.6).
 ### Manual rain gauges (`mvd fetch-gauges`)
 
 About 280 active stations have no 10-minute data: they are manual rain gauges that
-report one daily precipitation total (`SRA`, mm), read by an observer at 07:00 local
-time. They roughly double the station count for precipitation.
+report one daily precipitation total (`SRA`, mm), stamped by ČHMÚ at 06:00 UTC. When
+an observer actually reads a gauge is not in the PDF (**unverified**: presumably the
+morning climatological term, around 06 UTC). They roughly double the station count
+for precipitation.
 
 | Path | Content |
 |---|---|
