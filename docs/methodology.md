@@ -36,11 +36,13 @@ closest to what ČHMÚ measured?
 
 ## Pairing forecasts and observations
 
-- **Temperature and wind:** at the full hour, but only at a model's native output
-  hours. Some models write output every 3 or 6 hours (all hours for AIFS and IFS 0.25°,
-  longer lead times for ICON-EU, IFS HRES, GFS and UKMO), and Open-Meteo interpolates
-  the hours in between; scoring an interpolated hour would judge the interpolation,
-  not the model.
+- **Temperature and wind:** ranked at 00, 06, 12 and 18 UTC, the hours at which every
+  model has its own output. Some models write output only every 3 or 6 hours (all
+  hours for AIFS and IFS 0.25°, longer lead times for ICON-EU, IFS HRES, GFS and UKMO)
+  and Open-Meteo interpolates the hours in between; scoring an interpolated hour would
+  judge the interpolation, not the model, and comparing models over different hours of
+  the day would favour some of them. Errors at every native hour are kept too, for
+  information.
 - **Precipitation:** hourly for hourly models, 3- or 6-hour sums otherwise, and two
   daily totals for every model: the **UTC day** (automatic stations) and ČHMÚ's
   **climatological day from 06 to 06 UTC** (automatic stations and the manual gauges).
