@@ -1,6 +1,6 @@
 # Methodology
 
-How meteoverdict decides which weather model forecasts Czechia best, and what the
+How MeteoVerdict decides which weather model forecasts Czechia best, and what the
 results can and cannot tell you. The technical details and the evidence behind each
 data claim are in [data-sources.md](data-sources.md); this page explains the method
 and its limitations.

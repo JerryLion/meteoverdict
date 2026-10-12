@@ -1,4 +1,4 @@
-# meteoverdict: Architecture & Roadmap
+# MeteoVerdict: Architecture & Roadmap
 
 > Which weather model is most accurate where in Czechia?
 > Daily verification of public NWP models against ČHMÚ station observations,
@@ -171,7 +171,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 ### Phase 6: Every okres, and our own forecast
 - [x] 6.1 Rank every okres: okresy with fewer than 3 stations borrow the nearest stations of their neighbours (≤ 30 km beyond the border), same fair comparison
 - [x] 6.2 Combination weights per okres × variable × lead day from the 90-day scores (inverse-MSE weights, bias corrections) and a forecast point per okres → `site/data/forecast.json`
-- [x] 6.3 Web: meteoverdict forecast for a chosen okres: today's Open-Meteo forecasts of all models combined with the 6.2 weights, next to the best single model
+- [x] 6.3 Web: MeteoVerdict forecast for a chosen okres: today's Open-Meteo forecasts of all models combined with the 6.2 weights, next to the best single model
 - [ ] 6.4 Verify the combination out of sample (weights from earlier days, scored like a model) and rank it against the best single model; compare training windows of 30, 45 and 90 days and a decaying average (`docs/forecast-research.md`)
 - [x] 6.5 Review the combination method against operational practice and the literature (`docs/forecast-research.md`); taper models that end early
 - [x] 6.6 TV-style forecast: combined forecast for all okresy by part of day (night, morning, afternoon, evening), with precipitation probability and cloud symbols, refreshed twice a day
