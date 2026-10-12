@@ -22,7 +22,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   hours, since ČHMÚ deletes runs after three days.
 - **Observations:** `mvd fetch-obs` turns ČHMÚ 10-minute data into hourly
   temperature, wind and precipitation for ~470 automatic stations.
-- **Next:** fetching forecasts from Open-Meteo (1.6).
+- **Forecasts:** `mvd fetch-fc` fetches what 11 models forecast 1–5 days ahead at
+  those stations, within the free Open-Meteo quota.
+- **Next:** raw data store in GitHub Releases (1.7), then scoring (phase 2).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -109,12 +111,22 @@ uv run mvd fetch-obs --start 2026-09-01 --end 2026-09-30   # hourly observations
 again replaces the values for the same station, time and variable. How the hourly
 values are built: [docs/data-sources.md](docs/data-sources.md#hourly-observations-mvd-fetch-obs).
 
+```bash
+uv run mvd fetch-fc --start 2026-09-01 --end 2026-09-14 --dry-run   # how many API calls?
+uv run mvd fetch-fc --start 2026-09-01 --end 2026-09-14             # → data/fc/2026-09.parquet
+```
+
+`mvd fetch-fc` stores, per station, hour, model and lead day (D+1 … D+5), the forecast
+`temperature_2m`, `precipitation` and `wind_speed_10m` from the Open-Meteo Previous Runs
+API. The free API allows 10,000 weighted calls a day and 300,000 a month; one to 14 days
+for all models and stations costs about 6,900, so `--max-calls` (default 9,000) stops a
+run in time and keeps what was fetched ([details](docs/data-sources.md#fetching-mvd-fetch-fc)).
+
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
 
 | Command | Purpose | Roadmap |
 |---|---|---|
-| `mvd fetch-fc --start D --end D [--model M ...]` | Open-Meteo Previous Runs forecasts | 1.6 |
 | `mvd score --start D --end D` | daily scores table | 2.3 |
 | `mvd report [--readme]` | leaderboard (optionally into this README) | 3.1 |
 | `mvd daily [--date D]` | whole pipeline for one day (default: yesterday, UTC) | 3.2 |
