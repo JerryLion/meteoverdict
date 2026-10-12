@@ -321,6 +321,15 @@ in the whole history, e.g. all summers, so models can be compared by season (the
   the first scored day, whichever is later.
 - A region needs at least 3 stations (`enough_stations`); stations are always
   rankable on their own.
+- **Borrowed stations (roadmap 6.1):** an okres with fewer than 3 stations of its own
+  for a variable adds the nearest stations of other okresy, closest to its border first,
+  up to 3 and at most 30 km beyond its border (`meteoverdict.neighbours`). A station
+  only counts if it survives the fair comparison at D+1; one that some of the okres's
+  models never reach is replaced by the next nearest. `borrowed` (in the okres rows)
+  counts them; a borrowed station still counts in its own okres. On the 2026-09 scores
+  (90 days, D+1) this borrows for 25 okresy for temperature, 39 for wind and 5 for the
+  06–06 precipitation, and all 77 okresy are ranked for all three (before: 52, 38 and
+  72). Only the okres level borrows.
 - Output: `data/aggregates.parquet` (all columns, including the sums) and
   `site/data/meta.json` plus `site/data/<window>/<level>/<variable>.json` as
   `{"columns": […], "rows": […]}` with floats rounded to 3 decimals.
