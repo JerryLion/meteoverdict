@@ -45,8 +45,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   "too few stations" okresy left.
 - **Forecast map:** the [TV-style map](https://jerrylion.github.io/meteoverdict/tv.html)
   shows our combined forecast for every okres for six days, by night, morning,
-  afternoon and evening: weather symbols, temperature, chance of rain, wind and cloud
-  layers, a "play" button, and a panel per okres; refreshed twice a day.
+  afternoon and evening: weather symbols with temperature, chance of rain, wind and
+  cloud, any or all of them at once, a "play" button, and a panel per okres; refreshed
+  twice a day.
 - **Own forecast:** the [forecast page](https://jerrylion.github.io/meteoverdict/forecast.html)
   shows, for a chosen okres, the next six days combined from all models, each weighted
   and bias-corrected by how well it did there over the last 90 days, next to the best
@@ -156,10 +157,15 @@ neighbours, so every okres is ranked; the popup says how many are borrowed and l
 to that okres's forecast. `forecast.html` combines today's forecasts of all models
 for one okres with weights from their scores there (it asks the Open-Meteo Forecast API
 from the browser). `tv.html` is a TV-style forecast map from `outlook.json` (see
-`mvd outlook` below): days and parts of the day as tabs, the okresy coloured by
-temperature, chance of rain, wind or cloud, weather symbols drawn on a canvas, a play
-button that steps through the next days, and a panel per okres with its six days and a
-link to the detailed page; the URL keeps the view (`#2026-10-13/afternoon/temperature/CZ0201`). Variable, lead time and period
+`mvd outlook` below). Above the map only the time: day tabs and the part of the day
+(with its hours), plus a play button that steps through the next days. On the map a
+"what the map shows" box: any of temperature, chance of rain, wind and cloud at each
+okres (temperature as the big number, the others as small chips) and one of them, or
+none, as the colour of the okresy. Markers that would overlap are left out (kraj
+capitals and the selected okres first), so zooming in shows more. Weather symbols are
+drawn on a canvas. A panel per okres has its six days and a link to the detailed page;
+the URL keeps the view (`#2026-10-13/afternoon/temperature/tpw/CZ0201`: colour, then
+t/p/w/c for the values shown). Variable, lead time and period
 (last 90 days, this season, all time, all winters …) are chosen in the header and kept
 in the URL (`#temperature_2m/1/90d`). Clicking a station charts each model's daily error
 there over the last 90 days (D+1 and D+2). A second page, `compare.html`, ranks the
