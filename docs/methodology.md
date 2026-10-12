@@ -64,12 +64,14 @@ closest to what ČHMÚ measured?
 
 ## Fair comparison
 
-- Within each time window, variable and lead day, a station only counts on days that
-  **every model covering it** has forecasts for. Models whose archive starts later
-  (ALADIN: June 2026) or has gaps are therefore compared on the same days as the rest.
-  The price: the "all time" window at D+1 and D+2 only starts when ALADIN's does.
-- A model that never reaches a station (ICON-D2 in the far east of the Beskydy) is just
-  absent there.
+- Within each time window, variable, lead day and region, only the station-days that
+  **every model present in that region** has forecasts for are used, so all models of a
+  region are compared on the same stations and days. Models whose archive starts later
+  (ALADIN: June 2026) or has gaps get the same days as the rest. The price: the "all
+  time" window at D+1 and D+2 only starts when ALADIN's does.
+- Where a model never reaches some stations (ICON-D2 at six stations in the Beskydy),
+  those stations are left out of their regions' comparison for every model; on their own
+  they are still compared among the other models.
 - A region is ranked only with at least **3 stations**.
 - Windows: the last 90 days, the current season, all time, and each season over all
   years (all winters, springs, summers, autumns).
