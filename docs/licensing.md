@@ -24,7 +24,7 @@ not legal advice.
 |---|---|---|
 | Code | this repository | MIT |
 | ALADIN station archive (`aladin-YYYY-MM` releases) | GitHub Release assets | CC BY 4.0, derived from ČHMÚ data only; release notes credit ČHMÚ and list our changes |
-| Scores, rankings, README leaderboard, web map | repository and GitHub Pages | **CC BY-SA 4.0**: they combine all sources, including UK Met Office data (ShareAlike). CC BY 4.0 inputs may be included in CC BY-SA 4.0 work. |
+| Scores, rankings, web map, open data | repository and GitHub Pages | **CC BY-SA 4.0**: they combine all sources, including UK Met Office data (ShareAlike). CC BY 4.0 inputs may be included in CC BY-SA 4.0 work. |
 
 Publishing these outputs openly is allowed: every source permits redistribution and
 adaptation with attribution. Keeping them private would not change any obligation

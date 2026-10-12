@@ -2,7 +2,7 @@
 
 > Which weather model is most accurate where in Czechia?
 > Daily verification of public NWP models against ČHMÚ station observations,
-> published as an auto-updated README leaderboard and a static web map.
+> published as a static web map with rankings per okres and our own combined forecast.
 
 Package: `meteoverdict` · CLI: `mvd`
 
@@ -30,7 +30,7 @@ Package: `meteoverdict` · CLI: `mvd`
               └───────────┬───────────────────────┬─────────────┘
                           │ report                │ build-site
                           ▼                       ▼
-                 README leaderboard        GitHub Pages web map
+                 "last updated" badge       GitHub Pages web map
 ```
 
 **The key trick:** Open-Meteo's Previous Runs API returns, for any past hour, what
@@ -49,7 +49,7 @@ start later for one variable (ARPEGE wind); see `docs/data-sources.md#models`.
 | Daily data pipeline | GitHub Actions cron (free for public repos) | GitHub |
 | Raw data store | Monthly Parquet files as GitHub Release assets (`data-YYYY-MM`) | GitHub Releases |
 | Aggregated scores | `site/data/*.json` committed by the pipeline bot | repo |
-| README leaderboard | Generated block between `<!-- LEADERBOARD:START/END -->` | repo |
+| README badge | `site/data/badge.json` ("last updated"), committed by the daily run | repo |
 | Web app | Static: Vite + MapLibre GL + Observable Plot, reads JSON | GitHub Pages |
 | ALADIN archive | `mvd archive-aladin` every 3 h, one Parquet per run as Release assets (`aladin-YYYY-MM`) | GitHub Actions |
 | Backfill | `mvd backfill` daily with 8,500 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
@@ -67,7 +67,7 @@ Two separate loops:
 uv sync
 uv run mvd backfill --from 2024-01-01      # one-off history
 uv run mvd daily                           # fetch yesterday + score + report
-uv run mvd report --readme                 # regenerate README leaderboard
+uv run mvd report                          # best model per kraj (Markdown)
 cd web && npm i && npm run dev              # local web map
 ```
 
@@ -179,6 +179,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 6.8 Forecast map: time controls apart from what the map shows; temperature, rain, wind and cloud at once
 - [x] 6.9 Model comparison per kraj and okres: map, intervals chart, skill against the mean, MAE by lead day
 - [x] 6.10 Forecast map "play": smooth transitions from night to evening, then the next day, cycling the map colour (temperature → rain → wind → cloud) on each round
+- [x] 6.14 Drop the README leaderboard (the maps show the rankings); the daily run commits only the badge and meta.json
 - [x] 6.12 Forecast map: "play the day" (night to evening, round and round) and "play the week", each round with the next map colour
 - [x] 6.11 Open data: static JSON/CSV per okres (combined hourly forecast, parts of day, ranking and weights) with documentation
 
