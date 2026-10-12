@@ -18,6 +18,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   measured against the live API.
 - **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
   still empty.
+- **Archiving:** every ALADIN run (1 km and 2.3 km) is saved at all stations every three
+  hours, since ČHMÚ deletes runs after three days.
 - **Next:** fetching observations (1.5) and forecasts (1.6).
   See [ROADMAP.md](ROADMAP.md).
 
@@ -78,7 +80,14 @@ uv run ruff check . && uv run ruff format --check . && uv run pytest
 ```bash
 uv run mvd stations             # download ČHMÚ station metadata → data/stations.parquet
 uv run mvd models [--all]       # list the compared weather models (from models.yaml)
+uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecasts locally
 ```
+
+**ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so a GitHub
+Actions workflow runs `mvd archive-aladin --github-release` every three hours. It saves
+2 m temperature, 10 m wind and precipitation at every station for every run and lead
+hour (0–72 h) as Parquet files in the releases `aladin-YYYY-MM`. Format:
+[docs/data-sources.md](docs/data-sources.md#aladin-archive).
 
 `data/stations.parquet` has one row per station: `id` (WIGOS id), `gh_id` (ČHMÚ
 id), `name`, `lat`, `lon`, `elevation` (m), `active`, `kraj_code` (NUTS 3, e.g.
