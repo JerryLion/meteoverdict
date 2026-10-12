@@ -247,7 +247,8 @@ and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_e
 
 | `variable` | `period_h` | Day of a pair |
 |---|---|---|
-| `temperature_2m`, `wind_speed_10m` | 0 | UTC date of the hour |
+| `temperature_2m`, `wind_speed_10m` | 0 | UTC date of the hour; only 00, 06, 12 and 18 UTC (ranked) |
+| `temperature_2m_hourly`, `wind_speed_10m_hourly` | 0 | UTC date of the hour; every native hour of the model (not ranked) |
 | `precipitation` | 1, 3 or 6 (the model's native period) | UTC date the period ends in (01:00 … 24:00) |
 | `precipitation_daily` | 24 | the UTC day |
 | `precipitation_24h` | 24 | the day ČHMÚ's climatological day starts (06:00 to 06:00 UTC) |
@@ -273,6 +274,15 @@ included, has native output at these hours, so all can be compared by time of da
 are strongest; 12 UTC is early afternoon. These variables are aggregated (MAE, bias,
 RMSE per region, window and season) but not ranked with the bootstrap, which keeps
 the daily run short; they add about 40 % to the score rows.
+
+**Same hours for every model.** The ranked `temperature_2m` and `wind_speed_10m`
+use only 00, 06, 12 and 18 UTC, where every model (also AIFS, IFS 0.25° and the blend,
+which are 6- or 3-hourly) has native output. Scoring each model at all its native hours
+compared hourly models over 24 hours with 6-hourly ones over 4, and errors depend on
+the time of day: on the first real data (21–29 Sept 2026, D+1, about 470 stations)
+a model's MAE over its native hours and over the four synoptic hours differed by
+0.02–0.05 °C, as much as the gap between several models. The all-hours scores are kept
+as `temperature_2m_hourly` and `wind_speed_10m_hourly`, for information only.
 
 `temperature_max` (roadmap 5.2b) compares the highest hourly temperature of each UTC
 day, forecast and observed, and counts heat days (at least 30 °C). It is scored only
