@@ -42,7 +42,11 @@ below, and public data is the point of the project.
 3. **Respect rate limits:** batch locations, request 14-day windows (same cost as one
    day), back off on HTTP 429. The free tier allows 300,000 calls a month, so a full
    backfill of all stations takes months and must be spread out (roadmap 2.6).
-4. **Do not imply endorsement** by ČHMÚ, Open-Meteo or any model provider.
-5. **GitHub:** data files live in Release assets (≤ 2 GiB each), not in git history.
+4. **The forecast page** (`forecast.html`, roadmap 6.3) asks the Open-Meteo Forecast
+   API from each visitor's browser, one request per okres shown, so each visitor uses
+   their own free-tier allowance; the page credits Open-Meteo and the model providers
+   like the map. It stays non-commercial under rule 1.
+5. **Do not imply endorsement** by ČHMÚ, Open-Meteo or any model provider.
+6. **GitHub:** data files live in Release assets (≤ 2 GiB each), not in git history.
    The scheduled workflows are this project's data pipeline, which GitHub Actions
    allows.
