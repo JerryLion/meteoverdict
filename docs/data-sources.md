@@ -19,7 +19,7 @@ real files.
 
 | Path | Contents | Update cadence (per the PDF) |
 |---|---|---|
-| `now/data/` | current-day 10-minute (`10m-…`) and hourly (`1h-…`) files | regenerated hourly and overwritten; files older than 24 h are deleted |
+| `now/data/` | 10-minute (`10m-…`) and hourly (`1h-…`) files per station and day | regenerated hourly and overwritten; on 2026-10-12 it held the last three days (09–11 Oct for 10-minute files) |
 | `now/metadata/` | `meta1`…`meta4`, named `metaN-YYYYMMDD.json` | daily; deleted after 10 days |
 | `recent/data/{10min,1hour,daily,monthly,pentadic,phenomena}/` | current year, month folders `01/`…`12/` | 10 min / 1 h: twice a day, and the previous two months are regenerated on the 3rd of each month; daily: after each day; monthly / pentadic: start of the next month, re-uploaded after two months |
 | `historical/data/{10min,1hour,daily,monthly,pentadic,yearly,phenomena}/` | closed years; 10 min and 1 h data from 2018 | once a year, by the end of February |
@@ -28,12 +28,15 @@ real files.
 
 Implications for us:
 
-- **Backfill (2.6)** reads `historical/` for closed years and `recent/` for the current
-  year. `historical/` has 10-minute and hourly data from 2018, which covers our 2024+
-  window.
-- **Daily runs (3.2)** should read `recent/` (checked data, twice a day), not `now/`, and
-  re-score the previous two months after the 3rd of each month, when ČHMÚ republishes
-  corrected data.
+- **Backfill (2.6)** reads `historical/` for closed years and `recent/` for the months
+  of the last year. `historical/` has 10-minute and hourly data from 2018, which covers
+  our 2024+ window.
+- **The current month is not in `recent/` yet** (on 2026-10-12, `recent/data/10min/10/`
+  still held October 2025, `09/` held September 2026). Until it is published, the only
+  source is `now/`, which keeps about three days. **Daily runs (3.2) must therefore
+  fetch yesterday from `now/` every day** and re-fetch the month from `recent/` once it
+  appears (checked data replaces the unchecked values; `mvd fetch-obs` merges by
+  station, time and variable).
 
 ### File names
 
@@ -42,7 +45,8 @@ Implications for us:
 
 | Data | Pattern |
 |---|---|
-| `now/` and `historical/` 10 min / 1 h (JSON) | `10m-{WSI}-{YYYYMMDD}.json`, `1h-{WSI}-{YYYYMMDD}.json` (one file per station and day) |
+| `now/` 10 min / 1 h (JSON) | `10m-{WSI}-{YYYYMMDD}.json`, `1h-{WSI}-{YYYYMMDD}.json` (one file per station and day) |
+| `historical/` 10 min / 1 h (JSON) | `{YYYY}/10m-{WSI}-{YYYYMM}.json` (one file per station and **month**; the PDF says `YYYYMMDD`, but the real files are monthly, e.g. `historical/data/10min/2025/10m-0-20000-0-11520-202503.json`, 5.8 MB) |
 | `recent/` 10 min / 1 h | `10m-{WSI}-{YYYYMM}.json`, `1h-{WSI}-{YYYYMM}.json` (one file per station and **month**, in month folders `01/`…`12/`; a folder holds the latest published year for that month, e.g. `10/` still held `202510` on 2026-10-11) |
 | daily | `recent/`: `dly-{WSI}-{YYYYMM}.json`; `historical/`: `dly-{WSI}.json` |
 | `historical_csv/` 10 min / 1 h | `10m-{WSI}-{PRVEK}.csv`, `1h-{WSI}-{PRVEK}.csv` |
@@ -82,8 +86,10 @@ All JSON files we read (metadata and data) share one envelope:
 
 Columns: `STATION` (WSI), `ELEMENT`, `DT` (UTC timestamp), `VAL` (number), `FLAG`
 (string, often empty), `QUALITY` (number, codes from `meta4`: 0 Good, 1 Suspect,
-2 Poor, 3 Estimated, 4 Missing, 5 Unknown). `now/` data is unchecked (`5.0`), `recent/`
-data is checked (`0.0` for good values). The rows are long-format: one row per
+2 Poor, 3 Estimated, 4 Missing, 5 Unknown). `now/` data is mostly unchecked (`5.0`,
+some values already `0.0` or `3.0`), `recent/` data is checked (`0.0` for good values).
+**Missing values come as an empty string `""`** with `QUALITY` 4, so `VAL` is not always
+a number. The rows are long-format: one row per
 station × element × time.
 
 Which elements go where (from `meta2`'s `OBS_TYPE` column and real files):
@@ -97,9 +103,35 @@ Which elements go where (from `meta2`'s `OBS_TYPE` column and real files):
 - Element names, units and sensor heights come from `meta2` (`NAME`, `UN_DESCRIPTION`,
   `HEIGHT`). The PDF lists codes without definitions.
 
-**Open for 1.5:** 2 m temperature and 10 m wind are only in the 10-minute files, so 1.5
-must decide the hourly sampling (value at the full hour vs. hourly mean) and whether
-`F` or `Fprum` matches what Open-Meteo's `wind_speed_10m` represents.
+### Hourly observations (`mvd fetch-obs`)
+
+2 m temperature and 10 m wind exist only in the 10-minute files, so `mvd fetch-obs`
+builds hourly values from them:
+
+| Variable | From | Matches the forecast because |
+|---|---|---|
+| `temperature_2m` | `T` at HH:00 | Open-Meteo's `temperature_2m` is the value at the hour |
+| `wind_speed_10m` | `F` at HH:00 (m/s) | model wind at the hour; `F` is ČHMÚ's main wind speed element |
+| `precipitation` | sum of the six `SRA10M` values stamped HH-1:10 … HH:00, only if all six exist | Open-Meteo's hourly precipitation is the sum over the preceding hour |
+
+Checks on real data (Praha-Libuš, September 2026): the hourly precipitation equals
+ČHMÚ's own `SRA1H` for all 720 hours (22.6 mm both), which also confirms that
+timestamps mark the end of each interval. `F` is on average 0.1 m/s above `Fprum`
+(equal in 32 % of slots); ČHMÚ does not document how the two are averaged
+(**unverified**; possibly scalar vs. vector mean), and the difference is small for
+ranking models.
+
+Values with `QUALITY` 1 (suspect), 2 (poor) or 4 (missing) are dropped; 0, 3 and 5 are
+kept with their code, so scoring can exclude estimated values. Every value also records
+its `source` (`recent`, `historical`, `now`).
+
+Only stations with a 10-minute `T`, `F` or `SRA10M` in today's `meta2` are fetched
+(about 475; the other ~280 active stations are manual rain gauges with daily data
+only, roadmap 1.5b), plus inactive stations (not in today's `meta2`). One day for all
+stations from `now/` took about a minute (468 stations returned data on 2026-10-10).
+A monthly `recent/` or `historical/` file is about 5 MB per station, so a month of
+history for all stations is about 2.5 GB to download; `historical_csv/` (one file per
+element) may be cheaper for the backfill (2.6).
 
 ### Metadata files
 
