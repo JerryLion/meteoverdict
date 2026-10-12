@@ -33,7 +33,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Web map:** regions and stations coloured by the best model, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
   English. It goes live on GitHub Pages once Pages is enabled for the repository.
-- **Next:** results fill in as the backfill progresses; every roadmap item is done.
+- **Next:** results fill in as the backfill progresses (each run's progress is on its
+  workflow page); then a write-up of the findings (roadmap 5.6).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard

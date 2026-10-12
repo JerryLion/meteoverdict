@@ -368,6 +368,8 @@ start and end. For each window:
 the observations of its months (once per month), the forecasts of every enabled model
 from its archive start, then the window's daily scores.
 
+- **Progress:** in GitHub Actions each run adds a job summary (windows and calls of the
+  run, windows scored so far out of all complete windows since `--from`, final months).
 - **Resumable:** `data/backfill-state.json` records published observation months,
   finished `model|window` pairs and scored windows. A run stops at `--max-calls` or at
   Open-Meteo's daily limit, keeps what it fetched, and the next run continues.
