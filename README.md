@@ -65,6 +65,9 @@ the day and the model ranking with weights. Codes, fields and examples:
 [open data](docs/open-data.md). Licence CC BY-SA 4.0 (credit MeteoVerdict, Open-Meteo.com
 and ČHMÚ).
 
+On an e-ink display: [MeteoVerdict for TRMNL](https://github.com/JerryWoof/MeteoVerdict-TRMNL)
+shows today and tomorrow, the next 24 hours or five days for your okres.
+
 ## Run it yourself
 
 ```bash
