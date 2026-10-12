@@ -74,7 +74,14 @@ cd web && npm i && npm run dev              # local web map
 - **Variables:** 2 m temperature (hourly), precipitation (hourly → daily sums), 10 m wind speed.
 - **Lead times:** D+1, D+2, D+3 (D+4, D+5 where available). Measured: the short-range
   high-resolution models only reach D+1 (ICON-D2, GeoSphere AROME) or D+2 (ALADIN).
-- **Regions:** 14 kraje, plus an elevation class (lowland < 400 m, upland 400–800 m, mountain > 800 m).
+- **Regions:** results at three levels:
+  - **station** (finest; ~300 stations with hourly temperature, ~200 with wind, ~430 with
+    hourly and ~280 more with daily precipitation),
+  - **okres** (77 districts),
+  - **kraj** (14 regions), plus an elevation class (lowland < 400 m, upland 400–800 m,
+    mountain > 800 m).
+  An okres or kraj gets a ranking for a variable only if it has enough stations
+  measuring it (threshold set in 2.4); otherwise it is shown as "too few stations".
 - **Models** (coverage of CZ verified in 1.3; the list lives in `src/meteoverdict/models.yaml`):
   - ČHMÚ ALADIN CZ 1 km and ALADIN Central Europe 2.3 km
   - DWD ICON-D2 and ICON-EU
@@ -87,13 +94,15 @@ cd web && npm i && npm run dev              # local web map
 - **Metrics:**
   - Temperature and wind: MAE, bias, RMSE.
   - Precipitation: MAE of daily sums, plus POD, FAR and ETS for events of at least 0.1 mm/day and at least 5 mm/day.
-- **Ranking:** each kraj and variable gets the model with the lowest MAE over a rolling 90 days and over all time. The ranking only shows a model as better when the difference is significant (bootstrap CI).
+- **Ranking:** each station, okres and kraj gets, per variable, the model with the lowest MAE over a rolling 90 days and over all time. Long windows compare models only over the period they all cover (archive starts differ, see `docs/data-sources.md#models`). The ranking only shows a model as better when the difference is significant (bootstrap CI).
 
 ### Data & licensing
 
-- **Code:** MIT.
-- **Open-Meteo:** CC BY 4.0. Free tier is non-commercial and limited to <10k calls/day. Keep the project non-profit, with no ads, and batch locations per call.
-- **ČHMÚ open data:** confirm licence/attribution terms (task 1.1) and credit ČHMÚ in the README and on the site.
+Full review: `docs/licensing.md`.
+
+- **Code:** MIT. **Published scores and maps:** CC BY-SA 4.0 (they include UK Met Office data, CC BY-SA).
+- **Open-Meteo:** CC BY 4.0. Free tier is non-commercial and limited to 10k calls/day and 300k/month. Keep the project non-profit, with no ads; batch locations and use 14-day windows.
+- **ČHMÚ open data:** CC BY 4.0 (confirmed in the National Open Data Catalogue); credit ČHMÚ in the README and on the site.
 - **Point verification:** forecasts are requested at station lat/lon *with station elevation* (Open-Meteo applies elevation downscaling). Document this, since it affects mountain stations.
 
 ---
@@ -113,8 +122,9 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 1.2 Station metadata loader → `stations.parquet` (id, name, lat, lon, elevation, active)
 - [x] 1.3 Verify which Open-Meteo models cover CZ and their Previous Runs history start; write `models.yaml`
 - [x] 1.4 Station → kraj mapping (point-in-polygon with open kraj boundaries) + elevation class
+- [ ] 1.4b Okres boundaries (ČÚZK, same pipeline as kraje) + station → okres column
 - [ ] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
-- [ ] 1.6 `fetch-fc`: Previous Runs client, batched locations, retries, rate-limit aware
+- [ ] 1.6 `fetch-fc`: Previous Runs client, batched locations, 14-day windows, retries, rate-limit aware (free tier: 600/min, 5k/h, 10k/day, 300k/month)
 - [ ] 1.7 Raw store: monthly Parquet partitions; upload/download to GitHub Release assets
 - [ ] 1.8 Unit tests with recorded fixtures (no network in CI)
 - [x] 1.9 Archive ALADIN runs from ČHMÚ open data (kept there only 3 days): station values per run → GitHub Release assets, every 3 h
@@ -123,9 +133,9 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [ ] 2.1 Align obs/fc (time zones, accumulation periods for precip)
 - [ ] 2.2 Metrics module (MAE, bias, RMSE, POD/FAR/ETS) + tests against hand-computed cases
 - [ ] 2.3 `score`: daily scores table → `scores/YYYY-MM.parquet`
-- [ ] 2.4 Aggregations: kraj × model × variable × lead × window (90 d, season, all) → JSON
+- [ ] 2.4 Aggregations: station / okres / kraj × model × variable × lead × window (90 d, season, all) → JSON, with a minimum station count per region
 - [ ] 2.5 Bootstrap confidence intervals for ranking
-- [ ] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month)
+- [ ] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; spread over several months to stay within the free Open-Meteo quota)
 
 ### Phase 3: Publish
 - [ ] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
@@ -135,7 +145,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 
 ### Phase 4: Web app
 - [ ] 4.1 Vite + MapLibre scaffold, GitHub Pages deploy workflow
-- [ ] 4.2 Choropleth of kraje coloured by best model; legend
+- [ ] 4.2 Map: stations as dots and okresy/kraje as choropleth, coloured by best model; legend; "too few stations" state
 - [ ] 4.3 Controls: variable, lead time, window (90 d / season / all)
 - [ ] 4.4 Station layer + click → per-model error time series (Observable Plot)
 - [ ] 4.5 Model comparison page: overall ranking, bias by elevation class

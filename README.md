@@ -52,7 +52,7 @@ per kraj (region) and elevation class. Scope of v1: 2 m temperature, precipitati
 
 | Source | What we use | Licence |
 |---|---|---|
-| [ČHMÚ open data](https://opendata.chmi.cz/) | station metadata and hourly observations (truth) | likely CC BY 4.0, not yet confirmed ([details](docs/data-sources.md#licence-and-attribution)) |
+| [ČHMÚ open data](https://opendata.chmi.cz/) | station metadata, observations (truth) and ALADIN forecasts | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 | [Open-Meteo Previous Runs API](https://open-meteo.com/en/docs/previous-runs-api) | forecasts issued 1–5 days before each hour, per model | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) |
 
 Forecasts are requested at each station's latitude, longitude **and elevation**, so
@@ -118,13 +118,20 @@ external data comes from recorded fixtures in `tests/fixtures/`.
 
 - Weather data by [Open-Meteo.com](https://open-meteo.com/), licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- Observations: Czech Hydrometeorological Institute (ČHMÚ / CHMI),
-  [opendata.chmi.cz](https://opendata.chmi.cz/). The licence is probably CC BY 4.0 but
-  not yet confirmed (see [docs/data-sources.md](docs/data-sources.md#licence-and-attribution)).
+- Observations and ALADIN forecasts: Czech Hydrometeorological Institute (ČHMÚ / CHMI),
+  [opendata.chmi.cz](https://opendata.chmi.cz/), licensed under
+  [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). We extract station values
+  and convert units.
+- Forecast models via Open-Meteo: DWD (ICON), ECMWF (IFS, AIFS), NOAA (GFS),
+  Météo-France (ARPEGE, Licence Ouverte 2.0), GeoSphere Austria (AROME), KNMI and DMI,
+  and the UK Met Office ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)).
 - Kraj boundaries: © ČÚZK (INSPIRE Administrative Units), CC BY 4.0, via
   [siwekm/czech-geojson](https://github.com/siwekm/czech-geojson); simplified by
   `scripts/build_kraje.py`.
-- Generated scores and maps: CC BY 4.0.
+- ALADIN station archive (release assets `aladin-YYYY-MM`): CC BY 4.0.
+- Generated scores and maps: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
+  because they include UK Met Office data (ShareAlike).
+- Details and rules (non-commercial use, rate limits): [docs/licensing.md](docs/licensing.md).
 - Code: [MIT](LICENSE).
 
 This is a non-commercial, independent project, not affiliated with ČHMÚ or Open-Meteo.
