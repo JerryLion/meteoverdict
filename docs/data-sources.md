@@ -224,9 +224,10 @@ published: on 2026-10-12 the latest complete checked month was September 2026 (s
 `elevation` class, `cz`) and **window** ending at the last scored day (`90d`, `season`
 = meteorological season so far, `all`), then derives the metrics.
 
-- **Fair comparison:** within a window, variable and lead day only the station-days
-  that every model with that lead day has scores for are used, so models with a shorter
-  archive or gaps are compared on the same days as the rest. (Consequence: the `all`
+- **Fair comparison:** within a window, variable, lead day and station only the days
+  that every model covering that station has scores for are used, so models with a
+  shorter archive or gaps are compared on the same days as the rest. A model that never
+  reaches a station (ICON-D2 in the far east) is simply absent there. (Consequence: the `all`
   window for D+1 and D+2 starts when the newest model's archive starts, ALADIN in June
   2026.)
 - A region needs at least 3 stations (`enough_stations`); stations are always
@@ -479,7 +480,7 @@ cover Czechia by definition.
 |---|---|---|
 | `chmi_aladin_cz_1km` | lat 48.5–51.098, lon 12.0–18.995 | covered |
 | `chmi_aladin_central_europe_2km` | Lambert conformal, 1053 × 837 × 2.325 km | covered |
-| `dwd_icon_d2` | lat 43.18–58.08, lon −3.94–20.34 | covered |
+| `dwd_icon_d2` | lat 43.18–58.08, lon −3.94–20.34 | **not the far east**: no data for 6 stations east of about 18.6° E (live check, see below) |
 | `dwd_icon_eu` | lat 29.5–70.5, lon −23.5–62.5 | covered |
 | `meteofrance_arpege_europe` | lat 20–72, lon −32–42 | covered |
 | `geosphere_arome_austria` | lat 42.98–51.82, lon 5.50–22.10 | covered |
@@ -487,6 +488,16 @@ cover Czechia by definition.
 | `dmi_harmonie_arome_europe` | Lambert conformal, 1906 × 1606 × 2 km | covered |
 | `meteofrance_arome_france` | lat 37.5–55.4, lon −12.0–16.0 | **partly** (not east of 16° E): excluded |
 | `italia_meteo_arpae_icon_2i` | lat 33.7–48.9, lon 3–22 | **only the far south**: excluded |
+
+**Live check (2026-10-12):** all ~500 verified stations were requested from each
+regional model (ALADIN CZ 1 km and CE 2.3 km, ICON-D2, GeoSphere AROME, ARPEGE Europe).
+Only ICON-D2 answered "No data is available for this location", for 6 stations in the
+Beskydy (`0-203-0-11792`, `0-203-0-20303008001`, `0-203-0-20303018003`,
+`0-203-0-20303019001`, `0-203-0-20303032003`, `0-203-0-42106052001`; lon 18.63–18.83).
+The grid rectangle in Open-Meteo's code is wider than the area with data, so the
+5-point grid check above was not enough. `mvd fetch-fc` splits a request that fails this
+way until it finds such stations and skips them (`uncovered`, kept in the backfill
+state); scoring compares models per station among the models covering it.
 
 The UK Met Office UKV 2 km model covers only the UK and Ireland (excluded).
 KNMI and DMI HARMONIE-AROME cover Czechia but are disabled for v1 (not in the roadmap's
