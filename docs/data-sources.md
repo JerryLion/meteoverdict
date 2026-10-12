@@ -147,6 +147,64 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
   data. To confirm: the dataset's record in the National Open Data Catalogue (NKOD,
   data.gov.cz), or ask klima@chmi.cz.
 
+## ALADIN archive
+
+ČHMÚ publishes ALADIN runs (00, 06, 12, 18 UTC) at
+`opendata.chmi.cz/meteorology/weather/nwp_aladin/{CZ_1km,Lambert_2.3km}/{HH}/`, one
+bz2-compressed GRIB1 file per field and run, e.g.
+`ALADCZ1K4opendata_2026101100_CLSTEMPERATURE.grb.bz2`. Field names and units are in
+`Popis_obsahu.xlsx` in that folder. **Only the last three days are kept** (runs from
+2026-10-09 to 2026-10-11 on 2026-10-11), so older runs are gone for good unless someone
+archived them. Licence: CC BY 4.0, author ČHMÚ (National Open Data Catalogue datasets
+"Numerické předpovědi počasí modelu ALADIN/ČHMÚ: produkty na oblasti ČR" and
+"… produkty v projekci Lambert").
+
+What we verified in the files (run 2026-10-11 00 UTC):
+
+| Domain | Grid | Steps |
+|---|---|---|
+| `CZ_1km` (`chmi_aladin_cz_1km`) | regular lat/lon, 501 × 290, 0.014° × 0.009°, lat 48.5–51.098, lon 12.0–18.995 | 0–72 h hourly |
+| `Lambert_2.3km` (`chmi_aladin_central_europe_2km`) | Lambert conformal, 1053 × 837 | 0–72 h hourly |
+
+- `CLSTEMPERATURE`: 2 m temperature, K, instantaneous.
+- `CLSWIND_SPEED`: 10 m wind speed, m/s, instantaneous.
+- `SURFPREC_TOTAL`: total precipitation in kg/m² (= mm), **accumulated since the start
+  of the run**; there is no step 0.
+- `SURFGEOPOTENTIEL`: model orography as geopotential (m²/s²); ÷ 9.80665 gives the
+  model terrain height.
+- About 55 MB per run for these fields on the 1 km grid, about 250 MB on the 2.3 km grid.
+
+`mvd archive-aladin` (run every three hours by `.github/workflows/archive-aladin.yml`)
+stores, for each run still on the server, one Parquet file per domain and run with one
+row per station and lead hour:
+
+| Column | Meaning |
+|---|---|
+| `model`, `run`, `lead_h`, `valid_time` | model id, run time (UTC), lead in hours (0–72), `run + lead_h` |
+| `station_id` | WIGOS id from `mvd stations` |
+| `temperature_2m` | °C (converted from K) |
+| `wind_speed_10m` | m/s |
+| `precipitation_accum` | mm since the run started; null at lead 0. Hourly sums are differences of consecutive leads. |
+| `grid_lat`, `grid_lon`, `grid_elevation`, `grid_distance_km` | the grid point used (nearest to the station), its model terrain height (m) and its distance from the station |
+
+Values are taken at the **nearest grid point, without elevation correction**, unlike
+Open-Meteo, which downscales to the station elevation. `grid_elevation` makes a
+correction possible later. Stations more than 3 km from every grid point are skipped
+(none in Czechia: the largest distance was 0.7 km on the 1 km grid, 1.6 km on the 2.3 km
+grid). Files are about 0.5 MB per run and domain, so roughly 4 MB a day.
+
+Check against Open-Meteo, Praha-Libuš, run 2026-10-11 18 UTC + 24 h and + 25 h, compared
+with Open-Meteo's `chmi_aladin_cz_1km` `_previous_day1` at the same grid cell
+(`cell_selection=nearest`, `elevation=290`): 8.53 °C vs 8.6 °C and 7.40 °C vs 7.4 °C;
+wind 1.20 vs 1.2 m/s and 0.93 vs 0.9 m/s.
+
+The files are published as assets of the GitHub release `aladin-YYYY-MM` of this
+repository (`chmi_aladin_cz_1km_2026101100.parquet`, …), with the CC BY 4.0
+attribution and our changes stated in the release notes.
+
+ČHMÚ station observations do not need archiving: `recent/` keeps the current year and
+`historical/` all closed years.
+
 ## Kraj boundaries
 
 `src/meteoverdict/data/kraje.geojson` holds the 14 kraje with their NUTS 3 code

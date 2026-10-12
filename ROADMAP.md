@@ -51,6 +51,7 @@ start later for one variable (ARPEGE wind); see `docs/data-sources.md#models`.
 | Aggregated scores | `site/data/*.json` committed by the pipeline bot | repo |
 | README leaderboard | Generated block between `<!-- LEADERBOARD:START/END -->` | repo |
 | Web app | Static: Vite + MapLibre GL + Observable Plot, reads JSON | GitHub Pages |
+| ALADIN archive | `mvd archive-aladin` every 3 h, one Parquet per run as Release assets (`aladin-YYYY-MM`) | GitHub Actions |
 | Development | Claude scheduled task, weekdays, works from this roadmap, opens PRs | Claude (Cowork) |
 
 Two separate loops:
@@ -116,6 +117,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [ ] 1.6 `fetch-fc`: Previous Runs client, batched locations, retries, rate-limit aware
 - [ ] 1.7 Raw store: monthly Parquet partitions; upload/download to GitHub Release assets
 - [ ] 1.8 Unit tests with recorded fixtures (no network in CI)
+- [x] 1.9 Archive ALADIN runs from ČHMÚ open data (kept there only 3 days): station values per run → GitHub Release assets, every 3 h
 
 ### Phase 2: Scoring
 - [ ] 2.1 Align obs/fc (time zones, accumulation periods for precip)
