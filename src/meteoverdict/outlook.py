@@ -10,10 +10,12 @@ night 0-6, morning 6-12, afternoon 12-18, evening 18-24.
 Per part of day and per whole day: minimum and maximum of the combined temperature,
 combined precipitation total, **probability of precipitation** (the weighted share of
 models whose own total for that period is at least ``WET_MM``; averaging rain smooths it,
-see docs/forecast-research.md), the highest combined hourly wind, mean cloud cover and a
-weather symbol. Cloud cover is the plain mean of the models: we do not verify it.
+see docs/forecast-research.md), the highest combined hourly wind, mean cloud cover, hours
+of sunshine and a weather symbol. Cloud cover and sunshine are the plain mean of the
+models: we do not verify them. Every day also gets its sunrise and sunset at the okres
+point (``meteoverdict.sun``, computed, no request).
 
-Cost: 77 locations x 4 variables x 11 models / 10 = about 340 weighted calls a run.
+Cost: 77 locations x 5 variables x 11 models / 10 = about 420 weighted calls a run.
 """
 
 from __future__ import annotations
@@ -22,14 +24,24 @@ import json
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import httpx
 import polars as pl
 
 from meteoverdict.forecasts import call_weight
+from meteoverdict.sun import sun_times
 
 URL = "https://api.open-meteo.com/v1/forecast"
-VARIABLES = ("temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover")
+VARIABLES = (
+    "temperature_2m",
+    "precipitation",
+    "wind_speed_10m",
+    "cloud_cover",
+    "sunshine_duration",
+)
+#: plain means of the models, not combined with weights (we do not verify them)
+MEANS = ("cloud_cover", "sunshine_duration")
 COMBINED = ("temperature_2m", "precipitation", "wind_speed_10m")
 NON_NEGATIVE = ("precipitation", "wind_speed_10m")
 DAYS = 6
@@ -94,7 +106,7 @@ def fetch(
 
 
 def parse(payload: list | dict, codes: list[str], models: list[str]) -> pl.DataFrame:
-    """The API answer → one row per okres, hour and model with the four variables."""
+    """The API answer → one row per okres, hour and model with the variables."""
     results = payload if isinstance(payload, list) else [payload]
     if len(results) != len(codes):
         raise ValueError(f"asked for {len(codes)} locations, got {len(results)}")
@@ -178,11 +190,11 @@ def with_lead_and_fade(fc: pl.DataFrame, now: datetime) -> pl.DataFrame:
 
 def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.DataFrame:
     """One row per okres and hour: the combined temperature, precipitation and wind,
-    the plain mean of cloud cover, and the number of models."""
+    the plain means of cloud cover and sunshine, and the number of models."""
     fc = with_lead_and_fade(fc, now)
     lead = _lead_weights(weights)
     out = fc.group_by("okres", "time").agg(
-        pl.col("cloud_cover").mean(), pl.col("model").n_unique().alias("models")
+        *[pl.col(v).mean() for v in MEANS], pl.col("model").n_unique().alias("models")
     )
     for variable in COMBINED:
         w = lead.filter(pl.col("variable") == variable).select(
@@ -290,6 +302,10 @@ def summarise(hourly: pl.DataFrame, chances: pl.DataFrame) -> pl.DataFrame:
         pl.col("temperature_2m").mean().alias("tmean"),
         pl.col("precipitation").sum().alias("precipitation"),
         pl.col("wind_speed_10m").max().alias("wind"),
+        # Open-Meteo: seconds of sunshine in the hour ending at the time; null without any
+        pl.when(pl.col("sunshine_duration").count() > 0)
+        .then(pl.col("sunshine_duration").sum() / 3600)
+        .alias("sunshine"),
         pl.col("temperature_2m").count().alias("hours"),
     ]
     parts = (
@@ -335,8 +351,34 @@ COLUMNS = (
     "rain_probability",
     "wind",
     "cloud",
+    "sunshine",
     "symbol",
+    "sunrise",
+    "sunset",
 )
+
+
+def with_sun(table: pl.DataFrame, points: pl.DataFrame) -> pl.DataFrame:
+    """Add ``sunrise`` and ``sunset`` (Prague time, "HH:MM") at the okres point to every
+    row of a day; null when the sun does not rise or set (not in Czechia)."""
+    local = ZoneInfo(TIME_ZONE)
+    where = {code: (lat, lon) for code, lat, lon in points.select("code", "lat", "lon").iter_rows()}
+    rows = []
+    for code, day in table.select("okres", "day").unique().iter_rows():
+        rise, set_ = sun_times(*where[code], day) if code in where else (None, None)
+        rows.append(
+            (
+                code,
+                day,
+                *(t.astimezone(local).strftime("%H:%M") if t else None for t in (rise, set_)),
+            )
+        )
+    sun = pl.DataFrame(
+        rows,
+        schema={"okres": pl.String, "day": pl.Date, "sunrise": pl.String, "sunset": pl.String},
+        orient="row",
+    )
+    return table.join(sun, on=["okres", "day"], how="left")
 
 
 def write(table: pl.DataFrame, points: pl.DataFrame, path: Path, generated: datetime) -> Path:
@@ -346,10 +388,12 @@ def write(table: pl.DataFrame, points: pl.DataFrame, path: Path, generated: date
         pl.col("okres"),
         pl.col("day").cast(pl.String),
         pl.col("part"),
-        *[pl.col(c).round(1) for c in ("tmin", "tmax", "precipitation", "wind")],
+        *[pl.col(c).round(1) for c in ("tmin", "tmax", "precipitation", "wind", "sunshine")],
         pl.col("rain_probability").round(2),
         pl.col("cloud").round(0).cast(pl.Int16, strict=False),
         pl.col("symbol"),
+        pl.col("sunrise"),
+        pl.col("sunset"),
     ).select(COLUMNS)
     doc = {
         "generated": generated.isoformat(timespec="minutes"),
@@ -365,7 +409,7 @@ def write(table: pl.DataFrame, points: pl.DataFrame, path: Path, generated: date
     return path
 
 
-HOURLY = ("temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover")
+HOURLY = ("temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover", "sunshine_duration")
 
 
 def write_hourly(hourly: pl.DataFrame, path: Path, generated: datetime) -> Path:
@@ -386,6 +430,10 @@ def write_hourly(hourly: pl.DataFrame, path: Path, generated: datetime) -> Path:
             "precipitation": "mm in the hour ending at the time",
             "wind_speed_10m": "m/s, hourly mean",
             "cloud_cover": "%, plain mean of the models, not verified",
+            "sunshine_duration": (
+                "s of sunshine in the hour ending at the time, plain mean of the models, "
+                "not verified"
+            ),
         },
         "okresy": okresy,
     }
@@ -409,4 +457,5 @@ def outlook(
     payload = fetch(client, points, models, sleep)
     fc = parse(payload, points["code"].to_list(), models)
     hourly = combine_hourly(fc, weights, now)
-    return summarise(hourly, probability(fc, weights, now)), hourly
+    table = summarise(hourly, probability(fc, weights, now))
+    return with_sun(table, points), hourly

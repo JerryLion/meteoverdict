@@ -15,8 +15,11 @@ export const LICENCE = "CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa
 // the scores published per okres, and which weights of the combination belong to them
 export const SCORE_VARIABLES = ["temperature_2m", "wind_speed_10m", "precipitation_daily", "precipitation_24h"];
 const WEIGHTS_OF = { temperature_2m: "temperature_2m", wind_speed_10m: "wind_speed_10m", precipitation_daily: "precipitation" };
-export const HOURLY = ["temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover"];
-const PART_FIELDS = ["day", "part", "tmin", "tmax", "precipitation", "rain_probability", "wind", "cloud", "symbol"];
+export const HOURLY = ["temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover", "sunshine_duration"];
+const PART_FIELDS = [
+  "day", "part", "tmin", "tmax", "precipitation", "rain_probability", "wind", "cloud", "sunshine", "symbol",
+  "sunrise", "sunset",
+];
 
 const round = (v, digits) => (v == null ? null : Number(v.toFixed(digits)));
 
