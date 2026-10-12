@@ -7,7 +7,8 @@
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
 
 **Web map:** [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/) ·
-**model comparison:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html)
+**model comparison:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html) ·
+**forecast per okres:** [forecast.html](https://jerrylion.github.io/meteoverdict/forecast.html)
 
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
@@ -41,15 +42,15 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
-- **Own forecast (in progress):** every day `mvd aggregate` publishes, per okres,
-  variable and lead day, how to weight and bias-correct the models by their scores there
-  ([details](docs/data-sources.md#combination-weights-roadmap-62)); the web page that
-  combines today's forecasts with them is next.
+- **Own forecast:** the [forecast page](https://jerrylion.github.io/meteoverdict/forecast.html)
+  shows, for a chosen okres, the next six days combined from all models, each weighted
+  and bias-corrected by how well it did there over the last 90 days, next to the best
+  single model ([method](docs/methodology.md#our-own-forecast-roadmap-62-63)). Not yet
+  verified to beat the best model (roadmap 6.4).
 - **Upstream:** wetterdienst already reads ČHMÚ data, but only closed years; what we
   learned about the current-year files could fill that gap
   ([docs/upstream.md](docs/upstream.md)).
-- **Next:** the combined forecast on the web map (roadmap 6.3) and checking it against
-  the best single model (6.4); results fill in as the backfill progresses (each run's
+- **Next:** checking the combined forecast against the best single model (roadmap 6.4); results fill in as the backfill progresses (each run's
   progress is on its workflow page); then a write-up of the findings (roadmap 5.6).
   See [ROADMAP.md](ROADMAP.md).
 
@@ -144,7 +145,10 @@ uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecast
 **Web map** (`web/`, Vite + MapLibre, Node 22). It colours each okres (or kraj, where
 the okres level is not published) and each station by its best model, and explains a
 region on click. An okres with fewer than three stations borrows the nearest ones of its
-neighbours, so every okres is ranked; the popup says how many are borrowed. Variable, lead time and period
+neighbours, so every okres is ranked; the popup says how many are borrowed and links
+to that okres's forecast. A third page, `forecast.html`, combines today's forecasts of
+all models for one okres with weights from their scores there (it asks the Open-Meteo
+Forecast API from the browser). Variable, lead time and period
 (last 90 days, this season, all time, all winters …) are chosen in the header and kept
 in the URL (`#temperature_2m/1/90d`). Clicking a station charts each model's daily error
 there over the last 90 days (D+1 and D+2). A second page, `compare.html`, ranks the
