@@ -33,7 +33,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   as additive sums so they can be combined over any window or region.
 - **Daily scores:** `mvd score` writes the daily scores table per station, model, lead
   day and variable.
-- **Next:** aggregations per station, okres and kraj (2.4).
+- **Aggregates:** `mvd aggregate` writes results per station, okres, kraj, elevation
+  class and Czechia for three time windows as JSON for the web map.
+- **Next:** bootstrap confidence intervals for the ranking (2.5).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -150,6 +152,15 @@ uv run mvd score --start 2026-09-01 --end 2026-09-30   # → data/scores/2026-09
 `mvd score` pairs the stored observations and forecasts and writes one row per day,
 station, model, lead day and variable with additive error sums (and rain/no-rain
 counts for daily precipitation) ([details](docs/data-sources.md#daily-scores-mvd-score)).
+
+```bash
+uv run mvd aggregate      # → data/aggregates.parquet and site/data/**/*.json
+```
+
+`mvd aggregate` combines the daily scores per station, okres, kraj, elevation class and
+for all of Czechia over the last 90 days, the current season and all time. Models are
+compared only on the station-days they all cover, and regions with fewer than 3
+stations are flagged ([details](docs/data-sources.md#aggregates-mvd-aggregate)).
 
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.

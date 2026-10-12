@@ -218,6 +218,23 @@ ranked on `precipitation_daily`. A day can only be scored once its observations 
 published: on 2026-10-12 the latest complete checked month was September 2026 (see
 "File names" above). A run over 20 stations and 14 days took 0.2 s.
 
+## Aggregates (`mvd aggregate`)
+
+`mvd aggregate` sums the daily scores per **level** (`station`, `okres`, `kraj`,
+`elevation` class, `cz`) and **window** ending at the last scored day (`90d`, `season`
+= meteorological season so far, `all`), then derives the metrics.
+
+- **Fair comparison:** within a window, variable and lead day only the station-days
+  that every model with that lead day has scores for are used, so models with a shorter
+  archive or gaps are compared on the same days as the rest. (Consequence: the `all`
+  window for D+1 and D+2 starts when the newest model's archive starts, ALADIN in June
+  2026.)
+- A region needs at least 3 stations (`enough_stations`); stations are always
+  rankable on their own.
+- Output: `data/aggregates.parquet` (all columns, including the sums) and
+  `site/data/meta.json` plus `site/data/<window>/<level>/<variable>.json` as
+  `{"columns": […], "rows": […]}` with floats rounded to 3 decimals.
+
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
