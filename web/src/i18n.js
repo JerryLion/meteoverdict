@@ -28,6 +28,9 @@ export const STRINGS = {
     "api.fModels": "Pro teplotu, vítr a srážky (denní i 06–06) a pro D+1 až D+5: modely seřazené podle chyby (MAE) za posledních 90 dní, bias, RMSE, zda jsou statisticky stejně dobré jako nejlepší, a jejich váha a korekce v naší předpovědi. Také počet stanic (z toho půjčených) a dní.",
     "api.fLicence": "Licence a text, který je třeba uvést při použití.",
     "api.examples": "Příklady",
+    "api.eink": "Na e-ink displeji",
+    "api.einkText": "Doplněk pro e-ink displej TRMNL ukazuje z těchto souborů dnešek a zítřek, příštích 24 hodin nebo 5 dní pro váš okres, česky nebo anglicky. Stačí ho přidat jako plugin a vybrat okres.",
+    "api.einkLink": "MeteoVerdict pro TRMNL: návod a šablony",
     "api.terms": "Podmínky",
     "api.licence":
       "Data jsou pod licencí CC BY-SA 4.0: smíte je používat, upravovat i šířit, když uvedete zdroj (MeteoVerdict, Open-Meteo.com a ČHMÚ – text je v poli attribution) a odvozená data sdílíte pod stejnou licencí.",
@@ -239,6 +242,9 @@ export const STRINGS = {
     "api.fModels": "For temperature, wind and precipitation (daily and 06–06) and D+1 to D+5: the models ordered by their error (MAE) over the last 90 days, bias, RMSE, whether they are statistically as good as the best, and their weight and correction in our forecast. Also the number of stations (borrowed ones) and days.",
     "api.fLicence": "Licence and the text to credit when using the data.",
     "api.examples": "Examples",
+    "api.eink": "On an e-ink display",
+    "api.einkText": "A plugin for the TRMNL e-ink display shows today and tomorrow, the next 24 hours or five days for your okres from these files, in Czech or English. Add it as a plugin and pick your okres.",
+    "api.einkLink": "MeteoVerdict for TRMNL: setup and templates",
     "api.terms": "Terms",
     "api.licence":
       "The data are licensed CC BY-SA 4.0: you may use, change and share them if you credit the sources (MeteoVerdict, Open-Meteo.com and ČHMÚ – the text is in the attribution field) and share derived data under the same licence.",

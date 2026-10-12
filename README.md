@@ -13,6 +13,7 @@ and combines them into its own forecast.
 | Page | What you get |
 |---|---|
 | [Forecast map](https://jerrywoof.github.io/MeteoVerdict/tv.html) | TV-style weather map for the next six days: temperature, rain, wind and cloud in every okres, by night, morning, afternoon and evening, with play buttons |
+| [On an e-ink display](https://github.com/JerryWoof/MeteoVerdict-TRMNL) | today and tomorrow, the next 24 hours or five days for your okres on a TRMNL display, in Czech or English |
 | [Score map](https://jerrywoof.github.io/MeteoVerdict/) | the most accurate model in every okres; click an okres to see why it wins |
 | [Model comparison](https://jerrywoof.github.io/MeteoVerdict/compare.html) | all models ranked for Czechia, a kraj or an okres, with confidence intervals |
 | [Forecast per okres](https://jerrywoof.github.io/MeteoVerdict/forecast.html) | the hourly combined forecast for one okres next to the best single model |
