@@ -6,9 +6,10 @@
 **Which weather model gets Czechia right?**
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
 
-**Web map:** [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/) ·
+**Forecast map:** [tv.html](https://jerrylion.github.io/meteoverdict/tv.html) ·
+**score map:** [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/) ·
 **model comparison:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html) ·
-**forecast per okres:** [forecast.html](https://jerrylion.github.io/meteoverdict/forecast.html)
+**detailed forecast per okres:** [forecast.html](https://jerrylion.github.io/meteoverdict/forecast.html)
 
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
@@ -42,6 +43,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
+- **Forecast map:** the [TV-style map](https://jerrylion.github.io/meteoverdict/tv.html)
+  shows our combined forecast for every okres for six days, by night, morning,
+  afternoon and evening: weather symbols, temperature, chance of rain, wind and cloud
+  layers, a "play" button, and a panel per okres; refreshed twice a day.
 - **Own forecast:** the [forecast page](https://jerrylion.github.io/meteoverdict/forecast.html)
   shows, for a chosen okres, the next six days combined from all models, each weighted
   and bias-corrected by how well it did there over the last 90 days, next to the best
@@ -148,9 +153,13 @@ uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecast
 the okres level is not published) and each station by its best model, and explains a
 region on click. An okres with fewer than three stations borrows the nearest ones of its
 neighbours, so every okres is ranked; the popup says how many are borrowed and links
-to that okres's forecast. A third page, `forecast.html`, combines today's forecasts of
-all models for one okres with weights from their scores there (it asks the Open-Meteo
-Forecast API from the browser). Variable, lead time and period
+to that okres's forecast. `forecast.html` combines today's forecasts of all models
+for one okres with weights from their scores there (it asks the Open-Meteo Forecast API
+from the browser). `tv.html` is a TV-style forecast map from `outlook.json` (see
+`mvd outlook` below): days and parts of the day as tabs, the okresy coloured by
+temperature, chance of rain, wind or cloud, weather symbols drawn on a canvas, a play
+button that steps through the next days, and a panel per okres with its six days and a
+link to the detailed page; the URL keeps the view (`#2026-10-13/afternoon/temperature/CZ0201`). Variable, lead time and period
 (last 90 days, this season, all time, all winters …) are chosen in the header and kept
 in the URL (`#temperature_2m/1/90d`). Clicking a station charts each model's daily error
 there over the last 90 days (D+1 and D+2). A second page, `compare.html`, ranks the
