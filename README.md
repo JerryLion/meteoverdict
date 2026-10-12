@@ -81,7 +81,7 @@ Best model per region, forecasts for the next day (D+1), last 90 days (2026-09-0
 
 The mean of all models beats the best single model in: temperature (2 m) 1 of 15 (0 significantly); wind (10 m) 0 of 15 (0 significantly); precipitation (24 h) 7 of 15 (1 significantly).
 
-_Last updated 2026-10-12 05:01 UTC; scores up to 2026-09-30._
+_Last updated 2026-10-12 08:12 UTC; scores up to 2026-09-30._
 
 Forecasts: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0; UK Met Office data CC BY-SA 4.0). Observations: [ČHMÚ](https://opendata.chmi.cz/) (CC BY 4.0). Table: CC BY-SA 4.0.
 <!-- LEADERBOARD:END -->
