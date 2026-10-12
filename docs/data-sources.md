@@ -309,6 +309,10 @@ in the whole history, e.g. all summers, so models can be compared by season (the
 - Output: `data/aggregates.parquet` (all columns, including the sums) and
   `site/data/meta.json` plus `site/data/<window>/<level>/<variable>.json` as
   `{"columns": […], "rows": […]}` with floats rounded to 3 decimals.
+- For the web map also `site/data/stations.json` (position, okres, kraj) and
+  `site/data/series/<station>.json`: each model's daily MAE at that station over the
+  last 90 days, for the ranked variables at D+1 and D+2 (about 65 kB per station, so
+  only in the release `data-latest`).
 
 ## Ranking with confidence intervals (roadmap 2.5)
 
