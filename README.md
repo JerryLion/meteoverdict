@@ -26,7 +26,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   those stations, within the free Open-Meteo quota.
 - **Storage:** `mvd store` keeps the monthly observation and forecast files in GitHub
   Releases.
-- **Next:** scoring (phase 2), starting with aligning observations and forecasts (2.1).
+- **Scoring:** observations and forecasts are paired per station, hour and lead day at
+  each model's native time resolution (models with 3- or 6-hourly output are not judged
+  on interpolated hours).
+- **Next:** metrics (2.2) and the daily scores table (2.3).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
