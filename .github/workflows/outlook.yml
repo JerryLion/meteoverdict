@@ -1,0 +1,35 @@
+name: Outlook
+
+# Twice a day, after the night and noon model runs reach Open-Meteo: the TV-style
+# forecast for every okres (`mvd outlook`), combined with the okres weights of the
+# latest aggregates, published as outlook.json in the release data-latest. The Pages
+# workflow then rebuilds the map. One Forecast API request of about 340 weighted calls.
+on:
+  schedule:
+    - cron: "52 5 * * *"
+    - cron: "52 17 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write # release asset
+
+concurrency:
+  group: outlook
+  cancel-in-progress: false
+
+jobs:
+  outlook:
+    name: Outlook for every okres
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - name: Install project
+        run: uv sync --frozen
+      - name: Outlook
+        run: uv run --frozen mvd outlook --github-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
