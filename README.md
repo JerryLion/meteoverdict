@@ -9,7 +9,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 **Forecast map:** [tv.html](https://jerrywoof.github.io/meteoverdict/tv.html) ·
 **score map:** [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/) ·
 **model comparison:** [compare.html](https://jerrywoof.github.io/meteoverdict/compare.html) ·
-**detailed forecast per okres:** [forecast.html](https://jerrywoof.github.io/meteoverdict/forecast.html)
+**detailed forecast per okres:** [forecast.html](https://jerrywoof.github.io/meteoverdict/forecast.html) ·
+**open data:** [api.html](https://jerrywoof.github.io/meteoverdict/api.html)
 
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
@@ -43,6 +44,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
+- **Open data:** JSON and CSV per okres (combined hourly forecast, parts of the day,
+  model ranking with weights), free and without a key:
+  `https://jerrywoof.github.io/meteoverdict/api/v1/okresy/CZ0201.json`
+  ([page](https://jerrywoof.github.io/meteoverdict/api.html), [docs](docs/open-data.md)).
 - **Model comparison per region:** [compare.html](https://jerrywoof.github.io/meteoverdict/compare.html)
   ranks the models in Czechia, every kraj and every okres, with intervals, skill against
   the mean of all models and errors by lead day.

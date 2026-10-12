@@ -179,8 +179,25 @@ def test_outlook_end_to_end_with_a_mocked_api():
 
     points = combine.okres_points().filter(pl.col("code").is_in(CODES)).sort("code")
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        table = outlook.outlook(client, WEIGHTS, points, now=NOW)
+        table, hourly = outlook.outlook(client, WEIGHTS, points, now=NOW)
     assert table["okres"].unique().sort().to_list() == CODES
+    assert hourly["okres"].unique().sort().to_list() == CODES
+
+
+def test_hourly_file(tmp_path):
+    hourly = outlook.combine_hourly(FC, WEIGHTS, NOW)
+    path = outlook.write_hourly(hourly, tmp_path / "outlook-hourly.json", NOW)
+    doc = json.loads(path.read_text("utf-8"))
+    assert len(doc["time"]) == 144
+    assert doc["time"][0] == "2026-10-12T00:00Z"
+    assert set(doc["okresy"]) == set(CODES)
+    benesov = doc["okresy"]["CZ0201"]
+    assert set(benesov) == set(outlook.HOURLY)
+    assert all(len(v) == 144 for v in benesov.values())
+    noon = hourly.filter(
+        pl.col("okres") == "CZ0201", pl.col("time") == datetime(2026, 10, 12, 12, tzinfo=UTC)
+    )
+    assert benesov["temperature_2m"][12] == round(noon["temperature_2m"].item(), 1)
 
 
 def test_too_expensive_requests_are_refused():

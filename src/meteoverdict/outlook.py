@@ -365,18 +365,48 @@ def write(table: pl.DataFrame, points: pl.DataFrame, path: Path, generated: date
     return path
 
 
+HOURLY = ("temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover")
+
+
+def write_hourly(hourly: pl.DataFrame, path: Path, generated: datetime) -> Path:
+    """``outlook-hourly.json``: the combined hourly series of every okres, for the open
+    data files (roadmap 6.11): ``{"generated", "time": [ISO UTC], "variables",
+    "okresy": {code: {variable: [value or null, ...]}}}``, one decimal."""
+    times = hourly["time"].unique().sort()
+    grid = pl.DataFrame({"time": times})
+    okresy = {}
+    for (code,), part in sorted(hourly.partition_by("okres", as_dict=True).items()):
+        full = grid.join(part, on="time", how="left").sort("time")
+        okresy[code] = {v: full[v].round(1).to_list() for v in HOURLY}
+    doc = {
+        "generated": generated.isoformat(timespec="minutes"),
+        "time": [t.strftime("%Y-%m-%dT%H:%MZ") for t in times.to_list()],
+        "variables": {
+            "temperature_2m": "°C",
+            "precipitation": "mm in the hour ending at the time",
+            "wind_speed_10m": "m/s, hourly mean",
+            "cloud_cover": "%, plain mean of the models, not verified",
+        },
+        "okresy": okresy,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")), "utf-8")
+    return path
+
+
 def outlook(
     client: httpx.Client,
     weights: pl.DataFrame,
     points: pl.DataFrame,
     now: datetime | None = None,
     sleep: Callable[[float], None] = lambda _: None,
-) -> pl.DataFrame:
+) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Fetch, combine and summarise for all ``points`` (code, name, lat, lon) that have
-    weights."""
+    weights: the parts-of-day table and the combined hourly series."""
     now = now or datetime.now(UTC)
     points = points.filter(pl.col("code").is_in(weights["region"].unique().to_list()))
     models = sorted(weights["model"].unique().to_list())
     payload = fetch(client, points, models, sleep)
     fc = parse(payload, points["code"].to_list(), models)
-    return summarise(combine_hourly(fc, weights, now), probability(fc, weights, now))
+    hourly = combine_hourly(fc, weights, now)
+    return summarise(hourly, probability(fc, weights, now)), hourly

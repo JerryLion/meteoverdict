@@ -179,7 +179,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 6.8 Forecast map: time controls apart from what the map shows; temperature, rain, wind and cloud at once
 - [x] 6.9 Model comparison per kraj and okres: map, intervals chart, skill against the mean, MAE by lead day
 - [x] 6.10 Forecast map "play": smooth transitions from night to evening, then the next day, cycling the map colour (temperature → rain → wind → cloud) on each round
-- [ ] 6.11 Open data: static JSON/CSV per okres (combined hourly forecast, parts of day, ranking and weights) with documentation
+- [x] 6.11 Open data: static JSON/CSV per okres (combined hourly forecast, parts of day, ranking and weights) with documentation
 
 ---
 

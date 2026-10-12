@@ -47,7 +47,10 @@ below, and public data is the point of the project.
    their own free-tier allowance; the page credits Open-Meteo and the model providers
    like the map. It stays non-commercial under rule 1. The TV-style map reads
    `outlook.json`, made twice a day by one request for all okresy (about 340 calls).
-5. **Do not imply endorsement** by ČHMÚ, Open-Meteo or any model provider.
-6. **GitHub:** data files live in Release assets (≤ 2 GiB each), not in git history.
+5. **Open data files** (`api/v1/`, roadmap 6.11) carry the licence (CC BY-SA 4.0) and
+   the attribution text in every file; they are derived data (combined forecasts,
+   scores), not a redistribution of the raw Open-Meteo API.
+6. **Do not imply endorsement** by ČHMÚ, Open-Meteo or any model provider.
+7. **GitHub:** data files live in Release assets (≤ 2 GiB each), not in git history.
    The scheduled workflows are this project's data pipeline, which GitHub Actions
    allows.
