@@ -303,6 +303,23 @@ concurrency group because both write release assets). No Open-Meteo calls.
 Freshness: forecasts up to 2 weeks behind (complete backfill windows); observations
 daily (unchecked first, replaced by checked data once ČHMÚ publishes the month).
 
+## Data quality (`mvd check`)
+
+Run by the daily workflow after `mvd daily` and before the commit. An **error** fails
+the run, so GitHub notifies the owner and the leaderboard is not committed; the report
+also appears on the run page (job summary).
+
+| Check | Error | Warning |
+|---|---|---|
+| newest observation | older than 30 h | |
+| newest forecast, newest score | older than 21 days (complete backfill windows lag up to 15) | |
+| stations reporting in the last 3 days, of those that reported in the last 30 | under 80 % | the stations missing |
+| temperature MAE per station over 90 days (all models) | | above 3 x the network median and above 3 °C: sensor or metadata problem |
+
+Before that, observations outside physically plausible limits are dropped when they are
+read: temperature −50…50 °C (Czech records −42.2 and 40.4 °C), wind 0…75 m/s, hourly
+precipitation 0…120 mm.
+
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
