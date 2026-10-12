@@ -1,16 +1,16 @@
 # MeteoVerdict 🐸
 
-[![CI](https://github.com/JerryWoof/meteoverdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryWoof/meteoverdict/actions/workflows/ci.yml)
-[![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryWoof%2Fmeteoverdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryWoof/meteoverdict/actions/workflows/daily.yml)
+[![CI](https://github.com/JerryWoof/MeteoVerdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryWoof/MeteoVerdict/actions/workflows/ci.yml)
+[![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryWoof%2FMeteoVerdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryWoof/MeteoVerdict/actions/workflows/daily.yml)
 
 **Which weather model gets Czechia right?**
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region ranking on a map and our own combined forecast.
 
-**Forecast map:** [tv.html](https://jerrywoof.github.io/meteoverdict/tv.html) ·
-**score map:** [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/) ·
-**model comparison:** [compare.html](https://jerrywoof.github.io/meteoverdict/compare.html) ·
-**detailed forecast per okres:** [forecast.html](https://jerrywoof.github.io/meteoverdict/forecast.html) ·
-**open data:** [api.html](https://jerrywoof.github.io/meteoverdict/api.html)
+**Forecast map:** [tv.html](https://jerrywoof.github.io/MeteoVerdict/tv.html) ·
+**score map:** [jerrywoof.github.io/MeteoVerdict](https://jerrywoof.github.io/MeteoVerdict/) ·
+**model comparison:** [compare.html](https://jerrywoof.github.io/MeteoVerdict/compare.html) ·
+**detailed forecast per okres:** [forecast.html](https://jerrywoof.github.io/MeteoVerdict/forecast.html) ·
+**open data:** [api.html](https://jerrywoof.github.io/MeteoVerdict/api.html)
 
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
@@ -40,24 +40,24 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Web map:** regions and stations coloured by the best model, an okres panel that
   explains why a model wins there, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
-  English, live at [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/)
+  English, live at [jerrywoof.github.io/MeteoVerdict](https://jerrywoof.github.io/MeteoVerdict/)
   and updated after every daily run.
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
 - **Open data:** JSON and CSV per okres (combined hourly forecast, parts of the day,
   model ranking with weights), free and without a key:
-  `https://jerrywoof.github.io/meteoverdict/api/v1/okresy/CZ0201.json`
-  ([page](https://jerrywoof.github.io/meteoverdict/api.html), [docs](docs/open-data.md)).
-- **Model comparison per region:** [compare.html](https://jerrywoof.github.io/meteoverdict/compare.html)
+  `https://jerrywoof.github.io/MeteoVerdict/api/v1/okresy/CZ0201.json`
+  ([page](https://jerrywoof.github.io/MeteoVerdict/api.html), [docs](docs/open-data.md)).
+- **Model comparison per region:** [compare.html](https://jerrywoof.github.io/MeteoVerdict/compare.html)
   ranks the models in Czechia, every kraj and every okres, with intervals, skill against
   the mean of all models and errors by lead day.
-- **Forecast map:** the [TV-style map](https://jerrywoof.github.io/meteoverdict/tv.html)
+- **Forecast map:** the [TV-style map](https://jerrywoof.github.io/MeteoVerdict/tv.html)
   shows our combined forecast for every okres for six days, by night, morning,
   afternoon and evening: weather symbols with temperature, chance of rain, wind and
   cloud, any or all of them at once, a "play" button, and a panel per okres; refreshed
   twice a day.
-- **Own forecast:** the [forecast page](https://jerrywoof.github.io/meteoverdict/forecast.html)
+- **Own forecast:** the [forecast page](https://jerrywoof.github.io/MeteoVerdict/forecast.html)
   shows, for a chosen okres, the next six days combined from all models, each weighted
   and bias-corrected by how well it did there over the last 90 days, next to the best
   single model ([method](docs/methodology.md#our-own-forecast-roadmap-62-63)). The
@@ -74,7 +74,7 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 ## Goal
 
 Public weather apps disagree, and nobody tells you which model to trust where you live.
-meteoverdict checks every day how well each freely available numerical weather
+MeteoVerdict checks every day how well each freely available numerical weather
 prediction (NWP) model forecast the weather at ČHMÚ stations, and ranks the models
 per kraj (region) and elevation class. Scope of v1: 2 m temperature, precipitation and
 10 m wind speed, at lead times of 1–3 days (up to 5 where available).
@@ -169,7 +169,7 @@ series from `site/data`, which is published in the release `data-latest`
 (`site-data.zip`; unzip it into `site/data` to run the map locally with data) and not
 committed. `.github/workflows/pages.yml` builds it after every daily update and
 publishes it on GitHub Pages (Settings → Pages → Source: GitHub Actions) at
-<https://jerrywoof.github.io/meteoverdict/>; a fork without Pages enabled only builds.
+<https://jerrywoof.github.io/MeteoVerdict/>; a fork without Pages enabled only builds.
 
 ```bash
 cd web && npm ci && npm test && npm run dev   # local map at http://localhost:5173
@@ -214,7 +214,7 @@ run in time and keeps what was fetched ([details](docs/data-sources.md#fetching-
 `data-YYYY-MM` (`obs-`, `fc-` and `scores-YYYY-MM.parquet`, CC BY-SA 4.0):
 
 ```bash
-export GITHUB_TOKEN=… GITHUB_REPOSITORY=JerryWoof/meteoverdict
+export GITHUB_TOKEN=… GITHUB_REPOSITORY=JerryWoof/MeteoVerdict
 uv run mvd store download --from 2026-01 --to 2026-09   # into data/obs and data/fc
 uv run mvd store upload                                  # only files that changed
 ```
