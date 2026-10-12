@@ -24,7 +24,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   temperature, wind and precipitation for ~470 automatic stations.
 - **Forecasts:** `mvd fetch-fc` fetches what 11 models forecast 1–5 days ahead at
   those stations, within the free Open-Meteo quota.
-- **Next:** raw data store in GitHub Releases (1.7), then scoring (phase 2).
+- **Storage:** `mvd store` keeps the monthly observation and forecast files in GitHub
+  Releases.
+- **Next:** scoring (phase 2), starting with aligning observations and forecasts (2.1).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
@@ -121,6 +123,18 @@ uv run mvd fetch-fc --start 2026-09-01 --end 2026-09-14             # → data/f
 API. The free API allows 10,000 weighted calls a day and 300,000 a month; one to 14 days
 for all models and stations costs about 6,900, so `--max-calls` (default 9,000) stops a
 run in time and keeps what was fetched ([details](docs/data-sources.md#fetching-mvd-fetch-fc)).
+
+**Raw data store.** Monthly files are kept as assets of the GitHub release
+`data-YYYY-MM` (`obs-YYYY-MM.parquet`, `fc-YYYY-MM.parquet`, CC BY-SA 4.0):
+
+```bash
+export GITHUB_TOKEN=… GITHUB_REPOSITORY=JerryLion/meteoverdict
+uv run mvd store download --from 2026-01 --to 2026-09   # into data/obs and data/fc
+uv run mvd store upload                                  # only files that changed
+```
+
+Each asset's label is the file's SHA-256, so unchanged files are skipped in both
+directions; a changed file replaces the stored one.
 
 The commands below exist as stubs: they validate their options and exit with
 code 1, naming the roadmap item that will implement them.
