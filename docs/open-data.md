@@ -3,7 +3,7 @@
 Our combined forecast and the ranking of the models for every okres, as static JSON
 and CSV files on GitHub Pages: free, no key, CORS allowed (GitHub Pages sends
 `Access-Control-Allow-Origin: *`). Human-readable page with a picker and examples:
-<https://jerrywoof.github.io/meteoverdict/api.html>.
+<https://jerrywoof.github.io/MeteoVerdict/api.html>.
 
 | File | Contains |
 |---|---|
@@ -11,7 +11,7 @@ and CSV files on GitHub Pages: free, no key, CORS allowed (GitHub Pages sends
 | `api/v1/okresy/{code}.json` | everything for one okres (below) |
 | `api/v1/okresy/{code}.csv` | the hourly forecast: `time_utc,temperature_2m,precipitation,wind_speed_10m,cloud_cover` |
 
-Base URL: `https://jerrywoof.github.io/meteoverdict/`. Codes are LAU 1 (`CZ0201`
+Base URL: `https://jerrywoof.github.io/MeteoVerdict/`. Codes are LAU 1 (`CZ0201`
 Benešov, `CZ020A` Praha-západ, `CZ0100` Praha).
 
 ## An okres file
@@ -42,7 +42,7 @@ so the files follow both. About 3.4 MB in total, 25 kB per okres.
 
 ## Terms
 
-CC BY-SA 4.0: credit meteoverdict, Open-Meteo.com (model data, CC BY 4.0; UK Met Office
+CC BY-SA 4.0: credit MeteoVerdict, Open-Meteo.com (model data, CC BY 4.0; UK Met Office
 CC BY-SA 4.0) and ČHMÚ (observations, CC BY 4.0) — the `attribution` field has the text —
 and share derived data alike. Not an official forecast; whether the combination beats
 the best single model is still being tested (roadmap 6.4). Please fetch at most once an
