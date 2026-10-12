@@ -179,6 +179,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 6.8 Forecast map: time controls apart from what the map shows; temperature, rain, wind and cloud at once
 - [x] 6.9 Model comparison per kraj and okres: map, intervals chart, skill against the mean, MAE by lead day
 - [x] 6.10 Forecast map "play": smooth transitions from night to evening, then the next day, cycling the map colour (temperature → rain → wind → cloud) on each round
+- [x] 6.13 Score map: hover, model highlighting, okres finder, and an okres panel explaining why its best model wins (margin and interval, skill against the mean, bias, big misses, winners by lead day and time of day, stations)
 - [x] 6.14 Drop the README leaderboard (the maps show the rankings); the daily run commits only the badge and meta.json
 - [x] 6.12 Forecast map: "play the day" (night to evening, round and round) and "play the week", each round with the next map colour
 - [x] 6.11 Open data: static JSON/CSV per okres (combined hourly forecast, parts of day, ranking and weights) with documentation
