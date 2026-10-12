@@ -423,9 +423,9 @@ concurrency group because both write release assets). No Open-Meteo calls.
 4. Push changed months, pull all score months, aggregate and rank, write `site/data`
    and the README leaderboard, and replace `aggregates.parquet` and `site-data.zip` in
    the release `data-latest`.
-5. The workflow commits `README.md` and the summary JSON levels (`cz`, `kraj`,
-   `elevation`); okres and station levels are only in `data-latest`, to keep the git
-   history small.
+5. The workflow commits `README.md`, `site/data/badge.json` and `site/data/meta.json`.
+   The score JSON is only in `data-latest` and on GitHub Pages: even the summary levels
+   are about 3 MB a day (first real data, October 2026), too much for the git history.
 
 Freshness: forecasts up to 2 weeks behind (complete backfill windows); observations
 daily (unchecked first, replaced by checked data once ČHMÚ publishes the month).
