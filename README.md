@@ -1,15 +1,15 @@
 # meteoverdict 🐸
 
-[![CI](https://github.com/JerryLion/meteoverdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryLion/meteoverdict/actions/workflows/ci.yml)
-[![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryLion%2Fmeteoverdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryLion/meteoverdict/actions/workflows/daily.yml)
+[![CI](https://github.com/JerryWoof/meteoverdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryWoof/meteoverdict/actions/workflows/ci.yml)
+[![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryWoof%2Fmeteoverdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryWoof/meteoverdict/actions/workflows/daily.yml)
 
 **Which weather model gets Czechia right?**
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
 
-**Forecast map:** [tv.html](https://jerrylion.github.io/meteoverdict/tv.html) ·
-**score map:** [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/) ·
-**model comparison:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html) ·
-**detailed forecast per okres:** [forecast.html](https://jerrylion.github.io/meteoverdict/forecast.html)
+**Forecast map:** [tv.html](https://jerrywoof.github.io/meteoverdict/tv.html) ·
+**score map:** [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/) ·
+**model comparison:** [compare.html](https://jerrywoof.github.io/meteoverdict/compare.html) ·
+**detailed forecast per okres:** [forecast.html](https://jerrywoof.github.io/meteoverdict/forecast.html)
 
 > 🚧 Early development. See [ROADMAP.md](ROADMAP.md) for the architecture and plan.
 
@@ -38,20 +38,20 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   when the daily run last updated the table and how recent the scores are.
 - **Web map:** regions and stations coloured by the best model, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
-  English, live at [jerrylion.github.io/meteoverdict](https://jerrylion.github.io/meteoverdict/)
+  English, live at [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/)
   and updated after every daily run.
 - **Every okres ranked:** okresy with fewer than three stations borrow the nearest
   stations of their neighbours (up to 30 km beyond the border), so the map has no grey
   "too few stations" okresy left.
-- **Model comparison per region:** [compare.html](https://jerrylion.github.io/meteoverdict/compare.html)
+- **Model comparison per region:** [compare.html](https://jerrywoof.github.io/meteoverdict/compare.html)
   ranks the models in Czechia, every kraj and every okres, with intervals, skill against
   the mean of all models and errors by lead day.
-- **Forecast map:** the [TV-style map](https://jerrylion.github.io/meteoverdict/tv.html)
+- **Forecast map:** the [TV-style map](https://jerrywoof.github.io/meteoverdict/tv.html)
   shows our combined forecast for every okres for six days, by night, morning,
   afternoon and evening: weather symbols with temperature, chance of rain, wind and
   cloud, any or all of them at once, a "play" button, and a panel per okres; refreshed
   twice a day.
-- **Own forecast:** the [forecast page](https://jerrylion.github.io/meteoverdict/forecast.html)
+- **Own forecast:** the [forecast page](https://jerrywoof.github.io/meteoverdict/forecast.html)
   shows, for a chosen okres, the next six days combined from all models, each weighted
   and bias-corrected by how well it did there over the last 90 days, next to the best
   single model ([method](docs/methodology.md#our-own-forecast-roadmap-62-63)). The
@@ -187,7 +187,7 @@ series from `site/data`, which is published in the release `data-latest`
 (`site-data.zip`; unzip it into `site/data` to run the map locally with data) and not
 committed. `.github/workflows/pages.yml` builds it after every daily update and
 publishes it on GitHub Pages (Settings → Pages → Source: GitHub Actions) at
-<https://jerrylion.github.io/meteoverdict/>; a fork without Pages enabled only builds.
+<https://jerrywoof.github.io/meteoverdict/>; a fork without Pages enabled only builds.
 
 ```bash
 cd web && npm ci && npm test && npm run dev   # local map at http://localhost:5173
@@ -232,7 +232,7 @@ run in time and keeps what was fetched ([details](docs/data-sources.md#fetching-
 `data-YYYY-MM` (`obs-`, `fc-` and `scores-YYYY-MM.parquet`, CC BY-SA 4.0):
 
 ```bash
-export GITHUB_TOKEN=… GITHUB_REPOSITORY=JerryLion/meteoverdict
+export GITHUB_TOKEN=… GITHUB_REPOSITORY=JerryWoof/meteoverdict
 uv run mvd store download --from 2026-01 --to 2026-09   # into data/obs and data/fc
 uv run mvd store upload                                  # only files that changed
 ```
