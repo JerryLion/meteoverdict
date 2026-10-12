@@ -42,7 +42,31 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 Best model per region (D+1, rolling 90 days):
 
 <!-- LEADERBOARD:START -->
-_Coming soon. Generated automatically by the daily pipeline._
+Best model per region, forecasts for the next day (D+1), last 90 days (2026-09-07 to 2026-09-30). Mean absolute error in brackets (°C, m/s, mm/day); "≈" lists models whose difference from the best is not significant (95 % bootstrap interval).
+
+| Region | Temperature (2 m) | Wind (10 m) | Precipitation (24 h) |
+|---|---|---|---|
+| **Česko** | **GeoSphere Austria AROME 2.5 km** (1.30) | **DWD ICON-D2** (1.08) | ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ UK Met Office Global 10 km ≈ NOAA GFS 0.11°/0.25° ≈ +4 |
+| Hlavní město Praha | DWD ICON-D2 ≈ GeoSphere Austria AROME 2.5 km ≈ DWD ICON-EU | DWD ICON-D2 ≈ DWD ICON-EU ≈ GeoSphere Austria AROME 2.5 km | DWD ICON-D2 ≈ Météo-France ARPEGE Europe ≈ DWD ICON-EU ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +4 |
+| Středočeský kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ECMWF AIFS 0.25° | **DWD ICON-EU** (0.95) | Météo-France ARPEGE Europe ≈ UK Met Office Global 10 km ≈ NOAA GFS 0.11°/0.25° ≈ DWD ICON-EU ≈ +2 |
+| Jihočeský kraj | **GeoSphere Austria AROME 2.5 km** (1.39) | DWD ICON-D2 ≈ DWD ICON-EU | Météo-France ARPEGE Europe ≈ NOAA GFS 0.11°/0.25° ≈ UK Met Office Global 10 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +4 |
+| Plzeňský kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 | DWD ICON-EU ≈ DWD ICON-D2 | NOAA GFS 0.11°/0.25° ≈ Météo-France ARPEGE Europe ≈ ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +3 |
+| Karlovarský kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ECMWF IFS 0.25° ≈ ECMWF IFS HRES 9 km | **DWD ICON-D2** (1.02) | Météo-France ARPEGE Europe ≈ GeoSphere Austria AROME 2.5 km ≈ UK Met Office Global 10 km ≈ ČHMÚ ALADIN CZ 1 km ≈ +6 |
+| Ústecký kraj | **DWD ICON-D2** (1.18) | DWD ICON-D2 ≈ DWD ICON-EU | UK Met Office Global 10 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ Météo-France ARPEGE Europe ≈ +4 |
+| Liberecký kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +1 | DWD ICON-D2 ≈ DWD ICON-EU | DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ ČHMÚ ALADIN CZ 1 km ≈ ECMWF IFS 0.25° ≈ +4 |
+| Královéhradecký kraj | **GeoSphere Austria AROME 2.5 km** (1.24) | **DWD ICON-D2** (1.23) | ČHMÚ ALADIN CZ 1 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ GeoSphere Austria AROME 2.5 km ≈ NOAA GFS 0.11°/0.25° ≈ +4 |
+| Pardubický kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ ČHMÚ ALADIN CZ 1 km ≈ +1 | DWD ICON-D2 ≈ GeoSphere Austria AROME 2.5 km | Météo-France ARPEGE Europe ≈ DWD ICON-EU ≈ ECMWF AIFS 0.25° ≈ GeoSphere Austria AROME 2.5 km ≈ +6 |
+| Kraj Vysočina | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ Météo-France ARPEGE Europe ≈ ECMWF AIFS 0.25° ≈ +4 | DWD ICON-D2 ≈ DWD ICON-EU | Météo-France ARPEGE Europe ≈ UK Met Office Global 10 km ≈ ECMWF AIFS 0.25° ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +3 |
+| Jihomoravský kraj | GeoSphere Austria AROME 2.5 km ≈ ECMWF AIFS 0.25° | DWD ICON-D2 ≈ DWD ICON-EU | NOAA GFS 0.11°/0.25° ≈ DWD ICON-EU ≈ DWD ICON-D2 ≈ Météo-France ARPEGE Europe ≈ +3 |
+| Olomoucký kraj | GeoSphere Austria AROME 2.5 km ≈ DWD ICON-D2 ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ ČHMÚ ALADIN CZ 1 km ≈ +1 | DWD ICON-D2 ≈ DWD ICON-EU | GeoSphere Austria AROME 2.5 km ≈ ČHMÚ ALADIN CZ 1 km ≈ DWD ICON-EU ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +7 |
+| Zlínský kraj | **GeoSphere Austria AROME 2.5 km** (1.31) | DWD ICON-EU ≈ DWD ICON-D2 | UK Met Office Global 10 km ≈ DWD ICON-EU ≈ ECMWF AIFS 0.25° ≈ ČHMÚ ALADIN CZ 1 km ≈ +4 |
+| Moravskoslezský kraj | ČHMÚ ALADIN Central Europe 2.3 km ≈ GeoSphere Austria AROME 2.5 km | **DWD ICON-D2** (1.32) | ECMWF AIFS 0.25° ≈ ČHMÚ ALADIN CZ 1 km ≈ UK Met Office Global 10 km ≈ ČHMÚ ALADIN Central Europe 2.3 km ≈ +7 |
+
+The mean of all models beats the best single model in: temperature (2 m) 1 of 15 (0 significantly); wind (10 m) 0 of 15 (0 significantly); precipitation (24 h) 7 of 15 (1 significantly).
+
+_Last updated 2026-10-12 05:01 UTC; scores up to 2026-09-30._
+
+Forecasts: [Open-Meteo.com](https://open-meteo.com/) (CC BY 4.0; UK Met Office data CC BY-SA 4.0). Observations: [ČHMÚ](https://opendata.chmi.cz/) (CC BY 4.0). Table: CC BY-SA 4.0.
 <!-- LEADERBOARD:END -->
 
 ## Goal
