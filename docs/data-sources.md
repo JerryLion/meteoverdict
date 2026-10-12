@@ -247,6 +247,7 @@ and `variable` with `period_h` and the additive sums (`n`, `sum_err`, `sum_abs_e
 | `precipitation_daily` | 24 | the UTC day |
 | `precipitation_24h` | 24 | the day ČHMÚ's climatological day starts (06:00 to 06:00 UTC) |
 | `temperature_max` | 24 | the UTC day (highest of the 24 hourly values, 00:00 … 23:00) |
+| `temperature_2m_00utc`, `_06utc`, `_12utc`, `_18utc` | 0 | UTC date of that hour |
 
 Hourly precipitation MAEs of different periods are not comparable, so models are
 ranked on `precipitation_daily` and `precipitation_24h`.
@@ -259,6 +260,14 @@ like the UTC-day total, each hour comes from its own lead day (the hours after m
 from the run one day later). Every native period of 3 or 6 hours fits into the window,
 so this works for every model. The README leaderboard shows this column for
 precipitation; `precipitation_daily` stays in the map data.
+
+The temperature at the four **synoptic hours** 00, 06, 12 and 18 UTC (roadmap 5.1b)
+is also scored on its own (`temperature_2m_00utc` …). Every model, the 6-hourly ones
+included, has native output at these hours, so all can be compared by time of day:
+06 UTC (07:00 CET, 08:00 CEST) is around the end of the night, when valley inversions
+are strongest; 12 UTC is early afternoon. These variables are aggregated (MAE, bias,
+RMSE per region, window and season) but not ranked with the bootstrap, which keeps
+the daily run short; they add about 40 % to the score rows.
 
 `temperature_max` (roadmap 5.2b) compares the highest hourly temperature of each UTC
 day, forecast and observed, and counts heat days (at least 30 °C). It is scored only
