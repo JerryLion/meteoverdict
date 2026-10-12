@@ -235,6 +235,28 @@ published: on 2026-10-12 the latest complete checked month was September 2026 (s
   `site/data/meta.json` plus `site/data/<window>/<level>/<variable>.json` as
   `{"columns": […], "rows": […]}` with floats rounded to 3 decimals.
 
+## Ranking with confidence intervals (roadmap 2.5)
+
+`meteoverdict.ranking` (run by `mvd aggregate`) ranks the models of every level,
+region, window, variable and lead day by MAE, on the same fair station-days as the
+aggregates. Ranked variables: `temperature_2m`, `wind_speed_10m`,
+`precipitation_daily` (hourly precipitation periods differ between models).
+
+- **Bootstrap:** 1,000 resamples of whole **days** with replacement. All stations and
+  models of a day stay together, because forecast errors on one day are correlated
+  across stations; resampling hours or stations would make the intervals too narrow
+  (a test checks that copying the same errors to more stations does not narrow them).
+- `diff_to_best`, `diff_ci_low`, `diff_ci_high`: the MAE difference to the best model
+  and its 95 % interval. `tied_with_best` when that interval contains 0;
+  `clear_winner` for the best model when no other model is tied with it (never with a
+  single model).
+- Each group draws from its own seed (from `--seed` and the group's key), so results
+  are reproducible and do not depend on which other groups are computed.
+- **Not handled:** autocorrelation between consecutive days (a moving-block bootstrap
+  would widen intervals slightly).
+- Cost: about 10 s per window for 100 stations × 90 days × all models (measured); the
+  full network takes a few minutes, mostly at station level.
+
 ## Raw data store
 
 `mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
