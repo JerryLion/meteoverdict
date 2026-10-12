@@ -34,6 +34,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Web map:** regions and stations coloured by the best model, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
   English. It goes live on GitHub Pages once Pages is enabled for the repository.
+- **Upstream:** wetterdienst already reads ČHMÚ data, but only closed years; what we
+  learned about the current-year files could fill that gap
+  ([docs/upstream.md](docs/upstream.md)).
 - **Next:** results fill in as the backfill progresses (each run's progress is on its
   workflow page); then a write-up of the findings (roadmap 5.6).
   See [ROADMAP.md](ROADMAP.md).
