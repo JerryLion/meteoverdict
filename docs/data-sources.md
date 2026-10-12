@@ -228,6 +228,9 @@ a = hits, b = false alarms, c = misses, d = correct negatives; an event is "at l
 threshold". Scores are stored as additive sums (`n`, `sum_err`, `sum_abs_err`,
 `sum_sq_err`, `a_*`, `b_*`, `c_*`, `d_*`), so they can be summed over days, stations and
 regions before the metrics are computed; a metric whose denominator is zero is null.
+Stored compactly (one row is one station-day): `n` as uint16, the sums as float32
+(about 7 significant digits), the counts as uint8; every aggregation sums them in
+64 bits (`metrics.total`).
 Checked against Finley's (1884) tornado forecasts (a = 28, b = 72, c = 23, d = 2680:
 POD 0.549, FAR 0.72, ETS 0.216).
 
