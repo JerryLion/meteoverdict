@@ -37,7 +37,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   (`mvd check`).
 - **Freshness:** the "last updated" badge above shows when the daily run last updated
   the scores and how recent they are.
-- **Web map:** regions and stations coloured by the best model, controls for variable,
+- **Web map:** regions and stations coloured by the best model, an okres panel that
+  explains why a model wins there, controls for variable,
   lead time and period, per-station error charts, a model comparison page, in Czech and
   English, live at [jerrywoof.github.io/meteoverdict](https://jerrywoof.github.io/meteoverdict/)
   and updated after every daily run.
@@ -127,8 +128,13 @@ uv run mvd archive-aladin --out-dir data/aladin   # save ALADIN station forecast
 ```
 
 **Web map** (`web/`, Vite + MapLibre, Node 22). It colours each okres (or kraj, where
-the okres level is not published) and each station by its best model, and explains a
-region on click. An okres with fewer than three stations borrows the nearest ones of its
+the okres level is not published) and each station by its best model. Hovering shows
+an okres's best model; the legend counts the okresy each model wins and highlights them
+on click; an okres finder sits in the header. Clicking an okres opens a panel that says
+**why** that model is best there: a clear winner or a tie, its skill against the mean of
+all models, its systematic error against the others', fewer big misses, the winners on
+each lead day and (for temperature) at each synoptic hour, a chart of every model's
+error with its interval, the stations behind it, and how preliminary the result is. An okres with fewer than three stations borrows the nearest ones of its
 neighbours, so every okres is ranked; the popup says how many are borrowed and links
 to that okres's forecast. `forecast.html` combines today's forecasts of all models
 for one okres with weights from their scores there (it asks the Open-Meteo Forecast API
