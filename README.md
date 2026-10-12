@@ -1,6 +1,7 @@
 # meteoverdict 🐸
 
 [![CI](https://github.com/JerryLion/meteoverdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryLion/meteoverdict/actions/workflows/ci.yml)
+[![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryLion%2Fmeteoverdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryLion/meteoverdict/actions/workflows/daily.yml)
 
 **Which weather model gets Czechia right?**
 Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station observations, with a per-region leaderboard and map.
@@ -24,7 +25,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Data quality:** implausible observations are dropped; stale data or many silent
   stations make the daily run fail loudly instead of publishing an outdated table
   (`mvd check`).
-- **Next:** "last updated" badge (3.4), the web map (phase 4).
+- **Freshness:** the "last updated" badge above and a line under the leaderboard show
+  when the daily run last updated the table and how recent the scores are.
+- **Next:** the web map (phase 4).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
