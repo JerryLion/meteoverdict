@@ -30,7 +30,7 @@ export const STRINGS = {
     "api.examples": "Příklady",
     "api.terms": "Podmínky",
     "api.licence":
-      "Data jsou pod licencí CC BY-SA 4.0: smíte je používat, upravovat i šířit, když uvedete zdroj (meteoverdict, Open-Meteo.com a ČHMÚ – text je v poli attribution) a odvozená data sdílíte pod stejnou licencí.",
+      "Data jsou pod licencí CC BY-SA 4.0: smíte je používat, upravovat i šířit, když uvedete zdroj (MeteoVerdict, Open-Meteo.com a ČHMÚ – text je v poli attribution) a odvozená data sdílíte pod stejnou licencí.",
     "api.fair": "Prosíme, stahujte nejvýš jednou za hodinu: data se stejně mění jen dvakrát denně.",
     "api.caveats":
       "Předpověď je statistická kombinace modelů, ne oficiální předpověď ČHMÚ; zda je lepší než nejlepší jednotlivý model, se teprve ověřuje. Za její použití neručíme.",
@@ -61,7 +61,7 @@ export const STRINGS = {
     "tv.wind": "vítr až {value} m/s",
     "tv.cloud": "oblačnost {value} % (neověřená)",
     "tv.detail": "Podrobná předpověď s grafy modelů →",
-    "tv.combined": "zkombinované meteoverdictem podle přesnosti modelů v okrese",
+    "tv.combined": "zkombinované MeteoVerdictem podle přesnosti modelů v okrese",
     "part.night": "Noc",
     "part.morning": "Ráno",
     "part.afternoon": "Odpoledne",
@@ -239,7 +239,7 @@ export const STRINGS = {
     "api.examples": "Examples",
     "api.terms": "Terms",
     "api.licence":
-      "The data are licensed CC BY-SA 4.0: you may use, change and share them if you credit the sources (meteoverdict, Open-Meteo.com and ČHMÚ – the text is in the attribution field) and share derived data under the same licence.",
+      "The data are licensed CC BY-SA 4.0: you may use, change and share them if you credit the sources (MeteoVerdict, Open-Meteo.com and ČHMÚ – the text is in the attribution field) and share derived data under the same licence.",
     "api.fair": "Please fetch at most once an hour: the data change only twice a day anyway.",
     "api.caveats":
       "The forecast is a statistical combination of models, not an official ČHMÚ forecast; whether it beats the best single model is still being checked. Use it at your own risk.",
@@ -270,7 +270,7 @@ export const STRINGS = {
     "tv.wind": "wind up to {value} m/s",
     "tv.cloud": "cloud cover {value} % (not verified)",
     "tv.detail": "Detailed forecast with the models' charts →",
-    "tv.combined": "combined by meteoverdict by each model's accuracy in the okres",
+    "tv.combined": "combined by MeteoVerdict by each model's accuracy in the okres",
     "part.night": "Night",
     "part.morning": "Morning",
     "part.afternoon": "Afternoon",

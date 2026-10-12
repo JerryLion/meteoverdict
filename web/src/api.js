@@ -9,7 +9,7 @@
 import { records } from "./data.js";
 
 export const VERSION = "v1";
-export const SITE = "https://jerrywoof.github.io/meteoverdict";
+export const SITE = "https://jerrywoof.github.io/MeteoVerdict";
 export const DOCS = `${SITE}/api.html`;
 export const LICENCE = "CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/)";
 // the scores published per okres, and which weights of the combination belong to them
@@ -57,7 +57,7 @@ export function okresDoc({ okres, outlook, hourly, weightsDoc, scores, meta }) {
     .map((r) => Object.fromEntries(PART_FIELDS.map((k) => [k, r[k] ?? null])));
   const window = meta?.windows?.["90d"] ?? null;
   return {
-    api: `meteoverdict open data ${VERSION}`,
+    api: `MeteoVerdict open data ${VERSION}`,
     docs: DOCS,
     licence: LICENCE,
     attribution: meta?.attribution ?? null,
@@ -93,7 +93,7 @@ export function okresCsv(doc) {
 /** index.json: every okres with the addresses of its files. */
 export function indexDoc(okresy, meta, generated) {
   return {
-    api: `meteoverdict open data ${VERSION}`,
+    api: `MeteoVerdict open data ${VERSION}`,
     docs: DOCS,
     licence: LICENCE,
     attribution: meta?.attribution ?? null,
