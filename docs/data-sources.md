@@ -275,7 +275,14 @@ published: on 2026-10-12 the latest complete checked month was September 2026 (s
 
 `mvd aggregate` sums the daily scores per **level** (`station`, `okres`, `kraj`,
 `elevation` class, `cz`) and **window** ending at the last scored day (`90d`, `season`
-= meteorological season so far, `all`), then derives the metrics.
+= meteorological season so far, `all`), then derives the metrics. The **seasonal
+windows** `djf`, `mam`, `jja` and `son` (roadmap 5.1) take every day of that season
+in the whole history, e.g. all summers, so models can be compared by season (their
+`from` is the first scored day of all).
+
+- **Cost:** with the seasonal windows, aggregating and ranking one variable and lead
+  day for 750 stations, 13 models and a year of days takes about 35 s on a laptop
+  (bootstrap included; 19 s with only the first three windows).
 
 - **Fair comparison:** within a window, variable, lead day and station only the days
   that every model covering that station has scores for are used, so models with a
