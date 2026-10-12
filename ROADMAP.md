@@ -125,7 +125,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 1.4 Station → kraj mapping (point-in-polygon with open kraj boundaries) + elevation class
 - [x] 1.4b Okres boundaries (ČÚZK, same pipeline as kraje) + station → okres column
 - [x] 1.5 `fetch-obs`: hourly T2m, precip, wind for a date range → normalized Parquet (UTC)
-- [ ] 1.5b Daily precipitation from the ~280 manual rain-gauge stations (`recent/data/daily`, `SRA`), with ČHMÚ's daily accumulation window
+- [x] 1.5b Daily precipitation from the ~280 manual rain-gauge stations (`recent/data/daily`, `SRA`), with ČHMÚ's daily accumulation window
 - [x] 1.6 `fetch-fc`: Previous Runs client, batched locations, 14-day windows, retries, rate-limit aware (free tier: 600/min, 5k/h, 10k/day, 300k/month)
 - [x] 1.7 Raw store: monthly Parquet partitions; upload/download to GitHub Release assets
 - [x] 1.8 Unit tests with recorded fixtures (no network in CI): real ČHMÚ, Open-Meteo and ALADIN samples under `tests/fixtures/`, added with each item 1.1–1.7
@@ -138,6 +138,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 2.4 Aggregations: station / okres / kraj × model × variable × lead × window (90 d, season, all) → JSON, with a minimum station count per region
 - [x] 2.5 Bootstrap confidence intervals for ranking
 - [x] 2.6 `backfill --from 2024-01-01` (resumable, chunked by month, most recent first; all models and stations since 2024 ≈ 333k Open-Meteo calls, so it must be spread over 2+ months of the free quota)
+- [ ] 2.7 Score the manual rain gauges: sum hourly forecast precipitation over each gauge's 06–06 UTC window, include gauges in `backfill` and `daily` (forecasts at the gauge positions), and add them to the precipitation aggregates
 
 ### Phase 3: Publish
 - [x] 3.1 `report --readme`: leaderboard table (kraj → best model per variable, D+1)
