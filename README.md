@@ -239,8 +239,20 @@ uv run mvd backfill --from 2024-01-01 --max-calls 6000   # resumable; run again 
 
 `mvd backfill` fills the history newest first in 14-day windows within the free
 Open-Meteo quota and remembers its progress, so it can run a little every day; a GitHub
-Actions workflow does that with 9,000 calls a day (all history takes about two months)
+Actions workflow does that with 8,500 calls a day (all history takes about two months)
 ([details](docs/data-sources.md#backfill-mvd-backfill)).
+
+```bash
+uv run mvd outlook                   # TV-style forecast for every okres → site/data/outlook.json
+```
+
+`mvd outlook` asks the Open-Meteo Forecast API once for all 77 okresy and all models
+(about 340 weighted calls), combines them with the okres weights from
+`data/aggregates.parquet` and summarises each of the next six days by night, morning,
+afternoon and evening (Prague time): temperature range, rain, probability of
+precipitation, wind, cloud cover and a weather symbol. A workflow runs it at 05:52 and
+17:52 UTC and puts `outlook.json` into the release `data-latest` for the map
+([details](docs/data-sources.md#outlook-mvd-outlook-roadmap-66)).
 
 ```bash
 uv run mvd report            # print the leaderboard
