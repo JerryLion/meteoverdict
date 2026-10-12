@@ -154,7 +154,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 4.3 Controls: variable, lead time, window (90 d / season / all)
 - [x] 4.4 Station layer + click → per-model error time series (Observable Plot)
 - [x] 4.5 Model comparison page: overall ranking, bias by elevation class
-- [ ] 4.6 Czech / English toggle
+- [x] 4.6 Czech / English toggle
 
 ### Phase 5: Depth & outreach
 - [x] 5.1a Seasonal breakdowns: windows of all winters, springs, summers and autumns
