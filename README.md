@@ -21,10 +21,11 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   models as a baseline that every model has to beat.
 - **Running automatically:** ALADIN runs are archived every 3 hours (ČHMÚ keeps them 3
   days); the backfill fills the history since 2024, stations and rain gauges, newest
-  first within the free Open-Meteo quota (about 3 months in total); the daily workflow
+  first within the free Open-Meteo quota (about two months in total); the daily workflow
   captures observations, re-scores, and updates this README every morning.
-- **Not yet:** the leaderboard fills as the backfill and ČHMÚ's monthly publication of
-  checked observations progress. ALADIN has forecast history only from June 2026.
+- **Not yet:** the first real results (12 Oct 2026) cover late September only; the
+  leaderboard fills as the backfill and ČHMÚ's monthly publication of checked
+  observations progress. ALADIN has forecast history only from June 2026.
 - **Data quality:** implausible observations are dropped; stale data or many silent
   stations make the daily run fail loudly instead of publishing an outdated table
   (`mvd check`).
@@ -216,7 +217,7 @@ uv run mvd backfill --from 2024-01-01 --max-calls 6000   # resumable; run again 
 
 `mvd backfill` fills the history newest first in 14-day windows within the free
 Open-Meteo quota and remembers its progress, so it can run a little every day; a GitHub
-Actions workflow does that with 6,000 calls a day (all history takes 2–3 months)
+Actions workflow does that with 9,000 calls a day (all history takes about two months)
 ([details](docs/data-sources.md#backfill-mvd-backfill)).
 
 ```bash
