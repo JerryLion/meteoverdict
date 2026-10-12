@@ -175,7 +175,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [ ] 6.4 Verify the combination out of sample (weights from earlier days, scored like a model) and rank it against the best single model; compare training windows of 30, 45 and 90 days and a decaying average (`docs/forecast-research.md`)
 - [x] 6.5 Review the combination method against operational practice and the literature (`docs/forecast-research.md`); taper models that end early
 - [x] 6.6 TV-style forecast: combined forecast for all okresy by part of day (night, morning, afternoon, evening), with precipitation probability and cloud symbols, refreshed twice a day
-- [ ] 6.7 TV-style forecast map: symbols and temperatures per okres, day and part-of-day controls, click an okres for details
+- [x] 6.7 TV-style forecast map: symbols and temperatures per okres, day and part-of-day controls, click an okres for details
 
 ---
 
