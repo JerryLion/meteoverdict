@@ -205,10 +205,12 @@ attribution and our changes stated in the release notes.
 ČHMÚ station observations do not need archiving: `recent/` keeps the current year and
 `historical/` all closed years.
 
-## Kraj boundaries
+## Okres and kraj boundaries
 
 `src/meteoverdict/data/kraje.geojson` holds the 14 kraje with their NUTS 3 code
-(`CZ010` … `CZ080`) and name. Built by `scripts/build_kraje.py` from:
+(`CZ010` … `CZ080`) and name; `okresy.geojson` the 77 okresy with their LAU 1 code
+(`CZ0100` for Praha, `CZ0201` … `CZ0806`) and name. The first five characters of an
+okres code are its kraj's code. Built by `scripts/build_regions.py` from:
 
 - ČÚZK INSPIRE Administrative Units (`services.cuzk.gov.cz/gml/inspire/au/`). ČÚZK
   publishes its open data under CC BY 4.0 ("ČÚZK poskytuje otevřená data pod licencí
@@ -217,11 +219,17 @@ attribution and our changes stated in the release notes.
   (CC BY 4.0), pinned to commit `6e77140c`. Names and ids are top-level feature fields
   there (`name`, `id` = `CZ0100000000`), not `properties`.
 
-The script simplifies all 14 polygons together (`shapely.coverage_simplify`, tolerance
-0.002°) so neighbours keep identical shared borders, and rounds to 4 decimals. That
-shrinks 9 MB to about 240 KB; borders move by at most ~0.006° (about 0.6 km). Středočeský
-kraj has one hole (Praha). `mvd stations` gives a station the kraj whose polygon
-contains it, or the nearest kraj if the station is at most 2 km outside the border.
+The script simplifies each level as one coverage (`shapely.coverage_simplify`,
+tolerance 0.002°) so neighbours keep identical shared borders, and rounds to 4
+decimals: 9 MB → 240 KB for kraje, 20 MB → 550 KB for okresy; borders move by at most
+~0.006° (about 0.6 km). Středočeský kraj has a hole (Praha), Brno-venkov too
+(Brno-město), Louny one more, and Litoměřice is a MultiPolygon (an exclave). In the
+source data Praha's okres is called "území Hlavního města Prahy".
+
+`mvd stations` gives a station the okres whose polygon contains it, or the nearest
+okres if the station is at most 2 km outside the national border, and takes the kraj
+from the okres code, so both levels always agree. On 2026-10-12 every okres had
+stations (2 to 25, median 9).
 
 ## Open-Meteo Previous Runs API (forecasts)
 
