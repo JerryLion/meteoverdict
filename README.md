@@ -29,7 +29,9 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Scoring:** observations and forecasts are paired per station, hour and lead day at
   each model's native time resolution (models with 3- or 6-hourly output are not judged
   on interpolated hours).
-- **Next:** metrics (2.2) and the daily scores table (2.3).
+- **Metrics:** MAE, bias, RMSE and, for daily precipitation, POD, FAR and ETS, stored
+  as additive sums so they can be combined over any window or region.
+- **Next:** the daily scores table (2.3).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard

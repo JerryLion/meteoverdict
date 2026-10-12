@@ -132,7 +132,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 
 ### Phase 2: Scoring
 - [x] 2.1 Align obs/fc (time zones, accumulation periods for precip; AIFS and IFS 0.25° only at their native 6-/3-hourly hours, Open-Meteo interpolates the rest)
-- [ ] 2.2 Metrics module (MAE, bias, RMSE, POD/FAR/ETS) + tests against hand-computed cases
+- [x] 2.2 Metrics module (MAE, bias, RMSE, POD/FAR/ETS) + tests against hand-computed cases
 - [ ] 2.3 `score`: daily scores table → `scores/YYYY-MM.parquet`
 - [ ] 2.4 Aggregations: station / okres / kraj × model × variable × lead × window (90 d, season, all) → JSON, with a minimum station count per region
 - [ ] 2.5 Bootstrap confidence intervals for ranking
