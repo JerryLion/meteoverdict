@@ -1,4 +1,4 @@
-# meteoverdict 🐸
+# MeteoVerdict 🐸
 
 [![CI](https://github.com/JerryWoof/meteoverdict/actions/workflows/ci.yml/badge.svg)](https://github.com/JerryWoof/meteoverdict/actions/workflows/ci.yml)
 [![Last updated](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FJerryWoof%2Fmeteoverdict%2Fmain%2Fsite%2Fdata%2Fbadge.json)](https://github.com/JerryWoof/meteoverdict/actions/workflows/daily.yml)
