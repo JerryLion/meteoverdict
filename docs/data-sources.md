@@ -179,6 +179,18 @@ Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
   (checked 2026-10-12, see [licensing.md](licensing.md)). Credit "Czech
   Hydrometeorological Institute (ČHMÚ), opendata.chmi.cz, CC BY 4.0".
 
+## Raw data store
+
+`mvd store upload` and `mvd store download --from YYYY-MM [--to YYYY-MM]` keep
+`data/obs/YYYY-MM.parquet` and `data/fc/YYYY-MM.parquet` as the assets
+`obs-YYYY-MM.parquet` and `fc-YYYY-MM.parquet` of the release `data-YYYY-MM`. GitHub
+cannot overwrite a release asset, so a changed file is deleted and uploaded again; the
+asset label holds the file's SHA-256 so unchanged files are skipped. Downloads go
+through the API (`Accept: application/octet-stream`), which redirects to GitHub's storage
+host; httpx drops the token on that redirect. Checked end to end on 2026-10-12 with a
+throwaway release (upload, skip, replace, download byte for byte, then deleted). Release
+assets may be up to 2 GiB each.
+
 ## ALADIN archive
 
 ČHMÚ publishes ALADIN runs (00, 06, 12, 18 UTC) at
