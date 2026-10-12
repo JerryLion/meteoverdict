@@ -366,6 +366,36 @@ in each okres (`meteoverdict.combine`), from the okres scores of the last 90 day
   `data-latest`, like the okres scores.
 - Not yet verified: whether the combination beats the best single model is roadmap 6.4.
 
+## Outlook (`mvd outlook`, roadmap 6.6)
+
+The TV-style forecast for every okres (`meteoverdict.outlook`):
+
+- **Request:** one Open-Meteo **Forecast API** request (`api.open-meteo.com/v1/forecast`)
+  for the forecast points of all 77 okresy, all models with weights,
+  `hourly=temperature_2m,precipitation,wind_speed_10m,cloud_cover`, `forecast_days=6`,
+  UTC; 77 × 4 × 11 / 10 ≈ 340 weighted calls (refused above 500). Checked live on
+  2026-10-12: a JSON list of 77 results, columns `<variable>_<model>`, 2.7 MB, under a
+  second.
+- **Combination:** as on the forecast page (bias correction, weights of the hour's lead
+  day, models fading out over their last 3 hours, at least 2 models). Cloud cover is the
+  plain mean of the models (not verified).
+- **Periods** in Prague time: night 0–6, morning 6–12, afternoon 12–18, evening 18–24,
+  and the whole day; a part needs at least 4 hours and a day 18 (the answer starts at
+  00 UTC, 02:00 in Prague in summer time).
+- **Per period:** `tmin`, `tmax`, `precipitation` (sum of the combined hourly values),
+  `rain_probability` (weighted share of the models whose own total is ≥ 0.2 mm, among
+  those covering the whole period), `wind` (highest combined hourly mean, m/s), `cloud`
+  (%), `symbol`: `rain` / `sleet` / `snow` (≤ 2 / ≤ 0.5 °C mean temperature) when the
+  probability is ≥ 50 % and the total ≥ 0.2 mm, `showers` at ≥ 30 %, otherwise `clear`
+  (< 25 % cloud), `partly` (< 70 %) or `cloudy`. The whole day's symbol uses the cloud
+  of 6–18.
+- **Output:** `site/data/outlook.json` `{"generated", "time_zone", "parts", "days",
+  "okresy": [{code, name, lat, lon}], "columns", "rows"}` (about 110 kB);
+  `.github/workflows/outlook.yml` runs it at 05:52 and 17:52 UTC and uploads it to the
+  release `data-latest`, after which the Pages workflow rebuilds the map.
+- **Budget:** two runs a day ≈ 680 calls; the backfill's daily budget went from 9,000
+  to 8,500 so that both stay under 10,000 a day and 300,000 a month.
+
 ## Ranking with confidence intervals (roadmap 2.5)
 
 `meteoverdict.ranking` (run by `mvd aggregate`) ranks the models of every level,
@@ -429,11 +459,12 @@ from its archive start, then the window's daily scores.
   its windows are fetched but scored only once ČHMÚ publishes the month.
 - With `--github-release` the month files and the state are pulled from and pushed to
   GitHub Releases (`data-YYYY-MM`, state in `data-state`) after every window, so the
-  scheduled workflow `.github/workflows/backfill.yml` (daily, 9,000 calls) can continue
+  scheduled workflow `.github/workflows/backfill.yml` (daily, 8,500 calls, leaving room
+  for the outlook) can continue
   from any machine.
 - Budget: about 6,900 calls per window for all ~500 stations and 11 models, plus about
   1,550 for the rain gauges (measured on the first real runs, 12 Oct 2026: 5,913 + 3,785
-  calls for the newest window), so about one window a day with 9,000 calls; 2024-01-01
+  calls for the newest window), so about one window a day with 8,500 calls; 2024-01-01
   to now is about 70 windows, fewer models in older ones (archive starts), i.e. about
   two months. The free tier counts calls per IP address and GitHub's runners share
   addresses, so a run can meet the daily limit early; it then stops cleanly. ČHMÚ

@@ -52,7 +52,8 @@ start later for one variable (ARPEGE wind); see `docs/data-sources.md#models`.
 | README leaderboard | Generated block between `<!-- LEADERBOARD:START/END -->` | repo |
 | Web app | Static: Vite + MapLibre GL + Observable Plot, reads JSON | GitHub Pages |
 | ALADIN archive | `mvd archive-aladin` every 3 h, one Parquet per run as Release assets (`aladin-YYYY-MM`) | GitHub Actions |
-| Backfill | `mvd backfill` daily with 6,000 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
+| Backfill | `mvd backfill` daily with 8,500 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
+| Outlook | `mvd outlook` twice a day: combined forecast for every okres (≈ 340 calls) → `outlook.json` in Release `data-latest` | GitHub Actions |
 | Development | Claude scheduled task, weekdays, works from this roadmap, opens PRs | Claude (Cowork) |
 
 Two separate loops:
@@ -173,7 +174,7 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 6.3 Web: meteoverdict forecast for a chosen okres: today's Open-Meteo forecasts of all models combined with the 6.2 weights, next to the best single model
 - [ ] 6.4 Verify the combination out of sample (weights from earlier days, scored like a model) and rank it against the best single model; compare training windows of 30, 45 and 90 days and a decaying average (`docs/forecast-research.md`)
 - [x] 6.5 Review the combination method against operational practice and the literature (`docs/forecast-research.md`); taper models that end early
-- [ ] 6.6 TV-style forecast: combined forecast for all okresy by part of day (night, morning, afternoon, evening), with precipitation probability and cloud symbols, refreshed twice a day
+- [x] 6.6 TV-style forecast: combined forecast for all okresy by part of day (night, morning, afternoon, evening), with precipitation probability and cloud symbols, refreshed twice a day
 - [ ] 6.7 TV-style forecast map: symbols and temperatures per okres, day and part-of-day controls, click an okres for details
 
 ---

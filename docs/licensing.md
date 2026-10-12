@@ -45,7 +45,8 @@ below, and public data is the point of the project.
 4. **The forecast page** (`forecast.html`, roadmap 6.3) asks the Open-Meteo Forecast
    API from each visitor's browser, one request per okres shown, so each visitor uses
    their own free-tier allowance; the page credits Open-Meteo and the model providers
-   like the map. It stays non-commercial under rule 1.
+   like the map. It stays non-commercial under rule 1. The TV-style map reads
+   `outlook.json`, made twice a day by one request for all okresy (about 340 calls).
 5. **Do not imply endorsement** by ČHMÚ, Open-Meteo or any model provider.
 6. **GitHub:** data files live in Release assets (≤ 2 GiB each), not in git history.
    The scheduled workflows are this project's data pipeline, which GitHub Actions
