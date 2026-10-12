@@ -35,7 +35,10 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
   day and variable.
 - **Aggregates:** `mvd aggregate` writes results per station, okres, kraj, elevation
   class and Czechia for three time windows as JSON for the web map.
-- **Next:** bootstrap confidence intervals for the ranking (2.5).
+- **Ranking:** models are ranked by MAE with bootstrap confidence intervals (whole days
+  resampled); a model is only shown as the winner when no other model is
+  statistically tied with it.
+- **Next:** backfill of the history (2.6).
   See [ROADMAP.md](ROADMAP.md).
 
 ## Leaderboard
