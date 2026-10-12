@@ -12,8 +12,8 @@ Daily verification of ALADIN, ICON, ECMWF, GFS & more against ČHMÚ station obs
 - **Works today:** project skeleton (uv, ruff, pytest), CI on every pull request,
   the `mvd` CLI with all pipeline commands as validated stubs, and documented ČHMÚ
   data sources ([docs/data-sources.md](docs/data-sources.md)) with recorded samples,
-  `mvd stations`, which builds the ČHMÚ station table with each station's kraj and
-  elevation class (782 stations on 2026-10-11), and the model catalogue (`mvd models`):
+  `mvd stations`, which builds the ČHMÚ station table with each station's okres, kraj
+  and elevation class (782 stations in all 77 okresy on 2026-10-12), and the model catalogue (`mvd models`):
   11 Open-Meteo models that cover Czechia, with archive start dates and lead days
   measured against the live API.
 - **Not yet:** no observations or forecasts are fetched or scored; the leaderboard is
@@ -90,8 +90,8 @@ hour (0–72 h) as Parquet files in the releases `aladin-YYYY-MM`. Format:
 [docs/data-sources.md](docs/data-sources.md#aladin-archive).
 
 `data/stations.parquet` has one row per station: `id` (WIGOS id), `gh_id` (ČHMÚ
-id), `name`, `lat`, `lon`, `elevation` (m), `active`, `kraj_code` (NUTS 3, e.g.
-`CZ064`), `kraj` and `elevation_class` (`lowland` < 400 m, `upland` 400–800 m,
+id), `name`, `lat`, `lon`, `elevation` (m), `active`, `okres_code` (LAU 1, e.g.
+`CZ0642`), `okres`, `kraj_code` (NUTS 3, e.g. `CZ064`), `kraj` and `elevation_class` (`lowland` < 400 m, `upland` 400–800 m,
 `mountain` > 800 m). Active stations are those in today's ČHMÚ list; stations closed
 since 2024-01-01 are kept as inactive so the backfill can still use them. Stations
 outside Czechia are dropped (up to 2 km outside the border still counts, for stations
@@ -125,9 +125,9 @@ external data comes from recorded fixtures in `tests/fixtures/`.
 - Forecast models via Open-Meteo: DWD (ICON), ECMWF (IFS, AIFS), NOAA (GFS),
   Météo-France (ARPEGE, Licence Ouverte 2.0), GeoSphere Austria (AROME), KNMI and DMI,
   and the UK Met Office ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)).
-- Kraj boundaries: © ČÚZK (INSPIRE Administrative Units), CC BY 4.0, via
+- Okres and kraj boundaries: © ČÚZK (INSPIRE Administrative Units), CC BY 4.0, via
   [siwekm/czech-geojson](https://github.com/siwekm/czech-geojson); simplified by
-  `scripts/build_kraje.py`.
+  `scripts/build_regions.py`.
 - ALADIN station archive (release assets `aladin-YYYY-MM`): CC BY 4.0.
 - Generated scores and maps: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
   because they include UK Met Office data (ShareAlike).
