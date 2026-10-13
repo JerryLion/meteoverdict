@@ -136,6 +136,14 @@ export const STRINGS = {
     "window.mam": "Všechna jara",
     "window.jja": "Všechna léta",
     "window.son": "Všechny podzimy",
+    "window.range": "{name}: {range} ({days})",
+    "window.empty": "{name}: zatím bez dat",
+    "window.same90d": "zatím stejné jako 90 dní",
+    "window.days.one": "{n} den",
+    "window.days.few": "{n} dny",
+    "window.days.many": "{n} dní",
+    "window.help":
+      "Každé období končí posledním vyhodnoceným dnem. Celé období začíná nejstarším dnem, který je zatím vyhodnocený, a roste, jak se doplňuje historie až do ledna 2024 (ALADIN až od června 2026). Dokud je historie krátká, některá období pokrývají stejné dny.",
     "legend.title": "Nejlepší model (počet okresů)",
     "legend.hint": "Klikněte na model: zvýrazní okresy, kde vede. Klikněte na okres: proč tam vede.",
     "hover.tied": "+ {n} statisticky stejně dobrých",
@@ -356,6 +364,14 @@ export const STRINGS = {
     "window.mam": "All springs",
     "window.jja": "All summers",
     "window.son": "All autumns",
+    "window.range": "{name}: {range} ({days})",
+    "window.empty": "{name}: no data yet",
+    "window.same90d": "same as last 90 days for now",
+    "window.days.one": "{n} day",
+    "window.days.few": "{n} days",
+    "window.days.many": "{n} days",
+    "window.help":
+      "Every period ends on the last scored day. All time starts with the oldest day scored so far and grows as the backfill fills in history back to January 2024 (ALADIN only from June 2026). While the history is short, some periods cover the same days.",
     "legend.title": "Best model (number of okresy)",
     "legend.hint": "Click a model to highlight where it wins. Click an okres to see why.",
     "hover.tied": "+ {n} statistically as good",
@@ -490,6 +506,10 @@ export function setUpLanguage() {
   }
   for (const element of document.querySelectorAll("[data-i18n-aria]")) {
     element.setAttribute("aria-label", t(element.dataset.i18nAria));
+  }
+  for (const element of document.querySelectorAll("[data-i18n-title]")) {
+    element.title = t(element.dataset.i18nTitle);
+    element.setAttribute("aria-label", element.title);
   }
   const toggle = document.getElementById("language");
   if (toggle) {
