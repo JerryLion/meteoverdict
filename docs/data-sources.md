@@ -397,8 +397,8 @@ The TV-style forecast for every okres (`meteoverdict.outlook`):
   "okresy": [{code, name, lat, lon}], "columns", "rows"}` (about 110 kB);
   `.github/workflows/outlook.yml` runs it at 05:52 and 17:52 UTC and uploads it to the
   release `data-latest`, after which the Pages workflow rebuilds the map.
-- **Budget:** two runs a day ≈ 850 calls; with the backfill's daily budget of 8,500
-  both stay under 10,000 a day (9,350) and 300,000 a month.
+- **Budget:** two runs a day ≈ 850 calls; see the [budget split](#open-meteo-budget)
+  with the backfill and the single runs.
 
 ## Ranking with confidence intervals (roadmap 2.5)
 
@@ -466,12 +466,13 @@ from its archive start, then the window's daily scores.
   its windows are fetched but scored only once ČHMÚ publishes the month.
 - With `--github-release` the month files and the state are pulled from and pushed to
   GitHub Releases (`data-YYYY-MM`, state in `data-state`) after every window, so the
-  scheduled workflow `.github/workflows/backfill.yml` (daily, 8,500 calls, leaving room
-  for the outlook) can continue
+  scheduled workflow `.github/workflows/backfill.yml` (daily, 6,800 calls, leaving room
+  for the outlook and the single runs, see the [budget split](#open-meteo-budget)) can continue
   from any machine.
 - Budget: about 6,900 calls per window for all ~500 stations and 11 models, plus about
   1,550 for the rain gauges (measured on the first real runs, 12 Oct 2026: 5,913 + 3,785
-  calls for the newest window), so about one window a day with 8,500 calls; 2024-01-01
+  calls for the newest window), so about one window a day with 8,500 calls (since
+  2026-10-13 the daily budget is 6,800, so a little less than one); 2024-01-01
   to now is about 70 windows, fewer models in older ones (archive starts), i.e. about
   two months. The free tier counts calls per IP address and GitHub's runners share
   addresses, so a run can meet the daily limit early; it then stops cleanly. ČHMÚ
@@ -611,16 +612,199 @@ time of use).
 ČHMÚ station observations do not need archiving: `recent/` keeps the current year and
 `historical/` all closed years.
 
+## Single runs (`mvd fetch-runs`)
+
+Open-Meteo's **Single Runs API** returns one model run as it was issued, which the
+Previous Runs API (D+N, above) cannot: there each hour mixes runs. Checked live on
+2026-10-13 without an API key (free tier):
+
+- Endpoint `https://single-runs-api.open-meteo.com/v1/forecast`, the Forecast API's
+  parameters plus `run=YYYY-MM-DDTHH:MM` (the run's **start**, UTC). Several models per
+  request (`models=a,b,c`, columns `<variable>_<model>`) and several locations
+  (comma-separated `latitude`, `longitude`, `elevation`; a JSON list, `location_id` on
+  all but the first) work as in the other APIs, and `elevation` is used for the
+  elevation correction as there.
+- The answer starts at the run's start (lead 0); `forecast_hours=121` gives leads 0 to
+  120 (`forecast_days=N` gives N × 24 hours from the run's start). Lead 0 is not stored.
+- If **any** requested model does not have that run, the whole request fails: HTTP 400
+  `{"error":true,"reason":"The requested model run is not available. Model: X, run: …"}`.
+  X is Open-Meteo's internal name, which can differ from the id we ask for:
+  `dwd_icon_d2_native`, `dwd_icon_eu_native`, `ncep_gfs013` (for `ncep_gfs_global`); the
+  others report their own id. `mvd fetch-runs` drops X and asks again for the rest.
+- A model without data at one location (ICON-D2 in the far east) is **left out of that
+  location's answer** instead of failing the request; if only one model is left, the
+  columns lose their model suffix (`temperature_2m`). A one-model request fails there
+  with "No data is available for this location", as in the Previous Runs API.
+- Every model has every 00, 06, 12 and 18 UTC run. Horizons seen (temperature, lead
+  hours with a value, runs of 2026-10-12): ALADIN (both) 72; ICON-D2 48; GeoSphere
+  AROME 60; ARPEGE Europe 102; ICON-EU, IFS HRES, IFS 0.25°, AIFS and GFS 120 (asked
+  for); UK Met Office 120 from 00 and 12 UTC, 60 from 06 and 18 UTC. AIFS (6-hourly)
+  and IFS 0.25° (3-hourly) come with every hour filled, so the hours in between are
+  interpolated, as in the Previous Runs API.
+- **Archive start:** the 2026-04-02 00 UTC runs are there for every model except ALADIN,
+  the 2026-04-01 12 UTC runs only for IFS HRES (the docs say IFS HRES from 2024-03-14).
+  ALADIN (both domains) from the **2026-06-23 00 UTC** run (2026-06-22 18 UTC is missing;
+  `runs_from` in models.yaml). Gaps after that are possible (KNMI, not used, misses
+  2026-09-01 12 UTC).
+- **Delivery:** at 14:25 UTC on 2026-10-13 the 06 UTC run (8.4 h old) was complete for
+  all 11 models, the 12 UTC run only for ICON-D2. So a run is fetched once it is
+  **10 hours** old.
+
+### The station subset
+
+Asking every run at all ~500 stations would cost about 1,650 calls a run, 6,600 a day.
+We use about 100 stations instead (`src/meteoverdict/data/run-stations.csv`, committed,
+so the set does not change from run to run). The rule (`runs.select_stations`,
+regenerated with `uv run scripts/build_run_stations.py`):
+
+1. **One per okres** (all 77): among the okres's active stations, those with the most of
+   our three elements at 10 minutes in ČHMÚ's `meta2` (`T`, `F`, `SRA10M`), and of
+   these the one closest to the okres's forecast point (the same point as the outlook).
+   Blansko has only precipitation stations, so its station verifies precipitation only.
+2. **Mountains:** every other station with all three elements above 800 m (13).
+3. **Spread** up to 100: repeatedly the full station farthest from all chosen ones,
+   counting 100 m of height difference as 10 km (10 stations).
+
+Ties go to the lower WIGOS id. Result on 2026-10-13: 100 stations in all 77 okresy,
+47 lowland, 39 upland and 14 mountain, 99 with all three elements. The CSV records why
+each station is in (`reason`: `okres`, `mountain`, `spread`).
+
+### Fetching and storage
+
+`mvd fetch-runs [--mode recent|history|all] [--run YYYY-MM-DDTHH …] [--max-calls N]
+[--github-release] [--dry-run]`:
+
+- **One request per run** for all 100 stations and all enabled models (11),
+  `hourly=temperature_2m,precipitation,wind_speed_10m`, `forecast_hours=121`,
+  `wind_speed_unit=ms`, with each station's elevation. Retries, the daily limit and
+  persistent failures behave as in `mvd fetch-fc` (`forecasts.request`); a run stopped by
+  the budget or by Open-Meteo is not kept and is asked again next time.
+- **Cost** (Open-Meteo's formula: locations × max(1, variables × models / 10 ×
+  max(1, days / 14))): 121 hours count as 6 days, under 14, so the whole 5 days cost the
+  same as one day: **3 × 11 / 10 = 3.3 calls per station, 330 a run** (270 for the runs
+  before 2026-06-23 without ALADIN). Measured on the first real runs (2026-10-13, our
+  budget counter): 330 for each of 2026-10-10 00 and 12 UTC, 2026-07-15 00 UTC and
+  2026-10-13 00 UTC, 270 for 2026-04-15 12 UTC. A model that has to be asked again on
+  its own costs at least 1 per station (100). Requests that fail count too (we do not
+  know whether Open-Meteo counts them).
+- **Order:** "recent" runs first (all runs between 10 and 48 hours old not done yet:
+  ongoing collection, missed schedules catch up), then "history" newest first back to
+  2026-04-02 00 UTC. `--run` fetches only the given runs.
+- **Gaps:** a model Open-Meteo does not have for a run older than 24 hours is recorded as
+  missing for good; for a younger run it is asked again later (models arrive at
+  different times).
+- **Rows:** `data/runs/YYYY-MM.parquet` by the month of the run's start, one row per
+  `run`, `model`, `station_id`, `lead_h` (1–120) with `valid_time` (= run + lead),
+  `temperature_2m` (°C), `precipitation` (mm in the hour ending at `valid_time`) and
+  `wind_speed_10m` (m/s), sorted by run. About 107,000 rows and 0.31 MB a run, so about
+  38 MB a month.
+- **State:** `data/runs-state.json`: per run (`YYYYMMDDHH`) the models fetched and the
+  models missing.
+- **Release storage** (`--github-release`): the month files as `runs-YYYY-MM.parquet` in
+  the releases `runs-YYYY-MM` (a family of their own, CC BY-SA 4.0 like the other data
+  files), the state as `runs-state.json` in the release `runs-state`; labels hold the
+  SHA-256 so unchanged files are skipped. The month file is pulled before a run is
+  added to it and pushed after each run. Only `runs.yml` writes these releases, so it
+  has its own concurrency group; `mvd leads` in the daily workflow only reads them.
+- **Schedule** (`.github/workflows/runs.yml`): at 04:20, 10:20, 16:20 and 22:20 UTC,
+  10 h 20 min after each run. Each scheduled run normally fetches the newest run; the
+  10:20 run has a larger budget and also fills about one older run.
+
+### Open-Meteo budget
+
+All workflows share the free tier's 10,000 weighted calls a day and 300,000 a month
+(per IP address; GitHub's runners share addresses, so a run can still meet the daily
+limit early and then stops cleanly):
+
+| Workflow | Calls a day | In 31 days |
+|---|---|---|
+| Backfill (`backfill.yml`, once a day) | 6,800 | 210,800 |
+| Outlook (`outlook.yml`, 2 × ~420) | ~850 | ~26,400 |
+| Single runs (`runs.yml`, 3 × 350 + 750) | 1,800 | 55,800 |
+| **Total** | **~9,450** | **~293,000** |
+
+The monthly limit is the tighter one: 10,000 a day would be 310,000 in a 31-day month.
+The single runs need about 1,320 calls a day for the four new runs, so history fills
+at only about one run a day (all 770 runs back to 2026-04-02 would take about 237,000
+calls). Once the backfill has caught up (it then needs about 600 calls a day for each
+new 14-day window), most of its budget should move to `runs.yml`; at about 6,000 a day
+the run history would be complete in about six weeks.
+
 ## Error by lead hour (`mvd leads`)
 
-Run-based verification of the archived ALADIN runs (see
-[methodology](methodology.md#run-based-verification-by-lead-hour) for what it means).
-`meteoverdict.leads`:
+Run-based verification (see [methodology](methodology.md#run-based-verification-by-lead-hour)
+for what it means). `meteoverdict.leads` has two parts.
+
+### Every model, from the single runs (`leads.json`)
+
+1. Reads the single runs started in the last `--runs-days` days (default 90) from
+   `data/runs/` (with `--github-release` it first downloads changed months from the
+   releases `runs-YYYY-MM`, and the observation months from `data-YYYY-MM`).
+2. Per model, run, station and lead hour 1–120: temperature and wind as given (instant
+   values at `valid_time`), precipitation as given (Open-Meteo's hourly value, mm in
+   the hour ending at `valid_time`, no differencing). Only **native output hours** are
+   scored: AIFS every 6 h, IFS 0.25° every 3 h, ICON-EU after 78 h, IFS HRES after 90 h
+   and UK Met Office after 54 h every 3 h (`step_hours`, `coarser_after_h` in
+   models.yaml); hourly precipitation only where the output is hourly.
+3. **Fair set.** A model's horizon per run hour is the median over its runs of the last
+   lead hour with a temperature. For each run hour (00, 06, 12, 18 UTC), lead hour and
+   variable, the *required* models are those whose horizon reaches the lead with a
+   native output hour; only the (run, station) pairs where every required model has a
+   value (and the observation exists) are scored. For "all" run hours a model must reach
+   the lead in every run hour (UK Met Office therefore ends at 60 h there, ARPEGE at
+   102 h). So the set of models shrinks with the lead hour, and a model missing from a
+   run takes that run out of the comparison at the leads it would reach (like the D+N
+   rule: models whose archive starts later — ALADIN, 2026-06-23 — limit the common
+   sample).
+4. Sums errors per run hour stratum (`all`, `00`, `06`, `12`, `18`), model, variable
+   and lead hour, 24 runs at a time (the sums are additive, so months of runs fit in
+   memory), plus the 2×2 counts for ≥ 0.1 mm in the hour.
+
+`site/data/leads.json` (with `--publish` also in the release `data-latest`, from where
+the Pages build takes it):
+
+| Key | Meaning |
+|---|---|
+| `generated`, `first_run`, `last_run` | UTC, `YYYY-MM-DDTHH:MMZ` |
+| `source`, `about`, `fair_set` | where the data come from and the comparison rule |
+| `stations` | stations with at least one pair |
+| `models` | per model: `name`, `runs` and `pairs` used (run hour "all"), `horizon_h` per run hour, `publication_delay_h` (ALADIN only, from our archive; null for the others) |
+| `variables`, `region`, `regions` | units; Czechia only (`cz`) |
+| `columns`, `rows` | one row per `run_hour`, `model`, `variable`, `lead_h`: `runs`, `stations`, `n`, `mae`, `bias`, `rmse` (3 decimals), `a_0p1`, `b_0p1`, `c_0p1`, `d_0p1` (precipitation only) |
+
+About 0.6 MB with two run hours (6,586 rows: "all", 00 and 12 UTC), about 1 MB with all
+four (≈ 11,000 rows); no kraj file
+(100 stations are only about 7 per kraj).
+
+First real numbers, 2026-10-13: 5 runs (2026-04-15 12, 2026-07-15 00, 2026-10-10 00 and
+12, 2026-10-13 00 UTC), observations of 99 stations from `recent/` (April, July) and
+`now/` (2026-10-11 00 to 2026-10-13 13 UTC; `now/` no longer had 2026-10-10). Temperature
+MAE in °C, all run hours (runs, pairs per model):
+
+| Model | H+1 | H+6 | H+12 | H+24 | H+48 | H+72 |
+|---|---|---|---|---|---|---|
+| ALADIN CZ 1 km | 1.33 | 1.58 | 1.13 | 1.23 | 1.12 | 1.67 |
+| ALADIN CE 2.3 km | 1.35 | 1.57 | 1.13 | 1.23 | 1.12 | 1.70 |
+| ICON-D2 | 1.06 | 1.20 | 1.07 | 1.17 | 1.12 | – |
+| GeoSphere AROME | 1.43 | 1.73 | 1.22 | 1.12 | 1.36 | – |
+| ICON-EU | 1.41 | 1.54 | 1.20 | 1.18 | 1.20 | 1.59 |
+| ECMWF IFS HRES | 1.48 | 1.57 | 1.10 | 1.18 | 1.22 | 1.40 |
+| ECMWF IFS 0.25° | – | 1.73 | 1.14 | 1.21 | 1.23 | 1.45 |
+| ECMWF AIFS | – | 1.51 | 1.15 | 1.17 | 1.25 | 1.37 |
+| NOAA GFS | 2.28 | 2.47 | 1.26 | 1.49 | 1.31 | 1.79 |
+| UK Met Office | 1.61 | 1.59 | 1.27 | 1.17 | 1.29 | 1.70 |
+| ARPEGE Europe | 1.53 | 1.50 | 1.01 | 1.35 | 1.24 | 2.01 |
+| runs (pairs per model) | 2 (194) | 2 (193) | 3 (288) | 3 (289) | 3 (291) | 3 (292) |
+
+(– : no native output at that hour, or the model has ended.) The April run has no
+ALADIN, so it counts only beyond H+72. Five runs of three weather situations: a check
+that the pipeline works, not a result.
+
+### ALADIN from our own archive (`leads-aladin.json`)
 
 1. Reads the archived runs of the last `--days` days (default 30) from
    `<archive-dir>/aladin-YYYY-MM/*.parquet` (with `--github-release` it first downloads
-   the missing ones from the releases `aladin-YYYY-MM` and the observation months
-   `obs-YYYY-MM.parquet` from `data-YYYY-MM`; files already there are kept).
+   the missing ones from the releases `aladin-YYYY-MM`; files already there are kept).
 2. Per model, run, station and lead hour 1–72 (lead 0, the analysis, is left out):
    temperature and wind as stored (instant values at `valid_time = run + lead_h`);
    precipitation as `precipitation_accum(h) − precipitation_accum(h − 1)`, i.e. mm in
@@ -635,22 +819,15 @@ Run-based verification of the archived ALADIN runs (see
    ≥ 0.1 mm in the hour, per lead hour: for Czechia over all runs and per run hour
    (00, 06, 12, 18 UTC), and per kraj over all runs.
 
-`site/data/leads.json` (Czechia) and `site/data/leads-kraj.json` (kraje), with
-`--publish` also put into the release `data-latest` (the Pages build downloads
-`leads.json`):
-
-| Key | Meaning |
-|---|---|
-| `generated`, `first_run`, `last_run` | UTC, `YYYY-MM-DDTHH:MMZ` |
-| `models` | per model: `name`, `runs` and `pairs` used, `publication_delay_h` (median hours from run start to `published`; null until recorded) |
-| `variables` | units and conventions |
-| `regions` | code → name (`cz` = Czechia, kraj NUTS 3 codes) |
-| `columns`, `rows` | one row per `region`, `run_hour` (`all`, `00`, `06`, `12`, `18`), `model`, `variable`, `lead_h` |
-
-Row columns: `runs` and `stations` with at least one pair, `n` pairs, `mae`, `bias`,
-`rmse` (forecast − observed, 3 decimals), and for precipitation `a_0p1` hits, `b_0p1`
-false alarms, `c_0p1` misses, `d_0p1` correct negatives (null for the other
-variables). About 230 KB for Czechia (2,160 rows), 650 KB for the kraje.
+`site/data/leads-aladin.json` (Czechia) and `site/data/leads-aladin-kraj.json` (kraje),
+with `--publish` also in the release `data-latest` (until 2026-10-13 these were
+`leads.json` and `leads-kraj.json`). Same keys as `leads.json` plus a `region` column
+(`cz` or a kraj NUTS 3 code) and `regions`. The web page shows the all-model file; this
+one stays as a check of Open-Meteo's ALADIN (nearest grid point, no elevation
+correction, all ~290 stations) and it is where the **publication time** comes from:
+the median delay from run start to `published` per ALADIN domain goes into
+`leads.json` (`publication_delay_h`) and shades the hours not yet published on the
+chart. About 230 KB for Czechia (2,160 rows), 650 KB for the kraje.
 
 First real run, 2026-10-13 (runs 2026-10-09 00 UTC to 2026-10-13 06 UTC, 18 per
 domain; observations from `now/` for 2026-10-10 00 UTC to 2026-10-13 12 UTC, as
