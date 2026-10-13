@@ -28,7 +28,8 @@ data comes from recorded fixtures in `tests/fixtures/`. Dates are `YYYY-MM-DD` i
 | Forecasts (archive) | `mvd fetch-fc`, `mvd backfill` | `data/fc/YYYY-MM.parquet` |
 | Scores | `mvd score` | `data/scores/YYYY-MM.parquet` |
 | Rankings | `mvd aggregate` | `data/aggregates.parquet`, `site/data/**/*.json` |
-| ALADIN by lead hour | `mvd leads` | `site/data/leads.json`, `leads-kraj.json` |
+| Single runs (all models) | `mvd fetch-runs` | `data/runs/YYYY-MM.parquet`, `data/runs-state.json` |
+| Error by lead hour | `mvd leads` | `site/data/leads.json`, `leads-aladin.json`, `leads-aladin-kraj.json` |
 | Combined forecast | `mvd outlook` | `site/data/outlook.json`, `outlook-hourly.json` |
 | Everything daily | `mvd daily` | all of the above from the stored data |
 | Checks | `mvd check` | exit 1 on stale data or many silent stations |
@@ -131,11 +132,29 @@ The latest results are in the release `data-latest`: `aggregates.parquet`,
 `site-data.zip` (unzip it into `site/data` to run the pages locally with data),
 `outlook.json` and `outlook-hourly.json`.
 
-**ALADIN by lead hour.** `mvd leads` verifies every archived ALADIN run hour by hour
-(H+1 … H+72) against the observations in `data/obs` and writes `site/data/leads.json`
-for the comparison page; `--github-release` downloads the archived runs and observation
-months first (read only), `--publish` also puts the JSON into `data-latest`
-([details](data-sources.md#error-by-lead-hour-mvd-leads)).
+**Single runs.** `mvd fetch-runs` asks Open-Meteo's Single Runs API (free tier) for
+each 00, 06, 12 and 18 UTC run of all models at the ~100 stations of
+`src/meteoverdict/data/run-stations.csv` (about 330 weighted calls a run): first the
+recent runs (10 to 48 hours old), then older ones newest first back to 2026-04-02,
+until `--max-calls` (default 450). `--run 2026-10-12T06` fetches given runs, `--dry-run`
+prints what is left and its cost. Progress is in `data/runs-state.json`;
+`--github-release` keeps the month files and the state in the releases `runs-YYYY-MM`
+and `runs-state` ([details](data-sources.md#single-runs-mvd-fetch-runs)). The station
+subset is rebuilt only on purpose with `uv run scripts/build_run_stations.py`.
+
+```bash
+uv run mvd fetch-runs --dry-run                      # runs left and their cost
+uv run mvd fetch-runs --mode recent --max-calls 700  # the newest runs
+uv run mvd fetch-runs --run 2026-07-15T00            # one given run (330 calls)
+```
+
+**Error by lead hour.** `mvd leads` verifies every model's single runs of the last
+`--runs-days` (90) days hour by hour (H+1 … H+120) on the fair set and writes
+`site/data/leads.json` for the comparison page; it also verifies every archived ALADIN
+run of the last `--days` (30) days (H+1 … H+72) into `leads-aladin.json` and
+`leads-aladin-kraj.json`. `--github-release` downloads the single runs, the archived
+runs and the observation months first (read only), `--publish` also puts the JSON into
+`data-latest` ([details](data-sources.md#error-by-lead-hour-mvd-leads)).
 
 **ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so
 `mvd archive-aladin --github-release` saves temperature, wind and precipitation at every
@@ -147,7 +166,8 @@ station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM
 | Workflow | When (UTC) | What |
 |---|---|---|
 | ALADIN archive | every 3 hours | `mvd archive-aladin --github-release` |
-| Backfill | 02:41 | `mvd backfill`, 8,500 Open-Meteo calls a day |
+| Backfill | 02:41 | `mvd backfill`, 6,800 Open-Meteo calls a day |
+| Single runs | 04:20, 10:20, 16:20, 22:20 | `mvd fetch-runs --github-release`, 350 calls (750 at 10:20), 1,800 a day |
 | Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
 | Pages | after Daily, Outlook and changes in `web/` | builds `web/` and publishes it |
@@ -165,7 +185,7 @@ the URL.
 |---|---|---|
 | `tv.html` | combined forecast map: day tabs, parts of the day, "play the day" / "play the week" (each round switches the map colour temperature → rain → wind → cloud), values at the okresy, a panel per okres; sunrise and sunset (earliest–latest over the okresy) in the headline box and the okres's own in its panel; symbols get a moon when most of the part of day is after sunset or before sunrise | `#2026-10-13/afternoon/temperature/tpw/CZ0201` |
 | `index.html` | score map: okresy and stations coloured by the best model, legend with win counts, okres finder, a panel explaining why a model wins, per-station error charts | `#temperature_2m/1/90d/CZ0201` |
-| `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day | region |
+| `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, and every model's error by hours ahead from the single runs (`leads.json`, per run hour) | region |
 | `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser); sunrise and sunset per day and the nights shaded in the charts, from `outlook.json` | okres |
 | `api.html` | open data: JSON and CSV per okres under `api/v1/` ([docs](open-data.md)) | – |
 
