@@ -52,7 +52,8 @@ start later for one variable (ARPEGE wind); see `docs/data-sources.md#models`.
 | README badge | `site/data/badge.json` ("last updated"), committed by the daily run | repo |
 | Web app | Static: Vite + MapLibre GL + Observable Plot, reads JSON | GitHub Pages |
 | ALADIN archive | `mvd archive-aladin` every 3 h, one Parquet per run as Release assets (`aladin-YYYY-MM`) | GitHub Actions |
-| Backfill | `mvd backfill` daily with 8,500 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
+| Backfill | `mvd backfill` daily with 6,800 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
+| Single runs | `mvd fetch-runs` four times a day, 1,800 Open-Meteo calls a day (Single Runs API, ~100 stations), progress in Release `runs-state` | GitHub Actions |
 | Outlook | `mvd outlook` twice a day: combined forecast for every okres (≈ 340 calls) → `outlook.json` in Release `data-latest` | GitHub Actions |
 | Development | Claude scheduled task, weekdays, works from this roadmap, opens PRs | Claude (Cowork) |
 
