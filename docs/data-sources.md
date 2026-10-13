@@ -457,7 +457,11 @@ from its archive start, then the window's daily scores.
   run, windows scored so far out of all complete windows since `--from`, final months).
 - **Resumable:** `data/backfill-state.json` records published observation months,
   finished `model|window` pairs and scored windows. A run stops at `--max-calls` or at
-  Open-Meteo's daily limit, keeps what it fetched, and the next run continues.
+  Open-Meteo's daily limit, keeps what it fetched, and the next run continues. The
+  same holds when Open-Meteo keeps failing: server errors, network errors and answers
+  that are not JSON (once an empty answer to a request mid-run, 12 Oct 2026) are retried
+  after 30, 60 and 120 s, and if they persist the run stops cleanly with the reason in
+  its summary instead of failing and losing the window's forecasts fetched so far.
 - A month whose observations came from `now/` only (not yet published) is not final:
   its windows are fetched but scored only once ČHMÚ publishes the month.
 - With `--github-release` the month files and the state are pulled from and pushed to
@@ -652,7 +656,8 @@ hundred requests got `429 Too Many Requests`, so the client must batch and back 
   echoes back and uses for its elevation correction; `elevation=nan` makes it use its
   own terrain height instead (checked: 286 m at Praha-Libuš).
 - Errors come as HTTP 400 `{"error": true, "reason": "…"}`; the daily limit as HTTP
-  429 with "Daily API request limit exceeded". Days before a model's archive start
+  429 with "Daily API request limit exceeded"; the minute and hour limits, HTTP 5xx,
+  network errors and answers that are not JSON are retried. Days before a model's archive start
   return `null` values.
 - `mvd fetch-fc` asks one model per request, with only its measured lead days, for up
   to 14 days and 100 stations, and stores one row per station × hour × model × lead
