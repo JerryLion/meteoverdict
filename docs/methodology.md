@@ -77,7 +77,11 @@ closest to what ČHMÚ measured?
   3, and the map says how many. So every okres has a ranking, but for a third of them it
   partly describes the surrounding area.
 - Windows: the last 90 days, the current season, all time, and each season over all
-  years (all winters, springs, summers, autumns).
+  years (all winters, springs, summers, autumns). "All time" starts with the oldest day
+  scored so far and grows as the backfill fills in history back to January 2024 (ALADIN
+  only from June 2026); until then it can cover the same days as the last 90 days. The
+  web pages show every window's real dates and number of days, and mark windows that
+  are still the same as the 90-day one.
 
 ## Ranking and uncertainty
 
