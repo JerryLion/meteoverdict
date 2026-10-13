@@ -10,7 +10,7 @@ not legal advice.
 |---|---|---|---|
 | ČHMÚ station observations and metadata (opendata.chmi.cz) | CC BY 4.0 | National Open Data Catalogue (data.gov.cz), e.g. "Meteorologická data měřená v síti stanic ČHMÚ za aktuální rok v intervalu 1 hodina" and "Aktuální meteorologická data … v intervalu 10 minut a 1 hodina": `autorské-dílo` and `databáze-jako-autorské-dílo` = CC BY 4.0, author ČHMÚ | credit ČHMÚ, link the licence, say what we changed |
 | ČHMÚ ALADIN forecasts (opendata.chmi.cz/meteorology/weather/nwp_aladin) | CC BY 4.0 | National Open Data Catalogue: "Numerické předpovědi počasí modelu ALADIN/ČHMÚ" and its two product datasets (oblast ČR, projekce Lambert) | same as above |
-| Open-Meteo API (all other forecasts, and ALADIN as served by Open-Meteo) | CC BY 4.0 | open-meteo.com/en/licence, /en/terms | credit Open-Meteo with a link **next to every place the data is shown**; free tier only for **non-commercial** use and under 600 calls/min, 5,000/hour, 10,000/day and 300,000/month |
+| Open-Meteo API (all other forecasts, and ALADIN as served by Open-Meteo): Forecast, Previous Runs and Single Runs APIs | CC BY 4.0 | open-meteo.com/en/licence, /en/terms | credit Open-Meteo with a link **next to every place the data is shown**; free tier only for **non-commercial** use and under 600 calls/min, 5,000/hour, 10,000/day and 300,000/month, shared by all our workflows |
 | UK Met Office models via Open-Meteo | **CC BY-SA 4.0** | open-meteo.com/en/licence | credit; anything we publish that is derived from it must be shared under CC BY-SA 4.0 (ShareAlike) |
 | DWD (ICON), ECMWF (IFS, AIFS), KNMI, DMI via Open-Meteo | CC BY 4.0 | open-meteo.com/en/licence | credit the provider |
 | NOAA NCEP (GFS) via Open-Meteo | US government work, no restrictions | open-meteo.com/en/licence | credit as courtesy |
@@ -24,6 +24,7 @@ not legal advice.
 |---|---|---|
 | Code | this repository | MIT |
 | ALADIN station archive (`aladin-YYYY-MM` releases) | GitHub Release assets | CC BY 4.0, derived from ČHMÚ data only; release notes credit ČHMÚ and list our changes |
+| Single model runs at ~100 stations (`runs-YYYY-MM` releases) | GitHub Release assets | **CC BY-SA 4.0** (includes UK Met Office data); release notes credit Open-Meteo and the providers |
 | Scores, rankings, web map, open data | repository and GitHub Pages | **CC BY-SA 4.0**: they combine all sources, including UK Met Office data (ShareAlike). CC BY 4.0 inputs may be included in CC BY-SA 4.0 work. |
 
 Publishing these outputs openly is allowed: every source permits redistribution and
@@ -35,13 +36,19 @@ below, and public data is the point of the project.
 1. **Non-commercial.** The free Open-Meteo API may only be used for non-commercial
    purposes (no ads, no subscriptions, no commercial products; see their terms). If the
    project or its results are used commercially, an Open-Meteo API subscription
-   (Professional for the Previous Runs API) is required.
+   (Professional for the Previous Runs API) is required. The Single Runs API
+   (`mvd fetch-runs`, run-by-run verification of every model) is used on the same free,
+   non-commercial tier without an API key; the page that shows it says so.
 2. **Attribution everywhere data is shown:** README, web map and release notes credit
    Open-Meteo (with link), ČHMÚ, the model providers and ČÚZK, link the licences, and
    say that values were processed (station extraction, unit conversion, scoring).
 3. **Respect rate limits:** batch locations, request 14-day windows (same cost as one
    day), back off on HTTP 429. The free tier allows 300,000 calls a month, so a full
-   backfill of all stations takes months and must be spread out (roadmap 2.6).
+   backfill of all stations takes months and must be spread out (roadmap 2.6). All
+   workflows together stay below the daily and the monthly limit: backfill 6,800,
+   outlook ~850 and single runs 1,800 a day, ~293,000 in a 31-day month
+   ([budget](data-sources.md#open-meteo-budget)); the single runs ask about 100 stations,
+   not all ~500, to fit.
 4. **The forecast page** (`forecast.html`, roadmap 6.3) asks the Open-Meteo Forecast
    API from each visitor's browser, one request per okres shown, so each visitor uses
    their own free-tier allowance; the page credits Open-Meteo and the model providers
