@@ -575,6 +575,7 @@ row per station and lead hour:
 | `wind_speed_10m` | m/s |
 | `precipitation_accum` | mm since the run started; null at lead 0. Hourly sums are differences of consecutive leads. |
 | `grid_lat`, `grid_lon`, `grid_elevation`, `grid_distance_km` | the grid point used (nearest to the station), its model terrain height (m) and its distance from the station |
+| `published` | when ČHMÚ published the run (UTC): the latest HTTP `Last-Modified` of the four files read; null in files archived before 2026-10-13 and if the server sends no header |
 
 Values are taken at the **nearest grid point, without elevation correction**, unlike
 Open-Meteo, which downscales to the station elevation. `grid_elevation` makes a
@@ -591,8 +592,73 @@ The files are published as assets of the GitHub release `aladin-YYYY-MM` of this
 repository (`chmi_aladin_cz_1km_2026101100.parquet`, …), with the CC BY 4.0
 attribution and our changes stated in the release notes.
 
+**Publication time.** opendata.chmi.cz (nginx) sends `Last-Modified` with every file,
+and the directory listing shows the same time to the minute (checked 2026-10-13: the
+listing's `12-Oct-2026 10:24` for `…2026101206_CLSTEMPERATURE.grb.bz2`, header
+`Mon, 12 Oct 2026 10:24:09 GMT`). Over the runs of 2026-10-11 to 2026-10-13 the four
+fields we read appeared on the 1 km domain, after the run's start: 00 UTC run 3 h 30–3 h 34, 06 UTC
+4 h 24–4 h 25, 12 UTC 3 h 13–3 h 14, 18 UTC 4 h 22–4 h 25 (the Lambert domain's
+temperature a few minutes earlier than its precipitation). Since 2026-10-13 the archive
+stores this as `published`; readers of older files get null (polars
+`concat(how="diagonal_relaxed")`). It is not used in any score yet; it is there for a
+later "what could a user actually see" score (the newest run published before the
+time of use).
+
 ČHMÚ station observations do not need archiving: `recent/` keeps the current year and
 `historical/` all closed years.
+
+## Error by lead hour (`mvd leads`)
+
+Run-based verification of the archived ALADIN runs (see
+[methodology](methodology.md#run-based-verification-by-lead-hour) for what it means).
+`meteoverdict.leads`:
+
+1. Reads the archived runs of the last `--days` days (default 30) from
+   `<archive-dir>/aladin-YYYY-MM/*.parquet` (with `--github-release` it first downloads
+   the missing ones from the releases `aladin-YYYY-MM` and the observation months
+   `obs-YYYY-MM.parquet` from `data-YYYY-MM`; files already there are kept).
+2. Per model, run, station and lead hour 1–72 (lead 0, the analysis, is left out):
+   temperature and wind as stored (instant values at `valid_time = run + lead_h`);
+   precipitation as `precipitation_accum(h) − precipitation_accum(h − 1)`, i.e. mm in
+   the hour ending at the valid time (lead 1 = its accumulation, as there is none at
+   lead 0; small negative differences from GRIB packing → 0; missing previous lead →
+   no value).
+3. Joins the observations (`data/obs`, same conventions as the D+N scores: T and F at
+   the full hour, precipitation summed over the hour ending there) on station, valid
+   time and variable, and keeps only the run, station, lead hour and variable that
+   **both** domains have, so they are compared on the same sample.
+4. Sums errors (`metrics.error_sums`) and, for precipitation, the 2×2 counts for
+   ≥ 0.1 mm in the hour, per lead hour: for Czechia over all runs and per run hour
+   (00, 06, 12, 18 UTC), and per kraj over all runs.
+
+`site/data/leads.json` (Czechia) and `site/data/leads-kraj.json` (kraje), with
+`--publish` also put into the release `data-latest` (the Pages build downloads
+`leads.json`):
+
+| Key | Meaning |
+|---|---|
+| `generated`, `first_run`, `last_run` | UTC, `YYYY-MM-DDTHH:MMZ` |
+| `models` | per model: `name`, `runs` and `pairs` used, `publication_delay_h` (median hours from run start to `published`; null until recorded) |
+| `variables` | units and conventions |
+| `regions` | code → name (`cz` = Czechia, kraj NUTS 3 codes) |
+| `columns`, `rows` | one row per `region`, `run_hour` (`all`, `00`, `06`, `12`, `18`), `model`, `variable`, `lead_h` |
+
+Row columns: `runs` and `stations` with at least one pair, `n` pairs, `mae`, `bias`,
+`rmse` (forecast − observed, 3 decimals), and for precipitation `a_0p1` hits, `b_0p1`
+false alarms, `c_0p1` misses, `d_0p1` correct negatives (null for the other
+variables). About 230 KB for Czechia (2,160 rows), 650 KB for the kraje.
+
+First real run, 2026-10-13 (runs 2026-10-09 00 UTC to 2026-10-13 06 UTC, 18 per
+domain; observations from `now/` for 2026-10-10 00 UTC to 2026-10-13 12 UTC, as
+`now/` no longer had 2026-10-09; 291 stations with temperature): temperature MAE in °C
+
+| | H+1 | H+6 | H+12 | H+24 | H+48 | H+72 |
+|---|---|---|---|---|---|---|
+| ALADIN CZ 1 km | 0.93 | 1.11 | 1.11 | 1.10 | 1.27 | 1.61 |
+| ALADIN Central Europe 2.3 km | 0.99 | 1.17 | 1.17 | 1.15 | 1.31 | 1.62 |
+| runs (pairs per domain) | 14 (4,041) | 15 (4,327) | 15 (4,327) | 15 (4,327) | 11 (3,174) | 7 (2,023) |
+
+Four days of one October spell: an illustration that the pipeline works, not a result.
 
 ## Okres and kraj boundaries
 

@@ -28,6 +28,7 @@ data comes from recorded fixtures in `tests/fixtures/`. Dates are `YYYY-MM-DD` i
 | Forecasts (archive) | `mvd fetch-fc`, `mvd backfill` | `data/fc/YYYY-MM.parquet` |
 | Scores | `mvd score` | `data/scores/YYYY-MM.parquet` |
 | Rankings | `mvd aggregate` | `data/aggregates.parquet`, `site/data/**/*.json` |
+| ALADIN by lead hour | `mvd leads` | `site/data/leads.json`, `leads-kraj.json` |
 | Combined forecast | `mvd outlook` | `site/data/outlook.json`, `outlook-hourly.json` |
 | Everything daily | `mvd daily` | all of the above from the stored data |
 | Checks | `mvd check` | exit 1 on stale data or many silent stations |
@@ -130,6 +131,12 @@ The latest results are in the release `data-latest`: `aggregates.parquet`,
 `site-data.zip` (unzip it into `site/data` to run the pages locally with data),
 `outlook.json` and `outlook-hourly.json`.
 
+**ALADIN by lead hour.** `mvd leads` verifies every archived ALADIN run hour by hour
+(H+1 … H+72) against the observations in `data/obs` and writes `site/data/leads.json`
+for the comparison page; `--github-release` downloads the archived runs and observation
+months first (read only), `--publish` also puts the JSON into `data-latest`
+([details](data-sources.md#error-by-lead-hour-mvd-leads)).
+
 **ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so
 `mvd archive-aladin --github-release` saves temperature, wind and precipitation at every
 station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM`
@@ -141,7 +148,7 @@ station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM
 |---|---|---|
 | ALADIN archive | every 3 hours | `mvd archive-aladin --github-release` |
 | Backfill | 02:41 | `mvd backfill`, 8,500 Open-Meteo calls a day |
-| Daily | 05:17 | `mvd daily --github-release`, commits the badge |
+| Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
 | Pages | after Daily, Outlook and changes in `web/` | builds `web/` and publishes it |
 

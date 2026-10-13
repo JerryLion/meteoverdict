@@ -52,6 +52,44 @@ closest to what ČHMÚ measured?
 - **Time of day:** the temperature at 00, 06, 12 and 18 UTC on its own, where every
   model has native output.
 
+## Run-based verification by lead hour
+
+The D+N scores answer "how good is the forecast made about N days earlier", using
+Open-Meteo's `_previous_dayN` (for each hour, the run at least 24·N hours older). That
+is fair across 11 models but blurs the first hours of a forecast: D+1 for a
+temperature at 12 UTC is a run from 24 to 30 hours earlier, never a run from this
+morning. Meteorologists verify run by run instead, and so do we for ALADIN, whose
+runs we archive ourselves:
+
+- Every ALADIN run (00, 06, 12, 18 UTC, both domains, hourly steps up to 72 h) is
+  compared, lead hour by lead hour, with the ČHMÚ observation at its valid time (run
+  start + lead). H+6 of the 06 UTC run is the forecast for 12 UTC.
+- Temperature and wind are instant values; precipitation is the hourly amount (the
+  difference of the run's accumulated precipitation between two consecutive hours).
+- MAE, bias and RMSE (and hits, misses and false alarms for ≥ 0.1 mm in an hour) by
+  lead hour H+1 … H+72, for Czechia (all runs and each run hour) and each kraj. Both
+  domains on exactly the same runs, stations and hours.
+- Values at the nearest grid point, **without** Open-Meteo's elevation correction, so
+  these numbers are not directly comparable with the D+N table.
+
+What it is not:
+
+- **H+1 is not what anyone gets.** ČHMÚ publishes a run only about 3 to 4.5 hours after
+  its start (measured: 00 UTC → ~03:30, 06 UTC → ~10:25, 12 UTC → ~15:15, 18 UTC →
+  ~22:25). By then H+1 to H+3 (or H+4) are in the past. With a run every 6 hours, the
+  freshest ALADIN forecast a user can actually hold is between about 3 and 10.5 hours
+  old, so "the next hour" really means H+4 to H+11 of some run. The chart shades the
+  unpublished hours. A score of what a user could actually see (always the newest run
+  published before the time of use) needs the publication time, which the archive
+  records from 2026-10-13 on; it is not computed yet.
+- **Only ALADIN.** Other models' single runs would need Open-Meteo's Single Runs API or
+  our own archive; until then the lead-hour chart cannot rank models.
+- **Short history.** The archive starts on 2026-10-09 (ČHMÚ keeps runs three days), so
+  for weeks the numbers rest on few runs and one weather regime, long leads on fewer
+  runs than short ones (a run's H+72 is verified three days later), and pooled run
+  hours mix the time of day into the lead hour (H+6 is 06, 12, 18 or 00 UTC).
+- The newest days use ČHMÚ's unchecked `now/` observations, like the D+N scores.
+
 ## Metrics
 
 - **MAE** (mean absolute error) ranks the models. **Bias** (forecast minus observed)
@@ -151,6 +189,9 @@ says so.
 - **Hourly values, not extremes.** The observed daily maximum is the highest reading
   at the full hour, slightly below ČHMÚ's own daily maximum; both sides use the same
   convention.
+- **Lead hours (ALADIN only).** The run-based scores rest on a short archive, ignore
+  the 3–4.5 hours until ČHMÚ publishes a run, and use the nearest grid point without
+  elevation correction (see above).
 - **Model changes.** Models are upgraded over time, and long windows mix versions.
 - **The mean of all models** has different members by lead day (only the global models
   reach D+5) and over time (archive starts).
