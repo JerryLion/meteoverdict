@@ -672,6 +672,7 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
 ### Fetching and storage
 
 `mvd fetch-runs [--mode recent|history|all] [--run YYYY-MM-DDTHH …] [--max-calls N]
+[--extra-calls-if-backfill-idle N [--backfill-from 2024-01-01]] [--history-from D]
 [--github-release] [--dry-run]`:
 
 - **One request per run** for all 100 stations and all enabled models (11),
@@ -689,7 +690,14 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
   know whether Open-Meteo counts them).
 - **Order:** "recent" runs first (all runs between 10 and 48 hours old not done yet:
   ongoing collection, missed schedules catch up), then "history" newest first back to
-  2026-04-02 00 UTC. `--run` fetches only the given runs.
+  **2026-06-23 00 UTC** (`runs.HISTORY_FROM`, `--history-from` to change it). `--run`
+  fetches only the given runs.
+- **Why the history stops at 2026-06-23:** it is the first run with ALADIN (both
+  domains) in the archive. The runs from 2026-04-02 to 2026-06-22 have only 9 of the 11
+  models, so on the fair common set (every model verified on the same runs, stations
+  and hours) they add nothing for ALADIN and little for the others, yet they are about
+  330 more runs (~89,000 calls, at 270 a run). They can still be fetched with
+  `--history-from 2026-04-02` or `--run`.
 - **Gaps:** a model Open-Meteo does not have for a run older than 24 hours is recorded as
   missing for good; for a younger run it is asked again later (models arrive at
   different times).
@@ -708,13 +716,17 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
   has its own concurrency group; `mvd leads` in the daily workflow only reads them.
 - **Schedule** (`.github/workflows/runs.yml`): at 04:20, 10:20, 16:20 and 22:20 UTC,
   10 h 20 min after each run. Each scheduled run normally fetches the newest run; the
-  10:20 run has a larger budget and also fills about one older run.
+  10:20 run has a larger budget and also fills about one older run. When the backfill
+  is idle, 10:20 and an extra run at 13:20 take its share for the history (below).
 
 ### Open-Meteo budget
 
-All workflows share the free tier's 10,000 weighted calls a day and 300,000 a month
-(per IP address; GitHub's runners share addresses, so a run can still meet the daily
-limit early and then stops cleanly):
+All workflows share the free tier's 10,000 weighted calls a day, 5,000 an hour and
+300,000 a month (per IP address; GitHub's runners share addresses, so a run can still
+meet the daily limit early and then stops cleanly). Each workflow has its own call
+budget (`--max-calls`); `forecasts.Budget` also paces one run below 4,800 an hour.
+
+**While the D+N backfill has work** (until about early January 2027):
 
 | Workflow | Calls a day | In 31 days |
 |---|---|---|
@@ -724,11 +736,71 @@ limit early and then stops cleanly):
 | **Total** | **~9,450** | **~293,000** |
 
 The monthly limit is the tighter one: 10,000 a day would be 310,000 in a 31-day month.
-The single runs need about 1,320 calls a day for the four new runs, so history fills
-at only about one run a day (all 770 runs back to 2026-04-02 would take about 237,000
-calls). Once the backfill has caught up (it then needs about 600 calls a day for each
-new 14-day window), most of its budget should move to `runs.yml`; at about 6,000 a day
-the run history would be complete in about six weeks.
+
+**Handover.** Once the backfill has caught up, it needs one new 14-day window every 14
+days (~6,900 calls, plus ~3,100 for the rain gauges' 28-day window with every other
+window), i.e. two days of its 6,800 and nothing on the other twelve. On those days its share goes to
+the single-runs history: `mvd fetch-runs --extra-calls-if-backfill-idle N` adds N to
+`--max-calls` only when `backfill.handover` says the backfill is idle, from the
+backfill's own state (`backfill-state.json` in the release `data-state`, read-only):
+
+- no complete 14-day window since `--backfill-from` (2024-01-01, as in `backfill.yml`)
+  up to yesterday still needs Open-Meteo forecasts (`backfill.pending_windows`, the
+  same rule as `mvd backfill`: station forecasts of every enabled model from its
+  archive start, and the rain-gauge forecasts of the 28-day window). A window fetched
+  but waiting for ČHMÚ to publish the month's observations needs no Open-Meteo calls,
+  so it does not block the handover. A newly enabled model makes every window pending
+  again, which stops the handover by itself;
+- no window becomes due tomorrow (one ending today): the day before the backfill's
+  big day stays normal, so the extra calls and the backfill's 6,800 are always more
+  than 24 hours apart (also safe if Open-Meteo counts a rolling 24 hours);
+- the backfill did not call Open-Meteo today (UTC; `calls_on` in its state, written
+  whenever it asks for forecasts), so a day on which it finished a window this
+  morning stays normal;
+- if the state cannot be downloaded or read, the normal budget is used.
+
+The job summary of every single-runs run states the budget used and why (for example
+"3750 calls (750 normal + 3000 extra: backfill idle (all 72 complete windows since
+2024-01-01 fetched))" or "750 calls (normal; extra 3000 not used: 70 backfill windows
+pending (newest 2024-…))").
+
+In `runs.yml` the 10:20 run (after the backfill at 02:41 and the daily run at 05:17)
+gets +3,000 and a run at 13:20 gets 3,000 (nothing when the backfill is not idle): two
+runs of at most 3,750 and 3,000 in different hours, under the 5,000 an hour.
+
+| Day | Backfill | Outlook | Single runs | Total |
+|---|---|---|---|---|
+| Backfill has work | 6,800 | ~850 | 1,800 | ~9,450 |
+| Backfill idle (handover) | 0 | ~850 | 1,800 + 6,000 | ~8,650 |
+| New window due tomorrow | 0 | ~850 | 1,800 | ~2,650 |
+| Backfill finishes a window | ≤ 3,200 | ~850 | 1,800 | ≤ ~5,850 |
+
+No day exceeds ~9,450, so no month exceeds 9,450 × 31 = ~293,000, in either regime; the
+idle day leaves ~1,350 a day for the outlook (user-facing) and for requests that are
+retried. A typical 28-day cycle after the backfill (two windows, one with the gauges):
+per window 1 day before it (2,650), 1 day of the window (9,450) and 1 day finishing it
+(2,750 without the gauges, 5,850 with them), plus 22 idle days (22 × 8,650 = 190,300):
+about 223,000 in 28 days, ~8,000 a day, ~247,000 in 31 days. Once the run history is
+complete the extra budget is simply not spent (~2,700 a day in all).
+
+**How long the history takes.** From 2026-06-23 00 UTC to now (2026-10-14) there are
+about 450 runs older than the recent ones (446 at 10:20 UTC), at 330 calls ≈ 147,000
+calls (not counting the four new runs a day, which the normal budget covers: 4 × 330 =
+1,320 of its 1,800).
+
+- **Normal budget only:** the 480 left a day are usable only at 10:20 (750 − 330 = 420,
+  one run; the 350-call runs have 20 left), so about **one history run a day**: ~450
+  days, i.e. not before early 2028 (back to 2026-04-02 it would be ~770 runs, over two
+  years).
+- **Until the backfill finishes** (70 of 72 windows pending on 2026-10-14; at most
+  ~8,450 calls a window on average with the gauges, fewer for the older windows with
+  fewer models; 6,800 a day: ~75–90 days, i.e. early January 2027): ~85 history runs,
+  ~360 left.
+- **After the handover:** on an idle day 10:20 fetches the newest run and 10 older ones
+  (3,750 / 330), 13:20 another 9 (3,000 / 330): ~19 history runs a day; with 11 idle
+  days out of 14 that is 11 × 19 + 3 × 1 = ~212 runs in 14 days, ~15 a day. The ~360
+  runs left take **about 24 days**, so the history back to 2026-06-23 is complete
+  around **early February 2027** (instead of early 2028).
 
 ## Error by lead hour (`mvd leads`)
 
