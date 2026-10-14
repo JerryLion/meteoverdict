@@ -61,7 +61,7 @@ temperature at 12 UTC is a run from 24 to 30 hours earlier, never a run from thi
 morning. Meteorologists verify run by run instead, and so do we:
 
 - **Every model**, from Open-Meteo's **Single Runs API** (free, non-commercial tier):
-  each 00, 06, 12 and 18 UTC run since 2026-04-02 (ALADIN since 2026-06-23), up to
+  each 00, 06, 12 and 18 UTC run since 2026-06-23 (the first run with ALADIN), up to
   120 hours ahead, at about **100 stations** (at least one in every okres, plus the
   mountain stations; [the rule](data-sources.md#the-station-subset)), at the station's
   elevation like the D+N scores. Collected four times a day; older runs are filled in
