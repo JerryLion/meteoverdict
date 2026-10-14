@@ -135,8 +135,9 @@ The latest results are in the release `data-latest`: `aggregates.parquet`,
 **Single runs.** `mvd fetch-runs` asks Open-Meteo's Single Runs API (free tier) for
 each 00, 06, 12 and 18 UTC run of all models at the ~100 stations of
 `src/meteoverdict/data/run-stations.csv` (about 330 weighted calls a run): first the
-recent runs (10 to 48 hours old), then older ones newest first back to 2026-04-02,
-until `--max-calls` (default 450). `--run 2026-10-12T06` fetches given runs, `--dry-run`
+recent runs (10 to 48 hours old), then older ones newest first back to 2026-06-23 (the
+first run with ALADIN; `--history-from`), until `--max-calls` (default 450), plus
+`--extra-calls-if-backfill-idle N` when the D+N backfill has nothing pending. `--run 2026-10-12T06` fetches given runs, `--dry-run`
 prints what is left and its cost. Progress is in `data/runs-state.json`;
 `--github-release` keeps the month files and the state in the releases `runs-YYYY-MM`
 and `runs-state` ([details](data-sources.md#single-runs-mvd-fetch-runs)). The station
