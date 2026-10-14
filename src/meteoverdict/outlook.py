@@ -29,7 +29,7 @@ from zoneinfo import ZoneInfo
 import httpx
 import polars as pl
 
-from meteoverdict.forecasts import call_weight
+from meteoverdict.forecasts import _reason, call_weight
 from meteoverdict.sun import sun_times
 
 URL = "https://api.open-meteo.com/v1/forecast"
@@ -90,19 +90,34 @@ def fetch(
     models: list[str],
     sleep: Callable[[float], None],
 ) -> list | dict:
-    """One request for all points; waits and retries on the per-minute limit."""
+    """One request for all points. Retried after a pause: the per-minute limit (429),
+    server and network errors, and an answer that is not JSON."""
     weight = cost(points.height, len(models))
     if weight > MAX_CALLS:
         raise ValueError(f"{weight:.0f} weighted calls is more than MAX_CALLS = {MAX_CALLS}")
+    problem = ""
     for wait in (30, 60, 120, None):
-        response = client.get(URL, params=request_params(points, models))
-        if response.status_code != 429 or wait is None or "daily" in response.text.lower():
+        try:
+            response = client.get(URL, params=request_params(points, models))
+        except httpx.TransportError as exc:
+            problem = f"{type(exc).__name__}: {exc}"
+        else:
+            status = response.status_code
+            daily_limit = status == 429 and "daily" in response.text.lower()
+            if daily_limit or (400 <= status < 500 and status != 429):
+                # not worth retrying: the daily limit, a bad request
+                raise RuntimeError(f"Open-Meteo forecast: HTTP {status}: {_reason(response)}")
+            if status < 400:
+                try:
+                    return response.json()
+                except ValueError:
+                    problem = f"HTTP {response.status_code} with a non-JSON answer"
+            else:
+                problem = f"HTTP {status}: {_reason(response)}"
+        if wait is None:
             break
         sleep(wait)
-    if response.status_code >= 400:
-        reason = response.json().get("reason", response.text)
-        raise RuntimeError(f"Open-Meteo forecast: HTTP {response.status_code}: {reason}")
-    return response.json()
+    raise RuntimeError(f"Open-Meteo forecast unavailable after 4 attempts ({problem})")
 
 
 def parse(payload: list | dict, codes: list[str], models: list[str]) -> pl.DataFrame:

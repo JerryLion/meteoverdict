@@ -227,3 +227,30 @@ def test_too_expensive_requests_are_refused():
     transport = httpx.MockTransport(lambda r: httpx.Response(500))
     with httpx.Client(transport=transport) as client, pytest.raises(ValueError, match="MAX_CALLS"):
         outlook.fetch(client, points, MODELS, lambda _: None)
+
+
+def test_outlook_retries_server_errors_and_non_json_answers():
+    points = pl.DataFrame({"code": ["CZ0100"], "lat": [50.0], "lon": [14.4]})
+    answers = iter(
+        [
+            httpx.Response(502, text="<html>Bad gateway</html>"),
+            httpx.Response(200, text=""),
+            httpx.Response(200, json={"ok": 1}),
+        ]
+    )
+    waits = []
+    with httpx.Client(transport=httpx.MockTransport(lambda r: next(answers))) as client:
+        assert outlook.fetch(client, points, ["a"], waits.append) == {"ok": 1}
+    assert waits == [30, 60]
+    always = httpx.MockTransport(lambda r: httpx.Response(503, text="<html>down</html>"))
+    with (
+        httpx.Client(transport=always) as client,
+        pytest.raises(RuntimeError, match="unavailable after 4"),
+    ):
+        outlook.fetch(client, points, ["a"], lambda _: None)
+    bad = httpx.MockTransport(lambda r: httpx.Response(400, text="not json"))
+    with (
+        httpx.Client(transport=bad) as client,
+        pytest.raises(RuntimeError, match="HTTP 400: not json"),
+    ):
+        outlook.fetch(client, points, ["a"], lambda _: None)
