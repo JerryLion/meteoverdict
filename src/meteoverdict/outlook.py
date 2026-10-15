@@ -250,6 +250,8 @@ def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl
     the plain means of cloud cover and sunshine, and the number of models."""
     fc = with_lead_and_fade(fc, now)
     lead = _lead_weights(weights)
+    # some models publish sunshine slightly outside the hour (seen: 3605.6 and -1.0 s)
+    fc = fc.with_columns(pl.col("sunshine_duration").clip(0.0, 3600.0))
     out = fc.group_by("okres", "time").agg(
         *[pl.col(v).mean() for v in MEANS], pl.col("model").n_unique().alias("models")
     )
@@ -269,8 +271,11 @@ def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl
     return out.sort("okres", "time")
 
 
-def _local(frame: pl.DataFrame) -> pl.DataFrame:
-    local = pl.col("time").dt.convert_time_zone(TIME_ZONE)
+def _local(frame: pl.DataFrame, hour_ending: bool = False) -> pl.DataFrame:
+    """Add the local ``day`` and ``part`` of each row; ``hour_ending``: by the hour that
+    ends at ``time`` (sums such as precipitation and sunshine), else by ``time`` itself."""
+    time = pl.col("time") - pl.duration(hours=1) if hour_ending else pl.col("time")
+    local = time.dt.convert_time_zone(TIME_ZONE)
     part = pl.lit(None, pl.String)
     for name, (first, end) in PARTS.items():
         part = (
@@ -287,7 +292,7 @@ def probability(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.Da
     favour a model (AIFS) that is the worst at rain or no rain (September 2026: Brier
     score 0.071 weighted against 0.070 with equal weights)."""
     lead = _lead_weights(weights).filter(pl.col("variable") == "precipitation")
-    rows = _local(with_lead_and_fade(fc, now).drop_nulls("precipitation"))
+    rows = _local(with_lead_and_fade(fc, now).drop_nulls("precipitation"), hour_ending=True)
     frames = []
     for period in ("part", "day"):
         keys = ["okres", "day"] if period == "day" else ["okres", "day", "part"]
@@ -341,22 +346,29 @@ def summarise(hourly: pl.DataFrame, chances: pl.DataFrame) -> pl.DataFrame:
     ``MIN_DAY_HOURS`` hours of combined temperature (the ends of the forecast) are left
     out."""
     rows = _local(hourly)
+    # Open-Meteo: precipitation and seconds of sunshine in the hour ending at the time, so
+    # they belong to the period of the hour before
+    sums = _local(hourly, hour_ending=True)
     stats = [
         pl.col("temperature_2m").min().alias("tmin"),
         pl.col("temperature_2m").max().alias("tmax"),
         pl.col("temperature_2m").mean().alias("tmean"),
-        pl.col("precipitation").sum().alias("precipitation"),
         pl.col("wind_speed_10m").max().alias("wind"),
-        # Open-Meteo: seconds of sunshine in the hour ending at the time; null without any
+        pl.col("temperature_2m").count().alias("hours"),
+    ]
+    sum_stats = [
+        pl.col("precipitation").sum().alias("precipitation"),
+        # null without any sunshine value
         pl.when(pl.col("sunshine_duration").count() > 0)
         .then(pl.col("sunshine_duration").sum() / 3600)
         .alias("sunshine"),
-        pl.col("temperature_2m").count().alias("hours"),
     ]
+    part_keys = ["okres", "day", "part"]
     parts = (
-        rows.group_by("okres", "day", "part")
+        rows.group_by(part_keys)
         .agg(*stats, pl.col("cloud_cover").mean().alias("cloud"))
         .filter(pl.col("hours") >= MIN_PART_HOURS)
+        .join(sums.group_by(part_keys).agg(sum_stats), on=part_keys, how="left")
     )
     daytime = pl.col("part").is_in(["morning", "afternoon"])
     days = (
@@ -366,6 +378,7 @@ def summarise(hourly: pl.DataFrame, chances: pl.DataFrame) -> pl.DataFrame:
             pl.col("cloud_cover").filter(daytime).mean().alias("cloud"),
         )
         .filter(pl.col("hours") >= MIN_DAY_HOURS)
+        .join(sums.group_by("okres", "day").agg(sum_stats), on=["okres", "day"], how="left")
         .with_columns(pl.lit("day").alias("part"))
     )
     table = pl.concat([parts, days], how="diagonal_relaxed")
