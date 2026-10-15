@@ -172,16 +172,32 @@ rain (≥ 0.5, 2, 5 mm), per model and lead time bin, and writes `site/data/farm
 station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM`
 ([format](data-sources.md#aladin-archive)).
 
+**Radar archive.** ČHMÚ keeps its radar composites online for about seven days, so
+`mvd archive-radar --products observed --stations data/stations.parquet --github-release`
+packs every complete UTC day into one tar per product (max reflectivity, CAPPI 2 km,
+echo tops, MERGE precipitation; HDF5 and PNG) in the releases `radar-YYYY-MM`, plus the
+hourly MERGE grids, MERGE at the stations and the radar page's frames
+([format, sizes](data-sources.md#radar-archive)). `--products forecast` adds the
+nowcasts (~50 GB a year, meant for a local disk with `--out-dir`), `mvd mirror-radar
+--out-dir DIR` copies the archive to a local disk, and `mvd radar-live --dir DIR` keeps
+the frames of the last 24 hours and the newest nowcast for the page.
+
+```bash
+uv run mvd radar-live --dir /tmp/radar-live --hours 3          # live frames, local
+uv run mvd archive-radar --day 2026-10-14 --out-dir data/radar  # one day, local
+```
+
 ## Automated workflows
 
 | Workflow | When (UTC) | What |
 |---|---|---|
 | ALADIN archive | every 3 hours | `mvd archive-aladin --github-release` |
+| Radar | every 10 minutes; archive every 6 hours | `mvd radar-live` → branch `radar-live` (force-pushed); `mvd archive-radar --github-release` |
 | Backfill | 02:41 | `mvd backfill`, the shared 4,500 Open-Meteo calls a day: current windows first, older ones after the single-runs history |
 | Single runs | 04:20, 10:20, (13:20,) 16:20, 22:20 | `mvd fetch-runs --github-release`, 850 calls each (3,400 a day), plus what the backfill leaves of the shared 4,500 at 10:20 and 13:20 ([budget](data-sources.md#open-meteo-budget)) |
 | Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
-| Pages | after Daily, Outlook and changes in `web/` | builds `web/` and publishes it |
+| Pages | after Daily, Outlook and changes in `web/` | builds `web/`, adds the radar frames of the last 60 days from the releases and publishes it |
 
 ## Web pages
 
@@ -199,6 +215,7 @@ the URL.
 | `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, every model's error by hours ahead from the single runs (`leads.json`, per run hour), and the farmers' event skill (frost, gusts, 3-hour rain by lead time bin, `farm.json`) | region |
 | `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser); sunrise and sunset per day and the nights shaded in the charts, from `outlook.json` | okres |
 | `api.html` | open data: JSON and CSV per okres under `api/v1/` ([docs](open-data.md)) | – |
+| `radar.html` | ČHMÚ radar: the last 1–24 hours (live frames from the branch `radar-live`) with the nowcast for the next hour after them, marked as forecast; archived days (last 60) with a date picker; MERGE 1-hour precipitation as a second layer; colour scales in dBZ and mm, Prague time ([frames](data-sources.md#radar-page-frames)) | `#live/3/radar+rain/202610151035` |
 
 GitHub Pages: Settings → Pages → Source: GitHub Actions. A fork without Pages enabled
 only builds.

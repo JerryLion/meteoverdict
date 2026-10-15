@@ -17,6 +17,7 @@ and combines them into its own forecast.
 | [Score map](https://jerrywoof.github.io/MeteoVerdict/) | the most accurate model in every okres; click an okres to see why it wins |
 | [Model comparison](https://jerrywoof.github.io/MeteoVerdict/compare.html) | all models ranked for Czechia, a kraj or an okres, with confidence intervals, and every model's error hour by hour after each run (H+1 to H+120) |
 | [Forecast per okres](https://jerrywoof.github.io/MeteoVerdict/forecast.html) | the hourly combined forecast for one okres next to the best single model, with sunrise, sunset and the nights shaded |
+| [Radar](https://jerrywoof.github.io/MeteoVerdict/radar.html) | ČHMÚ weather radar over Czechia: the last hours with the nowcast for the next hour, hourly precipitation from radar and rain gauges, and archived days |
 | [Open data](https://jerrywoof.github.io/MeteoVerdict/api.html) | the forecast and the ranking of every okres as JSON or CSV, free, no key |
 
 ## How it works
@@ -101,6 +102,9 @@ Commands, data store, workflows and the web pages: [docs/development.md](docs/de
   [siwekm/czech-geojson](https://github.com/siwekm/czech-geojson); simplified by
   `scripts/build_regions.py`.
 - ALADIN station archive (release assets `aladin-YYYY-MM`): CC BY 4.0.
+- Weather radar: ČHMÚ, [opendata.chmi.cz](https://opendata.chmi.cz/meteorology/weather/radar/),
+  CC BY 4.0; archived per day in the release assets `radar-YYYY-MM` (CC BY 4.0), PNG frames
+  cropped to the data area for the radar page.
 - Generated scores and maps: [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/),
   because they include UK Met Office data (ShareAlike).
 - Details and rules (non-commercial use, rate limits): [docs/licensing.md](docs/licensing.md).
