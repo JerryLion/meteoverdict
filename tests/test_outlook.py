@@ -128,7 +128,8 @@ def test_lead_days_fall_back_to_the_nearest_shorter_one():
 
 
 def test_probability_is_the_weighted_share_of_wet_models():
-    times = [datetime(2026, 10, 13, h, tzinfo=UTC) for h in range(4, 10)]  # 06-12 Prague
+    # hours ending 05-10 UTC: 06-12 Prague
+    times = [datetime(2026, 10, 13, h, tzinfo=UTC) for h in range(5, 11)]
     fc = pl.DataFrame(
         {
             "okres": "X",
@@ -214,16 +215,43 @@ def test_parts_and_days_in_prague_time(tmp_path):
 
 
 def test_sunshine_hours_are_the_sum_of_the_plain_hourly_mean():
-    # every model: 30 minutes of sunshine in each hour 08-15 Prague time (06-13 UTC)
+    # every model: 30 minutes of sunshine in each hour 08-16 Prague time (the hours ending
+    # 07-14 UTC)
     hour = pl.col("time").dt.hour()
     fc = FC.with_columns(
-        pl.when(hour.is_between(6, 13)).then(1800.0).otherwise(0.0).alias("sunshine_duration")
+        pl.when(hour.is_between(7, 14)).then(1800.0).otherwise(0.0).alias("sunshine_duration")
     )
     hourly = outlook.combine_hourly(fc, WEIGHTS, NOW)
     table = outlook.summarise(hourly, outlook.probability(fc, WEIGHTS, NOW))
     tomorrow = table.filter(pl.col("okres") == "CZ0201", pl.col("day") == date(2026, 10, 13))
     by_part = dict(zip(tomorrow["part"], tomorrow["sunshine"], strict=True))
     assert by_part == {"night": 0, "morning": 2.0, "afternoon": 2.0, "evening": 0, "day": 4.0}
+
+
+def test_sums_belong_to_the_hour_before_their_time():
+    # 22 UTC on 16 October is midnight in Prague: the instant values start the 17th, the
+    # rain of the hour ending then (23-24 CEST) is the 16th's evening
+    times = pl.Series(
+        [datetime(2026, 10, 16, 22, tzinfo=UTC), datetime(2026, 10, 17, 4, tzinfo=UTC)]
+    )
+    frame = pl.DataFrame({"time": times})
+    instant = outlook._local(frame)
+    assert instant["day"].to_list() == [date(2026, 10, 17)] * 2
+    assert instant["part"].to_list() == ["night", "morning"]
+    ending = outlook._local(frame, hour_ending=True)
+    assert ending["day"].to_list() == [date(2026, 10, 16), date(2026, 10, 17)]
+    assert ending["part"].to_list() == ["evening", "night"]
+
+
+def test_sunshine_is_clipped_to_the_hour():
+    # published values seen: 3605.6 s and -1.0 s in an hour
+    model = pl.col("model") == MODELS[0]
+    fc = FC.with_columns(
+        pl.when(model).then(3605.6).otherwise(3600.0).alias("sunshine_duration")
+    ).filter(pl.col("okres") == "CZ0201")
+    assert outlook.combine_hourly(fc, WEIGHTS, NOW)["sunshine_duration"].max() == 3600.0
+    fc = fc.with_columns(pl.when(model).then(-1.0).otherwise(0.0).alias("sunshine_duration"))
+    assert outlook.combine_hourly(fc, WEIGHTS, NOW)["sunshine_duration"].min() == 0.0
 
 
 def test_outlook_end_to_end_with_a_mocked_api():
