@@ -271,6 +271,19 @@ the same as 90 days.
 
 ## Limitations
 
+- **Which stations.** All stations are ČHMÚ's official network (40 main WMO stations,
+  about 220 automatic climate, 40 mountain snow and 180 automatic precipitation
+  stations, 280 manual rain gauges; no amateur stations). Ranking with only the
+  automatic climate stations gives practically the same results (39 of 40 national
+  rankings agree within the intervals); with only the 40 main stations, night
+  temperatures are about 0.1-0.3 °C easier and the winners for night temperature and
+  wind change, because the main network is better exposed and includes summits where
+  every model forecasts far too little wind. Stations whose
+  errors stand out (summits, frost hollows) are explained by their siting and stay in.
+  Manual gauges in a month ČHMÚ has not completed can report a total after missing
+  days (probably several days' rain), which makes the models look too dry there.
+  Details: [station-check.md](station-check.md) (August-September 2026, 52 days).
+
 - **Borrowed stations.** Where an okres borrows, nearness is the only criterion; a
   borrowed station may sit higher or lower than the okres itself (a hill-top station
   next to a lowland okres), which matters most for temperature.
