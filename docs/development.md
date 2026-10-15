@@ -186,12 +186,17 @@ echo tops, MERGE precipitation; HDF5 and PNG) in the releases `radar-YYYY-MM`, p
 hourly MERGE grids, MERGE at the stations and the radar page's frames
 ([format, sizes](data-sources.md#radar-archive)). `--products forecast` adds the
 nowcasts (~50 GB a year, meant for a local disk with `--out-dir`), `mvd mirror-radar
---out-dir DIR` copies the archive to a local disk, and `mvd radar-live --dir DIR` keeps
-the frames of the last 24 hours and the newest nowcast for the page.
+--out-dir DIR` copies the archive to a local disk (`--satellite` also the satellite
+archive), and `mvd radar-live --dir DIR` keeps the frames of the last 24 hours (radar,
+echo tops, motion fields, storm cells, Meteosat images) and the newest nowcast for the
+page ([contract](data-sources.md#radar-live-data-contract)). `mvd archive-satellite
+--github-release` keeps ČHMÚ's Meteosat images (~8 days online) in the releases
+`satellite-YYYY-MM` ([format](data-sources.md#satellite-images)).
 
 ```bash
-uv run mvd radar-live --dir /tmp/radar-live --hours 3          # live frames, local
+uv run mvd radar-live --dir /tmp/radar-live --hours 3 --cache /tmp/radar-cache  # live frames, local
 uv run mvd archive-radar --day 2026-10-14 --out-dir data/radar  # one day, local
+uv run mvd archive-satellite --regions ce --out-dir data/radar  # satellite days, local
 ```
 
 ## Automated workflows
@@ -199,14 +204,14 @@ uv run mvd archive-radar --day 2026-10-14 --out-dir data/radar  # one day, local
 | Workflow | When (UTC) | What |
 |---|---|---|
 | ALADIN archive | every 3 hours | `mvd archive-aladin --github-release` |
-| Radar | every 10 minutes; archive every 6 hours | `mvd radar-live` → branch `radar-live` (force-pushed); `mvd archive-radar --github-release` |
+| Radar | a loop of 340 min that pushes every 5 minutes and starts the next loop itself (hourly schedule as safety net); archive every 6 hours | `scripts/radar_live_loop.sh`: `mvd radar-live` → branch `radar-live` (force-pushed) ([live loop](data-sources.md#live-loop)); `mvd archive-radar --github-release`, `mvd archive-satellite --github-release` |
 | Backfill | 02:41 | `mvd backfill`, the shared 4,500 Open-Meteo calls a day: current windows first, older ones after the single-runs history |
 | Single runs | 04:20, 10:20, (13:20,) 16:20, 22:20 | `mvd fetch-runs --github-release`, 850 calls each (3,400 a day), plus what the backfill leaves of the shared 4,500 at 10:20 and 13:20 ([budget](data-sources.md#open-meteo-budget)) |
 | Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
 | CHMI archive | 01:41 and 13:41 | `mvd chmi-archive --part days --part recent --github-release` (the last days of `now/`, changed months of `recent/`), then `mvd station-pages --github-release --publish` |
 | CHMI backfill | 02:07, up to 5 h | `mvd chmi-archive --part history --part months --github-release`, resumable, same concurrency group |
-| Pages | after Daily, Outlook, CHMI archive and changes in `web/` | builds `web/`, adds the radar frames of the last 60 days from the releases and the station pages, and publishes it |
+| Pages | after Daily, Outlook, CHMI archive and changes in `web/` | builds `web/`, adds the radar frames of the last 60 days from the releases (satellite images 7 days, echo tops 14, a 900 MB guard) and the station pages, and publishes it |
 
 ## Web pages
 
