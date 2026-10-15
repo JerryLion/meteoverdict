@@ -27,10 +27,12 @@ closest to what ČHMÚ measured?
 
 - From the **Open-Meteo Previous Runs API** (CC BY 4.0): for each model the value it
   predicted for a given hour 1, 2, … 5 days earlier (`_previous_dayN`, "D+N").
-- 11 models: ČHMÚ ALADIN (1 km and 2.3 km), DWD ICON-D2 and ICON-EU, ECMWF IFS HRES,
-  IFS 0.25° and AIFS, NOAA GFS, UK Met Office global, Météo-France ARPEGE Europe and
-  GeoSphere Austria AROME. Each is used for the lead days its archive fills, measured
-  live (the high-resolution models only reach D+1 or D+2).
+- 19 models, every one Open-Meteo has for all of Czechia with an archive: ČHMÚ ALADIN
+  (1 km and 2.3 km), DWD ICON-D2, ICON-EU and ICON global, ECMWF IFS HRES, IFS 0.25° and
+  AIFS, NOAA GFS and AIGFS, UK Met Office global, Météo-France ARPEGE Europe and World,
+  GeoSphere Austria AROME, KNMI and DMI HARMONIE-AROME, ECCC GEM Global, JMA GSM and CMA
+  GRAPES (the last eight added in October 2026). Each is used for the lead days its
+  archive fills, measured live (the high-resolution models only reach D+1 or D+2).
 - Requested at each station's coordinates **and elevation**: Open-Meteo picks the grid
   point and corrects temperature for the height difference.
 
@@ -56,7 +58,7 @@ closest to what ČHMÚ measured?
 
 The D+N scores answer "how good is the forecast made about N days earlier", using
 Open-Meteo's `_previous_dayN` (for each hour, the run at least 24·N hours older). That
-is fair across 11 models but blurs the first hours of a forecast: D+1 for a
+is fair across all models but blurs the first hours of a forecast: D+1 for a
 temperature at 12 UTC is a run from 24 to 30 hours earlier, never a run from this
 morning. Meteorologists verify run by run instead, and so do we:
 
@@ -132,6 +134,12 @@ What it is not:
 - Where a model never reaches some stations (ICON-D2 at six stations in the Beskydy),
   those stations are left out of their regions' comparison for every model; on their own
   they are still compared among the other models.
+- **Models added later** (eight in October 2026) are fetched for the newest days first.
+  Until their history is filled in, the windows that reach further back (all time,
+  seasons) are limited to the days they have, like ALADIN's late start, and gaps of
+  one model (AIGFS before July 2026, CMA GRAPES in autumn 2025, UKMO) drop those days
+  for every model of the region. The single-run comparison likewise uses only runs that
+  every model reaching a lead hour has.
 - A region is ranked only with at least **3 stations**. An okres with fewer of its own
   borrows the nearest stations of its neighbours (at most 30 km beyond its border) up to
   3, and the map says how many. So every okres has a ranking, but for a third of them it
