@@ -904,7 +904,7 @@ to a local folder, `--no-derived` skips the derived files.
   one hour off), and many gauge stations match to 0.1 mm, since MERGE is fitted to the
   gauges (kriging with external drift): it is not an independent check of them.
 - **`web-YYYYMMDD.tar`**: `index.json` and the frames of the radar page (below) for the
-  day, about 2.8 MB.
+  day: radar, echo tops, motion, cells and satellite images, 5–21 MB.
 
 **Size.** The observed products (`--products observed`, what the Radar workflow
 stores) were 35.7 MB on 2026-10-14 plus 3 MB derived: about 1.2 GB a month and
@@ -943,19 +943,144 @@ frame lines and title (index 145) become transparent, the grey outside the radar
 coverage faint (fully transparent for MERGE and the nowcast, whose title lies on it);
 the palette, and so ČHMÚ's colours, stay. A frame is 2–13 KB.
 
-A frame folder has `index.json`
-(`{"version": 1, "bounds": [[west, south], [east, north]], "maxz": ["YYYYMMDDhhmm", …],
-"merge1h": […], "nowcast": {"base": "…", "frames": [{"time": "…", "lead": 10}, …]},
-"attribution": …}`) and `maxz/<stamp>.png`, `merge1h/<stamp>.png`, `nowcast/<stamp>.png`.
+### Radar live data contract
 
-**Live** (`mvd radar-live --dir DIR --hours 24`, every 10 minutes in the Radar
-workflow): downloads only the frames that are missing, deletes those older than 24 h,
-replaces the nowcast when a newer one exists, and the workflow force-pushes the folder
-as a single commit to the branch `radar-live` (about 3 MB). The page reads it from
-`raw.githubusercontent.com/<repo>/radar-live/`, which sends
-`Access-Control-Allow-Origin: *` and `Cache-Control: max-age=300` (checked
-2026-10-15), so a visitor sees a frame at most ~15 minutes after ČHMÚ (10-minute
-schedule, which GitHub often delays by a few minutes, plus the 5-minute cache).
+A frame folder (the branch `radar-live`, and each day's `web-YYYYMMDD.tar` unpacked to
+`radar/days/YYYYMMDD/` of the site) has `index.json` and the files it lists. Times are
+UTC stamps `YYYYMMDDhhmm`; radar frames are named by the end of their 5-minute interval,
+satellite frames by the start of their scan. Every image is Web Mercator and covers
+exactly the `bounds` given for it, so it can be a MapLibre image source with the corners
+`[west, north], [east, north], [east, south], [west, south]`.
+
+```
+index.json
+maxz/<stamp>.png          max reflectivity (ČHMÚ PNG, cropped; ČHMÚ colours), every 5 min
+merge1h/<stamp>.png       MERGE 1-hour precipitation ending at <stamp>, every 10 min
+nowcast/<valid>.png       the newest nowcast, +10 … +60 min (live only)
+echotop/<stamp>.png       echo top, every 5 min (ours, from the ECHO_TOP HDF5)
+motion/<stamp>.json       motion of the echoes from the frame before to <stamp>
+cells/<stamp>.json        storm cells at <stamp>
+satellite/<product>/<stamp>.webp   Meteosat image (vis-ir, night-M, wv062), every 15 min
+```
+
+`index.json`:
+
+| Key | Value |
+|---|---|
+| `version` | `1` (keys are only ever added) |
+| `bounds` | `[[west, south], [east, north]]` of the radar grid (`maxz`, `merge1h`, `nowcast`, `echotop`, and the grid of `motion` and `cells`): 11.266869, 48.047275, 19.623974, 51.458369 |
+| `maxz`, `merge1h`, `echotop`, `motion`, `cells` | sorted stamps of the files present. `motion` has no entry for a frame without a frame ≤ 15 min before it (the first frame of an archived day, gaps) |
+| `nowcast` | `{"base": stamp of the run, "frames": [{"time": valid stamp, "lead": minutes}, …]}` (live only) |
+| `satellite` | `{product: {"bounds": [[west, south], [east, north]], "ext": "webp", "frames": [stamps]}}` for `vis-ir`, `night-M`, `wv062`; always present, `frames` may be empty (`vis-ir` only by day, `night-M` only by night, days older than 7 on Pages) |
+| `scales` | `{"maxz": [[dBZ, "#hex", mm/h, "label_en", "label_cs"], …], "merge1h": [[mm, "#hex"], …], "echotop": [[km, "#hex"], …]}`; each entry is the lower edge of a colour class |
+| `generated` | time the folder was updated, `YYYY-MM-DDThh:mm:ssZ` (live only) |
+| `attribution` | radar credit (ČHMÚ, CC BY 4.0, our changes) |
+| `satellite_attribution` | satellite credit, present when there are satellite frames: "Satellite images: contains modified EUMETSAT Meteosat data <year> (CC BY 4.0), processed by ČHMÚ (opendata.chmi.cz, CC BY 4.0); cropped and converted to WebP by MeteoVerdict." ([licensing](licensing.md)) |
+
+**`maxz` scale** (ČHMÚ's `scl-dbz-mmh.png`, the palette of its PNG composites): 4, 8, …,
+60 dBZ from `#380070` to `#fcfcfc`; mm/h is the Marshall–Palmer rate at the lower edge
+(Z = 200 R^1.6: 20 dBZ 0.65, 28 dBZ 2.05, 40 dBZ 11.5, 52 dBZ 65 mm/h); labels from 4 dBZ
+drizzle/mrholení, 16 light/slabé, 28 moderate/mírné, 40 heavy/silné, 48 very heavy/velmi
+silné, 56 hail possible/možné kroupy. **`merge1h`**: ČHMÚ's `scl-mm.png`, 0.1 … 100 mm.
+**`echotop`** (ours, ČHMÚ publishes no echo-top scale): 2 km classes from 0 (`#a6bddb`;
+blues and greens for shallow rain) to 14 km (`#800026`), yellow from 8 km, orange to red
+from 10 km, where storm tops reach. ECHO_TOP is the highest altitude (above sea level)
+with at least **4 dBZ**, so it is higher than the more usual 18 dBZ echo top. A frame is
+an 8-bit PNG (index 0 transparent: no echo or no data), 1–35 KB.
+
+**`motion/<stamp>.json`**: `{"nx": 19, "ny": 12, "dt_s": 300, "u": […], "v": […]}`,
+`u` and `v` row-major (`ny` rows from the north, `nx` columns from the west), in **radar
+grid cells (maxz pixels) per `dt_s`** (1 cell = 1555.7 Web Mercator metres ≈ 1.0 km at
+50° N). `u` positive = towards increasing columns (east), `v` positive = towards
+increasing **rows (south, down the image)**. The field at `<stamp>` is the motion from the
+frame before to `<stamp>`: an echo at grid position (x, y) in the frame `dt_s` seconds
+before is at (x + u, y + v) at `<stamp>`. The blocks span the grid evenly: value (j, i)
+belongs to column (i + 0.5) × 598 / nx and row (j + 0.5) × 378 / ny; interpolate
+bilinearly between block centres. `dt_s` is normally 300; after a missing frame it is the
+real gap (≤ 900). Method: dense optical flow (OpenCV DIS, preset medium; the "Dense"
+model of rainymotion, Ayzel et al. 2019, doi:10.5194/gmd-12-1387-2019) between the two
+MAX_Z grids (10–60 dBZ as grey levels), averaged per block weighted by the echoes
+(weight 0 below 10 dBZ, 1 from 30 dBZ), blocks with few echoes blended with their
+neighbours (Gaussian σ 1.5 blocks), empty blocks filled from farther echoes (σ 6 blocks)
+or the mean motion of all echoes, which shrinks towards 0 when echoes cover less than
+0.5 % of the grid; then smoothed (σ 0.8 blocks). Warping the earlier frame with the field
+cut the mean squared reflectivity difference to the later one by about two thirds on
+2026-10-10 (frontal rain moving 50 km/h to the north-east: 75 → 28 dBZ²) and on the
+evening of 2026-10-15 (weak showers: 1340 → 450), while the opposite sign made it worse.
+About 2 KB a frame.
+
+**`cells/<stamp>.json`**: a list, strongest first:
+
+```json
+[{"id": "202610101020-3", "lon": 13.9652, "lat": 50.0391, "max_dbz": 45.0,
+  "echotop_km": 7.1, "area_km2": 11, "speed_kmh": 51, "dir_deg": 67, "hail": false,
+  "track": [[13.5515, 49.9073], …, [13.9652, 50.0391]]}]
+```
+
+- A **cell** is a contiguous (8-connected) area of MAX_Z ≥ **40 dBZ** of at least
+  **5 km²** (true area: grid cell side 1.5557 km × cos φ). `lon`/`lat`: centroid weighted
+  by linear reflectivity. `max_dbz`: strongest echo; `echotop_km`: highest echo top in
+  the cell and one grid cell around it (tops lean downwind), `null` without ECHO_TOP.
+- `speed_kmh`, `dir_deg`: mean optical flow inside the cell (as for `motion`, before the
+  block averaging); `dir_deg` is the direction it moves **to** (0 = north, 90 = east).
+  Both `null` for the first frame or after a gap > 15 min; `dir_deg` also at 0 km/h.
+- **`hail`**: `max_dbz ≥ 55` and `echotop_km ≥ 10`. 55 dBZ is the usual radar hail
+  threshold (Mason 1971; used e.g. for the European hail climatology of Fluck et al.
+  2021, NHESS 21, 683–701); the echo-top condition stands in for the height criteria that
+  Skripniková and Řezáčová (2014, Atmos. Res. 144, 175–185,
+  doi:10.1016/j.atmosres.2013.06.002) found best over Czechia (Waldvogel: 45 dBZ at least
+  1.4 km above the freezing level). We have neither the 45 dBZ height nor the freezing
+  level, so this is a **rough indicator ("hail possible")**, not a hail detection.
+- **Ids** stay while a cell overlaps (or, without overlap, lies within 8 km of) a cell of
+  the frame before moved by that cell's motion; the largest overlap wins, so after a split
+  one part keeps the id. New ids are `<stamp>-<n>`. Frames more than 15 minutes apart are
+  not matched; cells of an archived day start fresh at 00:00. `track`: the centroids of
+  the last 30 minutes (up to 7 points, oldest first, the current one last).
+- On 2026-10-10 (frontal rain with embedded showers): 373 cell records in 288 frames,
+  150 ids, tracks up to 7 points, no hail flag; 0.07 MB for the day. The cells of the
+  newest frame wait for its ECHO_TOP file if it is not out yet.
+
+**Satellite frames**: the `ce` images of ČHMÚ ([Satellite images](#satellite-images)),
+cropped to 3.492–25.509° E, 44.493–55.504° N (787 × 616 pixels of 3114.2 Web Mercator
+metres, ~2 km at 50° N) and saved as **WebP** (quality 70; about half the size of a JPEG
+of the same look: a noon `vis-ir` 51 KB against 93 KB). 3–60 KB a frame.
+
+### Live loop
+
+`mvd radar-live --dir DIR --hours 24 [--satellite-hours H] [--cache CACHE]` downloads only
+missing frames, makes the missing echo tops, motion fields and cells from the HDF5
+composites (kept in `CACHE` for an hour so the next round does not fetch them again),
+deletes everything older than the window, replaces the nowcast when a newer one exists
+and rewrites `index.json`. The Radar workflow runs it in a **loop** (job "Live loop",
+`scripts/radar_live_loop.sh`): every 5 minutes, 1 minute after each 5-minute mark (ČHMÚ
+publishes a composite within that minute), it updates the folder and force-pushes it as
+a single commit to `radar-live`. The folder is a clone of the branch, so a push sends only
+the new files (~100 KB). A loop runs for 340 minutes (job timeout 355; GitHub's maximum
+is 6 h); about 7 minutes before its end it starts the next run of the workflow
+(`gh workflow run radar.yml -f live=true -f handover=true`). This is allowed with
+`GITHUB_TOKEN`: GitHub's docs (Automatic token authentication) say events triggered by
+it do not create new runs, except that "workflow_dispatch and repository_dispatch events
+always create workflow runs"; it needs `actions: write`. The new run's loop waits in the
+concurrency group `radar-live` and starts as soon as the old one ends. An hourly schedule
+(`7 * * * *`) is the safety net: its first job ("Live loop running?") lists the
+workflow's active runs and starts a loop only if none has a "Live loop" job queued or
+running, so it exits within seconds while a loop runs (and the concurrency group would
+queue a second one anyway). A failed round is logged and the next one tries again.
+
+**Expected delay** for a visitor: ČHMÚ has a composite within a minute of its time; the
+loop fetches at +1 min and has pushed by about +1.5 min (a round takes 10–20 s; the first
+round of a new loop up to ~2 min); raw.githubusercontent.com caches for up to 5 minutes
+(`Cache-Control: max-age=300`). So a frame is visible **2–7 minutes after its time**
+(up to 12 if ČHMÚ misses the minute), against up to 2 hours with the old `*/10`
+schedule, which GitHub ran only every ~2 hours (2026-10-15: 15:38, 17:19, 19:24 UTC).
+A handover loses no round; if a run is lost, the hourly schedule starts a new loop within
+the hour. Satellite images appear on ČHMÚ ~15 minutes after the scan start, so they lag
+15–20 minutes; MERGE comes 20–90 minutes after its hour.
+
+Size of the branch with 24 hours: radar 1–3 MB, echo tops 0.5–1.5 MB, motion 0.6 MB,
+cells < 0.1 MB, satellite 3–6 MB, nowcast 50 KB: about 6–12 MB. A 3-hour folder with
+8 hours of satellite measured on the evening of 2026-10-15: 1.8 MB. The loop uses about
+23 runner hours a day (free for public repositories).
 
 Why this design:
 
@@ -965,22 +1090,36 @@ Why this design:
   branch for 12 hours (`s-maxage=43200`, checked), far too long for `index.json`.
 - Release assets cannot be read by a browser: their download host sends no CORS
   headers (checked 2026-10-15).
-- One force-pushed commit keeps the branch at ~3 MB; the replaced commits are garbage
-  collected by GitHub. Frames that did not change keep their blobs, so a push
-  transfers only the new frames (~50 KB every 10 minutes).
+- One force-pushed commit keeps the branch small; the replaced commits are garbage
+  collected by GitHub.
 - Trade-offs: raw.githubusercontent.com is not meant as a CDN and may rate-limit a
-  very popular page (each visitor loads ~40 frames for 3 hours); the scheduled
-  workflow runs ~144 times a day (free for public repositories) and GitHub disables
+  very popular page (each visitor loads ~40 frames for 3 hours); GitHub disables
   schedules in repositories without activity for 60 days (the daily commits prevent
-  that). If either becomes a problem, the frames can move to any static host with
-  CORS without changing the page (`VITE_RADAR_LIVE`).
+  that; the dispatch chain does not depend on schedules). If either becomes a problem,
+  the frames can move to any static host with CORS without changing the page
+  (`VITE_RADAR_LIVE`).
 
-**Archived days**: the Pages workflow downloads `web-YYYYMMDD.tar` of the last 60 days
-from the releases into `radar/days/YYYYMMDD/` of the site and lists them in
-`radar/days.json` (~3 MB a day, ~180 MB, well below the 1 GB Pages limit). A day
-appears there at the first Pages deployment after it was archived (usually the next
-morning); until then the live branch covers the last 24 hours. Older days stay in the
-releases.
+**Archived days**: `web-YYYYMMDD.tar` (made by `mvd archive-radar` once the day is
+complete, ~3 hours after midnight) holds the same layout for the whole day, without the
+nowcast. Measured for 2026-10-10 (a wet day): maxz 8.0 MB, merge1h 1.2, echotop 4.5,
+motion 0.6, cells 0.07, satellite 5.6 (vis-ir 2.9, night-M 2.2, wv062 0.5): 21 MB.
+`mvd archive-radar --day D --products maxz-png_masked --redo web --out-dir …` (or
+`--github-release`) remakes a day's set while ČHMÚ still has the day. Days archived
+before this change have only `maxz` and `merge1h`.
+
+The Pages workflow unpacks the `web-YYYYMMDD.tar` of the last 60 days into
+`radar/days/YYYYMMDD/` and lists them in `radar/days.json`. To stay well under the 1 GB
+Pages limit it keeps the satellite images only for the **last 7 days** and the echo tops
+for the **last 14** (deleting the files and emptying their lists in `index.json`), and
+if the site would still exceed 900 MB it leaves out the oldest days, with a warning.
+Budget: station pages and scores ~160 MB (`site-data.zip` 123 MB and `station-data.zip`
+31 MB unpacked, 2026-10-15); 60 radar days of `maxz` and `merge1h` at 2–10 MB
+(the archived days so far: 2.2–9.6, mean 4.8) plus 0.65 MB of motion and cells:
+170–640 MB, typically ~330 MB; echo tops 14 × 1–4.5 MB = 15–65 MB; satellite
+7 × ~5.6 MB = 40 MB. Total typically **~0.55 GB**, up to ~0.9 GB in a very wet spell,
+where the guard trims the oldest days. A day appears there at the first Pages deployment
+after it was archived (usually the next morning); until then the live branch covers the
+last 24 hours. Older days stay in the releases.
 
 ### How the radar page uses the frames
 
@@ -997,6 +1136,50 @@ the nowcast uses the newest motion file; without one it cross-fades. Rain at a p
 reads the class of its grid cell in the frames of the last 2 hours and the nowcast.
 Every newer key of `index.json` (`echotop`, `motion`, `cells`, `satellite`, `scales`) is
 optional: archived days without them show the radar and the 1-hour sums as before.
+
+## Satellite images
+
+ČHMÚ publishes Meteosat images at
+`opendata.chmi.cz/meteorology/weather/satellite/geo/<product>/`, a JPG every 15 minutes
+per product and region: `YYYYMMDDhhmm_geo_<product>_<region>.jpg`, the time being the
+start of the scan (it is printed in the image's top right corner); a file appears about
+15 minutes later. Regions `cz`, `ce` (Central Europe) and `eu`; products `24M`,
+`airmass`, `ir108`, `ir108BT`, `night-M`, `vis-ir`, `wv062` (we use `vis-ir`, the
+daytime visible/infrared composite; `night-M`, the night microphysics RGB; `wv062`,
+water vapour 6.2 µm, greyscale, day and night). On 2026-10-15 the files went back to
+2026-10-07 04:45, **about 8.5 days**. No description or metadata file exists on the
+server, and the images are not in the National Open Data Catalogue. Licence: CC BY 4.0
+from both EUMETSAT and ČHMÚ ([licensing](licensing.md)).
+
+**Projection of `ce`** (not documented; determined by us): all images are 1160 × 800.
+Fitting the Natural Earth 1:50m coastlines to the land/sea edge of a cloud-free composite
+(per pixel the second-darkest of 24 noon `vis-ir` images, 2026-10-08 … 15) with several
+projections gave a clear answer: **Web Mercator** (spherical, EPSG:3857) with square
+pixels fits with a mean distance of 1.9 pixels; plate carrée (3.6), Lambert conformal and
+azimuthal, polar stereographic and the geostationary view (7.5–9.3) do not, and an
+ellipsoidal Mercator needs non-square pixels. Fitted: west edge −190 501 m, north edge
+7 690 826 m, pixel 3114.2 m, i.e. **W −1.7113°, S 42.2566°, E 30.7397°, N 56.6594°**
+(centred on 14.51° E; pixels of 2.0 km at 50° N). Lake Constance, the northern Adriatic
+and the Baltic coast lie within about a pixel (3 km) of the Natural Earth outlines (Swiss
+lakes were under fog in most composites). The scale is equally good between 3111 and
+3115 m, so the edges far from Czechia may be off by 1–2 pixels; around Czechia the error
+is under a pixel. `cz` is a ~2.5× zoom (not used), `eu` is not Mercator (not used).
+
+### What `mvd archive-satellite` stores
+
+Once a UTC day is complete (1 hour after midnight), every product and region of that day
+becomes one uncompressed tar of the JPGs as published, an asset of the monthly release
+`satellite-YYYY-MM`: `vis-ir-ce-20261014.tar`, `night-M-eu-20261014.tar`, … (label
+`files=N`). Resumable like the radar archive: assets already there are skipped, a failed
+download leaves the asset out for the next run. `--products`, `--regions`, `--day`,
+`--out-dir DIR` (same layout locally); `mvd mirror-radar --satellite` (or
+`--only-satellite`) copies these releases too. The Radar workflow's archive job runs it
+every 6 hours for all products and regions.
+
+**Size** (from the server listing, 2026-10-08 … 14, per day): `ce` vis-ir 4.5 MB (49
+files), night-M 4.2 (45), wv062 1.9 (94); `cz` 3.6, 3.7, 1.3; `eu` 5.4, 3.8, 3.1. All:
+**31.5 MB a day, ~11.5 GB a year** (`--regions ce`: 10.6 MB a day, ~3.9 GB a year).
+In summer `vis-ir` has more files and `night-M` fewer; the total stays similar.
 
 ## Single runs (`mvd fetch-runs`)
 
