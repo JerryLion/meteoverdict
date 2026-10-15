@@ -609,8 +609,148 @@ stores this as `published`; readers of older files get null (polars
 later "what could a user actually see" score (the newest run published before the
 time of use).
 
-ČHMÚ station observations do not need archiving: `recent/` keeps the current year and
-`historical/` all closed years.
+ČHMÚ's checked station observations stay online (`recent/` the last 12 months,
+`historical/` all closed years), but the unchecked 10-minute and hourly data of `now/`
+are kept for only about three days; the [ČHMÚ archive](#chmi-archive) keeps them, and
+everything else ČHMÚ publishes for the stations.
+
+<a id="chmi-archive"></a>
+
+## ČHMÚ archive
+
+`mvd chmi-archive` (module `meteoverdict.chmi_archive`) keeps **every element of every
+station in every resolution** that ČHMÚ publishes under `meteorology/climate/`, also
+what the scores do not use. What exists and how big it is: [chmi-data.md](chmi-data.md).
+Licence CC BY 4.0, ČHMÚ; the values are unchanged, only converted from JSON to Parquet.
+
+### Format
+
+Every file has the same long table, one row per station, time and element (and, for
+the statistics, time function and statistic), sorted by `station`, `resolution`,
+`time`, `element`, `vtype`, `func`; zstd-compressed Parquet with column statistics, so
+a reader can filter by station or time without reading everything:
+
+| Column | Type | From ČHMÚ |
+|---|---|---|
+| `station` | string | `STATION` (WIGOS id) |
+| `resolution` | string | `10min`, `1hour`, `daily`, `pentadic`, `monthly`, `yearly`, `phenomena` |
+| `time` | timestamp (ms, UTC) | `DT` (end of a 10-minute or hourly interval, ČHMÚ's daily stamp); for statistics the start of the period: pentade *p* of a month starts on day 5(*p*−1)+1, a month on the 1st, a year on 1 January; phenomena the day at 00:00 |
+| `element` | string | `ELEMENT`, or `PHENOMENON` (e.g. `BO`) |
+| `vtype` | string | daily `VTYPE` (`AVG`, `SUM`, `06:00`, …) or `TIMEFUNCTION` of the statistics |
+| `func` | string | `MDFUNCTION` of the statistics (`AVG`, `MAX`, `MIN`, `SUM`, `GE(30)` = number of days ≥ 30, …) |
+| `value` | float32 | `VAL` / `VALUE`; null where ČHMÚ sends `""` (missing, quality 4); null for phenomena |
+| `flag` | string | `FLAG` (meanings in `meta3`), or `FLAG_REPEAT` of the statistics |
+| `flag2` | string | `FLAG_INTERRUPTED` of the statistics |
+| `quality` | uint8 | `QUALITY` (`meta4`: 0 good, 1 suspect, 2 poor, 3 estimated, 4 missing, 5 unknown = not checked yet) |
+
+Recent monthly and pentadic files have no `YEAR`/`MONTH` columns; they come from the
+file name. ČHMÚ's missing rows (`""`, quality 4) are kept: they say a value was
+expected.
+
+### Files and releases
+
+Each file is an asset of a GitHub release of this repository (labels hold the SHA-256);
+`mvd chmi-archive --out-dir DIR` writes the same layout to a disk,
+`DIR/<release>/<file>`:
+
+| Release | Files | What | Size |
+|---|---|---|---|
+| `chmi-now-YYYY` | `chmi-now-YYYY-MM-DD.parquet` | one UTC day, 10-minute and hourly rows of all stations as first published (from `now/`, mostly not checked; from `recent/`'s day files if the day already left `now/`) | ~0.8 MB a day |
+| | `chmi-meta-YYYY-MM-DD.zip` | `meta1`…`meta4` of that day as published (JSON) | ~55 kB |
+| `chmi-YYYY` | `chmi-10min-YYYY-MM.parquet`, `chmi-1hour-YYYY-MM.parquet` | one month of all stations, checked (`historical/` for closed years, else `recent/`) | 10 min ~21 MB, 1 h ~1.2 MB |
+| | `chmi-{daily,monthly,pentadic,phenomena}-YYYY-MM.parquet` | one month of all stations from `recent/`, for months not in the station histories yet (the current year; the current month grows daily) | < 2 MB |
+| `chmi-history-D` (D = last digit of the WSI) | `chmi-history-<WSI>.parquet` | all closed years of one station: daily, monthly, pentadic, yearly and phenomena (`historical/`), back to 1775 | 0.1–5 MB, ~1 GB for 1,550 stations |
+| `chmi-state` | `chmi-archive-state.json` | progress: for each month and station, a fingerprint of the ČHMÚ files it was built from | small |
+
+Per-station history files (not per year) because that is how ČHMÚ publishes the
+closed years (one file of up to 100 MB per station), which makes the backfill
+resumable station by station and gives the station pages one file per station.
+Ten releases keep each under GitHub's 1,000 files. A year in both a station history
+and `chmi-…-YYYY-MM` month files (after ČHMÚ's yearly update) is the same data; the
+history is the reference.
+
+Reading it (after `mvd chmi-mirror DIR`):
+
+```python
+import polars as pl
+
+libus = pl.read_parquet("DIR/chmi-history-0/chmi-history-0-20000-0-11520.parquet")
+t = (
+    pl.scan_parquet("DIR/chmi-2025/chmi-10min-2025-*.parquet")
+    .filter(pl.col("station") == "0-20000-0-11520", pl.col("element") == "T")
+    .collect()
+)
+```
+
+### Units of work and schedule
+
+Work is split into units, one file each, done in this order (newest first) until the
+time budget (`--max-minutes`) is used up; the state remembers each unit's fingerprint
+(names, sizes and dates in ČHMÚ's directory listing), so a unit is done again only
+when ČHMÚ changes its files, and a stopped run resumes with the next unit:
+
+| `--part` | Unit | When |
+|---|---|---|
+| `days` | a complete UTC day not archived yet | `chmi-archive.yml`, 01:41 and 13:41 UTC (two chances per day; `now/` keeps ~3) |
+| `recent` | a month of one resolution in `recent/` whose files changed | same runs; daily data change every day, 10 min and 1 h after ČHMÚ's checks (the 3rd of the month) |
+| `history` | one station's closed years | `chmi-backfill.yml`, 02:07 UTC, 5 hours a run |
+| `months` | a closed month of 10-minute or hourly data (2018 on, hourly first) | same |
+
+Both workflows share the concurrency group `chmi-archive`, so they never write the
+state at the same time; neither calls Open-Meteo. Downloads use 4 parallel
+connections and the retries of `mvd fetch-obs` (2, 5 and 15 s on network or server
+errors and unreadable bodies). A listed file that still cannot be read (ČHMÚ
+sometimes serves an empty body) is left out and counted in the run's summary
+("unreadable files left out"), like a missing station-day in `mvd fetch-obs`.
+
+**Backfill estimate** ([details](chmi-data.md#what-the-archive-costs)): about 157 GB of
+JSON to download, about 3.1 GB of Parquet stored; at the measured 2–8 MB/s about 6–9
+hours, i.e. two or three daily runs. Then about 0.6 GB a year.
+
+```bash
+uv run mvd chmi-archive --part days --out-dir data/chmi           # the last days
+uv run mvd chmi-archive --part history --station 0-20000-0-11520 \
+    --out-dir data/chmi                                         # one station's history (a trial)
+uv run mvd chmi-mirror /Volumes/disk/chmi                         # copy the archive (needs GITHUB_TOKEN)
+```
+
+`--station` limits `recent`, `history` and `months` to some stations, for trials; the
+files are then partial, so the state is not saved.
+
+<a id="station-pages"></a>
+
+### Station pages
+
+`mvd station-pages` (module `meteoverdict.station_pages`) writes one JSON per station
+for `web/station.html`, from the archive (`--github-release` first downloads the files it
+needs into `--archive`, default `data/chmi`; `--publish` uploads the folder as
+`station-data.zip` to `data-latest`, which the Pages workflow unpacks into
+`data/scores/station/`):
+
+- `station/index.json`: `{"generated", "stations": [{id, name, okres, elevation,
+  active, views}]}` for the search;
+- `station/<WSI>.json`: `station` (from `mvd stations`), `elements` (from ČHMÚ's
+  `meta2`: Czech name, unit, sensor height, kinds `10M`/`1H`/`DLY`/`PHENO`, first and
+  last day, and the `views` that have it), `series` and `source`.
+
+Each series is `{"start", "step", "values": {element: [...]}, "how": {element: label}}`;
+value *i* is at `start + i × step`, null where there is none, rounded to 0.1:
+
+| View | Step | Covers | From |
+|---|---|---|---|
+| `10min` | 10 min | the last 3 days up to the newest value | month files, else the captured days |
+| `1hour` | 1 h | the last 30 days | hourly elements, and 10-minute elements at the full hour (not `SRA10M`, `SSV10M`, whose hourly totals are `SRA1H`, `SSV1H`) |
+| `daily` | 1 day | the last 3 years and this one | station history, then the recent month files after it; one series per element: the daily mean (`AVG`) where there is one, else the sum, else the only observation time |
+| `monthly` | 1 month | the whole history | ČHMÚ's monthly statistics: the mean (`AVG AVG`) where there is one, else the total, maximum or minimum; `how` says which |
+
+Sizes (measured 2026-10-15): Praha-Libuš 469 kB (10 min 37, hourly 196 with 35
+ceilometer elements, daily 149, monthly 69), Brno-Tuřany 380 kB, Lysá hora 507 kB
+(118, 100 and 106 kB gzipped as GitHub Pages serves them); the 10-minute and hourly
+part of all 476 automatic stations 28 MB. Estimated for all ~780 stations: about
+120 MB (≈ 40 stations with hourly synoptic elements at ~0.5 MB, ~440 automatic stations
+at ~0.2 MB, ~300 rain gauges at ~0.05 MB); at most 0.4 GB even if every station were
+as big as Lysá hora, well under GitHub Pages' 1 GB. Building all of them took 16 s
+and 2 GB of memory.
 
 ## Single runs (`mvd fetch-runs`)
 
