@@ -612,6 +612,181 @@ time of use).
 ČHMÚ station observations do not need archiving: `recent/` keeps the current year and
 `historical/` all closed years.
 
+## Radar archive
+
+ČHMÚ publishes its weather radar composites (radars Brdy-Praha and Skalky) at
+`opendata.chmi.cz/meteorology/weather/radar/composite/`, described in
+`radar/radar_description_en.pdf` (version 1.3, 2026-05-26). **Files stay online for only
+about seven days** (on 2026-10-15 the oldest was 2026-10-08 00:05). The folders `sites/`
+(3D volumes of each radar, not archived) and `scl/` (the colour scales) sit next to
+`composite/`. The server sends no CORS headers, so a browser cannot read it directly.
+
+Licence: CC BY 4.0, author ČHMÚ. Checked 2026-10-15 in the National Open Data Catalogue
+(data.gov.cz SPARQL, `pu:autorské-dílo` and `pu:databáze-jako-autorské-dílo` of each
+distribution): "Radarová data ČHMÚ", "Sloučená informace maximální radarové odrazivosti
+MAX_Z pro území Česka", "… PseudoCAPPI_2km …", "… výšky radarových odrazů ECHO_TOP …",
+"Kombinovaný odhad plošných 1hodinových srážkových úhrnů MERGE na území Česka" and the
+two "Extrapolační předpověď …" datasets.
+
+### Products
+
+| Key (`--products`) | Folder | File name (time in UTC) | Step | MB a day¹ |
+|---|---|---|---|---|
+| `maxz-hdf5` | `maxz/hdf5` | `T_PABV23_C_OKPR_YYYYMMDDhhmm00.hdf` | 5 min | 12.7 |
+| `maxz-png` | `maxz/png` | `pacz2gmaps3.z_max3d.YYYYMMDD.hhmm.0.png` | 5 min | 2.6 |
+| `maxz-png_masked` | `maxz/png_masked` | same name; echoes not reaching the ground in lighter colours | 5 min | 2.7 |
+| `cappi2km-hdf5` | `pseudocappi2km/hdf5` | `T_PANV23_C_OKPR_…hdf` | 5 min | 6.7 |
+| `cappi2km-png` | `pseudocappi2km/png` | `pacz2gmaps3.z_cappi020.….0.png` | 5 min | 1.9 |
+| `echotop-hdf5` | `echotop/hdf5` | `T_PADV23_C_OKPR_…hdf` (no PNG) | 5 min | 5.7 |
+| `merge1h-hdf5` | `merge1h/hdf5` | `T_PASV23_C_OKPR_…hdf` | 10 min | 2.6 |
+| `merge1h-png` | `merge1h/png` | `pacz2gmaps3.merge.YYYYMMDD.hhmm.60.png` | 10 min | 0.8 |
+| `fct_maxz-hdf5` | `fct_maxz/hdf5` | `T_PABV23_C_OKPR_YYYYMMDD.hhmm.ft60s10.tar` (6 HDF5, +10 … +60 min) | 5 min | 46.1 |
+| `fct_maxz-png` | `fct_maxz/png` | `pacz2gmaps3.fct_z_max.YYYYMMDD.hhmm.ft60s10.tar` (6 PNG) | 5 min | 15.3 |
+| `fct_maxz-png_masked` | `fct_maxz/png_masked` | same name | 5 min | 16.0 |
+| `fct_cappi2km-hdf5` | `fct_pseudocappi2km/hdf5` | `T_PANV23_C_OKPR_….ft60s10.tar` | 5 min | 42.1 |
+| `fct_cappi2km-png` | `fct_pseudocappi2km/png` | `pacz2gmaps3.fct_z_cappi020.….ft60s10.tar` | 5 min | 13.5 |
+
+¹ Measured on 2026-10-14 (a day with a frontal rain band), as uncompressed tars of the
+day's files. Sizes grow with the area of echoes, so days with widespread rain or many
+storms are larger. The files are
+already compressed (HDF5 with internal compression, PNG), so a compressed tar would not
+be smaller.
+
+- **Times.** Composites: the end of the 5-minute interval. MERGE: the end of the hour
+  it sums (`T_PASV23_…20261014040000.hdf` = 03:00–04:00 UTC), the same convention as
+  our hourly observations. Nowcasts: the tar is named by the time of the calculation,
+  each member by its valid time and lead (`….20261015.1115.40.png` = 11:15, +40 min).
+- **Latency.** Composites and nowcasts appear within a minute; MERGE 20 minutes to
+  1.5 hours after the hour (it waits for the rain gauges).
+- **Grid** (HDF5 `/where`, the same in every product): Web Mercator (EPSG:3857 sphere,
+  `+proj=merc +a=6378137`), 598 × 378 cells of 1555.7 m (about 1 km at 50° N), outer
+  edges 11.266869–19.623974° E, 48.047275–51.458369° N. The PDF gives the same bounds
+  rounded (E 11.267–19.624, N 48.047–51.458).
+- **PNG** files are 680 × 460 with an 8-bit palette: the grid in the bottom-left
+  598 × 378 pixels (rows 82–459), side views of the maximum above and to the right,
+  the title over the top-left corner, black frame lines (palette index 145), grey
+  outside the radar coverage (index 242) and transparent background (index 0); the
+  whole image spans E 11.267–20.770°, N 48.047–52.167° (PDF). We checked the crop
+  against the HDF5 of the same time: cells with ≥ 4 dBZ and coloured pixels overlap
+  99.6 % (test `test_png_crop_lines_up_with_the_hdf5_grid`).
+- **Values.** MAX_Z and PseudoCAPPI: `DBZH = 0.5 × code − 32`, code 0 = no echo, 255 =
+  no data. Echo top: `HGHT`. MERGE (`ACRR`): `mm = 0.1 × code`, 32766 = no precipitation
+  detected, 32767 = outside its domain (a rotated rectangle around Czechia).
+- **Colour scales**: `radar/scl/scl-dbz-mmh.png` (4–60 dBZ in steps of 4, with mm/h by
+  Marshall–Palmer) and `scl-mm.png` (0.1–100 mm); the radar page copies both.
+
+### What `mvd archive-radar` stores
+
+Once a UTC day is complete (3 hours after midnight, for MERGE), each product of that
+day becomes one uncompressed tar of the files as published, named after the product and
+day, as an asset of the monthly release `radar-YYYY-MM`:
+
+```
+radar-2026-10/
+  maxz-hdf5-20261014.tar              288 files
+  maxz-png_masked-20261014.tar        …
+  merge1h-hdf5-20261014.tar           144 files
+  merge1h-hourly-20261014.npz         derived: the 24 hourly MERGE grids
+  merge1h-stations-20261014.parquet   derived: MERGE at the ČHMÚ stations
+  web-20261014.tar                    derived: the radar page's frames of that day
+```
+
+The asset label says how many files the tar has (`files=288`), so gaps on ČHMÚ's side
+show without downloading. Days already in the release are skipped; a failed file or
+upload leaves that asset out and the next run tries again (as long as ČHMÚ still has
+the day). `--day YYYY-MM-DD` archives given days, `--out-dir DIR` writes the same layout
+to a local folder, `--no-derived` skips the derived files.
+
+- **`merge1h-hourly-YYYYMMDD.npz`** (numpy `savez_compressed`, ~0.1 MB): `acrr` uint16
+  `(hours, 378, 598)` codes of the MERGE fields at full hours (rows north → south),
+  `time` (`YYYYMMDDhhmm`, end of the hour), `gain`, `offset`, `nodata`, `undetect`,
+  the grid edges and `projdef`.
+- **`merge1h-stations-YYYYMMDD.parquet`**: `station_id` (WIGOS id from `mvd stations`),
+  `time` (UTC, end of the hour), `precipitation` (mm; 0 when nothing was detected, null
+  outside the MERGE domain), `grid_row`, `grid_col` (the cell containing the station:
+  no interpolation). On 2026-10-14 at the 469 stations with hourly observations the
+  hours line up exactly with ours (correlation 0.79 at the same hour, 0.26 and 0.20
+  one hour off), and many gauge stations match to 0.1 mm, since MERGE is fitted to the
+  gauges (kriging with external drift): it is not an independent check of them.
+- **`web-YYYYMMDD.tar`**: `index.json` and the frames of the radar page (below) for the
+  day, about 2.8 MB.
+
+**Size.** The observed products (`--products observed`, what the Radar workflow
+stores) were 35.7 MB on 2026-10-14 plus 3 MB derived: about 1.2 GB a month and
+**14 GB a year**, more in a wet year (plan 15–25 GB a year). The nowcasts
+(`--products forecast`) are 133 MB a day: **4 GB a month, 49 GB a year**, so together
+the archive would pass 50 GB within a year. Every asset stays far below GitHub's
+2 GiB per asset (the largest, `fct_maxz-hdf5`, is ~50 MB) and a month has at most
+16 × 31 = 496 assets. The nowcasts are therefore not archived on GitHub; they can be
+kept on a local disk (below). If even the observed archive grows too large, the PNG
+products (`maxz-png`, `cappi2km-png`, 4.5 MB a day) are the first to move to a local
+disk only: they can be redrawn from the HDF5.
+
+**Local copy.** The release layout maps 1:1 to a folder:
+
+```bash
+uv run mvd mirror-radar --out-dir /Volumes/data/radar            # all radar-YYYY-MM assets
+uv run mvd mirror-radar --out-dir /Volumes/data/radar --since 2026-10
+# the same with the GitHub CLI
+for tag in $(gh release list --limit 1000 --json tagName -q '.[].tagName' | grep '^radar-'); do
+  gh release download "$tag" --dir "/Volumes/data/radar/$tag" --skip-existing
+done
+# the nowcasts, straight from ČHMÚ into the same layout (run at least every 5 days)
+uv run mvd archive-radar --products forecast --out-dir /Volumes/data/radar
+```
+
+`mirror-radar` skips files that are already there with the same size. The pipeline
+never depends on the local copy.
+
+### Radar page frames
+
+The radar page (`radar.html`) shows `maxz/png_masked` (echoes that probably do not
+reach the ground in lighter colours), the `fct_maxz/png_masked` nowcast and
+`merge1h/png`. For the page each PNG is cropped to the grid (rows 82–459, columns
+0–597), so it can be placed with the exact grid edges as a MapLibre image source; the
+frame lines and title (index 145) become transparent, the grey outside the radar
+coverage faint (fully transparent for MERGE and the nowcast, whose title lies on it);
+the palette, and so ČHMÚ's colours, stay. A frame is 2–13 KB.
+
+A frame folder has `index.json`
+(`{"version": 1, "bounds": [[west, south], [east, north]], "maxz": ["YYYYMMDDhhmm", …],
+"merge1h": […], "nowcast": {"base": "…", "frames": [{"time": "…", "lead": 10}, …]},
+"attribution": …}`) and `maxz/<stamp>.png`, `merge1h/<stamp>.png`, `nowcast/<stamp>.png`.
+
+**Live** (`mvd radar-live --dir DIR --hours 24`, every 10 minutes in the Radar
+workflow): downloads only the frames that are missing, deletes those older than 24 h,
+replaces the nowcast when a newer one exists, and the workflow force-pushes the folder
+as a single commit to the branch `radar-live` (about 3 MB). The page reads it from
+`raw.githubusercontent.com/<repo>/radar-live/`, which sends
+`Access-Control-Allow-Origin: *` and `Cache-Control: max-age=300` (checked
+2026-10-15), so a visitor sees a frame at most ~15 minutes after ČHMÚ (10-minute
+schedule, which GitHub often delays by a few minutes, plus the 5-minute cache).
+
+Why this design:
+
+- GitHub Pages cannot be redeployed every few minutes (deployments are slow, rate
+  limited and would rebuild the whole site); the branch decouples the radar from it.
+- jsDelivr (`cdn.jsdelivr.net/gh/…@radar-live`) also sends CORS headers but caches a
+  branch for 12 hours (`s-maxage=43200`, checked), far too long for `index.json`.
+- Release assets cannot be read by a browser: their download host sends no CORS
+  headers (checked 2026-10-15).
+- One force-pushed commit keeps the branch at ~3 MB; the replaced commits are garbage
+  collected by GitHub. Frames that did not change keep their blobs, so a push
+  transfers only the new frames (~50 KB every 10 minutes).
+- Trade-offs: raw.githubusercontent.com is not meant as a CDN and may rate-limit a
+  very popular page (each visitor loads ~40 frames for 3 hours); the scheduled
+  workflow runs ~144 times a day (free for public repositories) and GitHub disables
+  schedules in repositories without activity for 60 days (the daily commits prevent
+  that). If either becomes a problem, the frames can move to any static host with
+  CORS without changing the page (`VITE_RADAR_LIVE`).
+
+**Archived days**: the Pages workflow downloads `web-YYYYMMDD.tar` of the last 60 days
+from the releases into `radar/days/YYYYMMDD/` of the site and lists them in
+`radar/days.json` (~3 MB a day, ~180 MB, well below the 1 GB Pages limit). A day
+appears there at the first Pages deployment after it was archived (usually the next
+morning); until then the live branch covers the last 24 hours. Older days stay in the
+releases.
+
 ## Single runs (`mvd fetch-runs`)
 
 Open-Meteo's **Single Runs API** returns one model run as it was issued, which the
