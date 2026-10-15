@@ -32,6 +32,8 @@ data comes from recorded fixtures in `tests/fixtures/`. Dates are `YYYY-MM-DD` i
 | Error by lead hour | `mvd leads` | `site/data/leads.json`, `leads-aladin.json`, `leads-aladin-kraj.json` |
 | Combined forecast | `mvd outlook` | `site/data/outlook.json`, `outlook-hourly.json` |
 | Everything daily | `mvd daily` | all of the above from the stored data |
+| ČHMÚ archive (every element) | `mvd chmi-archive`, `mvd chmi-mirror DIR` | releases `chmi-*` ([format](data-sources.md#chmi-archive)) |
+| Station pages | `mvd station-pages` | `site/data/station/<WSI>.json` |
 | Checks | `mvd check` | exit 1 on stale data or many silent stations |
 
 ### Stations
@@ -157,6 +159,11 @@ run of the last `--days` (30) days (H+1 … H+72) into `leads-aladin.json` and
 runs and the observation months first (read only), `--publish` also puts the JSON into
 `data-latest` ([details](data-sources.md#error-by-lead-hour-mvd-leads)).
 
+**ČHMÚ archive.** `mvd chmi-archive` keeps every element of every ČHMÚ station in
+every resolution (10 min to yearly, back to 1775) as Parquet in the releases `chmi-*`,
+about 3 GB in total ([inventory](chmi-data.md), [format](data-sources.md#chmi-archive));
+`mvd chmi-mirror DIR` copies it to a local disk, skipping unchanged files.
+
 **ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so
 `mvd archive-aladin --github-release` saves temperature, wind and precipitation at every
 station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM`
@@ -171,7 +178,9 @@ station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM
 | Single runs | 04:20, 10:20, 16:20, 22:20 | `mvd fetch-runs --github-release`, 350 calls (750 at 10:20), 1,800 a day |
 | Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
-| Pages | after Daily, Outlook and changes in `web/` | builds `web/` and publishes it |
+| CHMI archive | 01:41 and 13:41 | `mvd chmi-archive --part days --part recent --github-release` (the last days of `now/`, changed months of `recent/`), then `mvd station-pages --github-release --publish` |
+| CHMI backfill | 02:07, up to 5 h | `mvd chmi-archive --part history --part months --github-release`, resumable, same concurrency group |
+| Pages | after Daily, Outlook, CHMI archive and changes in `web/` | builds `web/` and publishes it |
 
 ## Web pages
 
@@ -189,6 +198,7 @@ the URL.
 | `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, and every model's error by hours ahead from the single runs (`leads.json`, per run hour) | region |
 | `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser); sunrise and sunset per day and the nights shaded in the charts, from `outlook.json` | okres |
 | `api.html` | open data: JSON and CSV per okres under `api/v1/` ([docs](open-data.md)) | – |
+| `station.html` | one ČHMÚ station: every element it measures (also those we do not score), the last 3 days every 10 minutes, the last 30 days hourly, recent years daily and the whole history monthly; element picker, a table of all elements with their periods and latest values, search by name; linked from the score map's station panel | `#0-20000-0-11520/T` |
 
 GitHub Pages: Settings → Pages → Source: GitHub Actions. A fork without Pages enabled
 only builds.
