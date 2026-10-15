@@ -76,7 +76,8 @@ allows 10,000 weighted calls a day and 300,000 a month; 14 days for all models a
 stations cost about 6,900, so `--max-calls` (default 9,000) stops a run in time and
 keeps what was fetched ([details](data-sources.md#fetching-mvd-fetch-fc)).
 `mvd backfill` fills the history newest first in 14-day windows and remembers its
-progress, so it can run a little every day
+progress, so it can run a little every day; `--older-windows after-runs-history` keeps
+it to the last 90 days until the single-runs history is complete
 ([details](data-sources.md#backfill-mvd-backfill)).
 
 ### Scores and rankings
@@ -135,10 +136,12 @@ The latest results are in the release `data-latest`: `aggregates.parquet`,
 
 **Single runs.** `mvd fetch-runs` asks Open-Meteo's Single Runs API (free tier) for
 each 00, 06, 12 and 18 UTC run of all models at the ~100 stations of
-`src/meteoverdict/data/run-stations.csv` (about 330 weighted calls a run): first the
-recent runs (10 to 48 hours old), then older ones newest first back to 2026-06-23 (the
-first run with ALADIN; `--history-from`), until `--max-calls` (default 450), plus
-`--extra-calls-if-backfill-idle N` when the D+N backfill has nothing pending. `--run 2026-10-12T06` fetches given runs, `--dry-run`
+`src/meteoverdict/data/run-stations.csv` (about 570 weighted calls a run with 19 models
+and 3 variables): first the recent runs (10 to 48 hours old), then older ones newest
+first back to 2026-06-23 (the first run with ALADIN; `--history-from`), until
+`--max-calls` (default 450), plus a part (`--shared-from`, `--shared-to`) of what the D+N
+backfill leaves of the shared daily budget (`--shared-calls`). `--run 2026-10-12T06`
+fetches given runs, `--dry-run`
 prints what is left and its cost. Progress is in `data/runs-state.json`;
 `--github-release` keeps the month files and the state in the releases `runs-YYYY-MM`
 and `runs-state` ([details](data-sources.md#single-runs-mvd-fetch-runs)). The station
@@ -174,8 +177,8 @@ station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM
 | Workflow | When (UTC) | What |
 |---|---|---|
 | ALADIN archive | every 3 hours | `mvd archive-aladin --github-release` |
-| Backfill | 02:41 | `mvd backfill`, 6,800 Open-Meteo calls a day |
-| Single runs | 04:20, 10:20, 16:20, 22:20 | `mvd fetch-runs --github-release`, 350 calls (750 at 10:20), 1,800 a day |
+| Backfill | 02:41 | `mvd backfill`, the shared 4,500 Open-Meteo calls a day: current windows first, older ones after the single-runs history |
+| Single runs | 04:20, 10:20, (13:20,) 16:20, 22:20 | `mvd fetch-runs --github-release`, 850 calls each (3,400 a day), plus what the backfill leaves of the shared 4,500 at 10:20 and 13:20 ([budget](data-sources.md#open-meteo-budget)) |
 | Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
 | Pages | after Daily, Outlook and changes in `web/` | builds `web/` and publishes it |
