@@ -29,6 +29,7 @@ from zoneinfo import ZoneInfo
 import httpx
 import polars as pl
 
+from meteoverdict.combine import combine_values
 from meteoverdict.forecasts import _reason, call_weight
 from meteoverdict.sun import sun_times
 
@@ -43,11 +44,9 @@ VARIABLES = (
 #: plain means of the models, not combined with weights (we do not verify them)
 MEANS = ("cloud_cover", "sunshine_duration")
 COMBINED = ("temperature_2m", "precipitation", "wind_speed_10m")
-NON_NEGATIVE = ("precipitation", "wind_speed_10m")
 DAYS = 6
 MAX_LEAD_DAY = 5
 TAPER_HOURS = 3
-MIN_MODELS = 2
 TIME_ZONE = "Europe/Prague"
 #: part of day → first and last local hour + 1
 PARTS = {"night": (0, 6), "morning": (6, 12), "afternoon": (12, 18), "evening": (18, 24)}
@@ -215,24 +214,14 @@ def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl
         w = lead.filter(pl.col("variable") == variable).select(
             "okres", "lead_day", "model", "weight", "correction"
         )
-        part = (
+        part = combine_values(
             fc.select("okres", "time", "model", "lead_day", "fade", variable)
-            .drop_nulls(variable)
             .join(w, on=["okres", "lead_day", "model"])
-            .with_columns((pl.col("weight") * pl.col("fade")).alias("w"))
-            .group_by("okres", "time")
-            .agg(
-                (
-                    (pl.col("w") * (pl.col(variable) - pl.col("correction"))).sum()
-                    / pl.col("w").sum()
-                ).alias(variable),
-                pl.len().alias("n"),
-            )
-            .with_columns(pl.when(pl.col("n") >= MIN_MODELS).then(pl.col(variable)).alias(variable))
-            .drop("n")
+            .with_columns((pl.col("weight") * pl.col("fade")).alias("w")),
+            variable,
+            ["okres", "time"],
+            weight="w",
         )
-        if variable in NON_NEGATIVE:
-            part = part.with_columns(pl.col(variable).clip(lower_bound=0))
         out = out.join(part, on=["okres", "time"], how="left")
     return out.sort("okres", "time")
 

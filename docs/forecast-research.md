@@ -51,6 +51,8 @@ Consequences for us:
 - **It must be tested, not assumed** (roadmap 6.4): weights estimated only from days
   before the scored day, scored like a model, compared with the best single model and
   the plain mean, with the day-bootstrap intervals we already use for the ranking.
+  Done by `mvd blend-test` since 2026-10-15; first result (24 days of September 2026)
+  in [methodology.md](methodology.md#does-it-beat-the-best-single-model-roadmap-64).
 
 ## Precipitation
 
@@ -76,7 +78,7 @@ last 3 hours (applied in the forecast page and the TV forecast).
 |---|---|
 | Bias correction + inverse-error weights per okres and lead day | **Keep**: the OCF/NBM approach |
 | Shrink towards equal weights | **Keep** while scores are short |
-| 90-day window | **Test in 6.4** against 30 and 45 days (the operational range) and a decaying average (NAEFS-style, 2–5 %); switch if shorter wins on our data |
+| 90-day window | **Test in 6.4** (`mvd blend-test --window 30d`/`45d`, once the history is longer than 45 days) against 30 and 45 days (the operational range) and a decaying average (NAEFS-style, 2–5 %); switch if shorter wins on our data |
 | Inverse variance vs inverse MAE | Keep (negligible difference reported) |
 | Correlated model families | Document; revisit with a year of data |
 | Rain | Show probability of precipitation, symbols only above a threshold |

@@ -52,8 +52,12 @@ model are in [data sources](docs/data-sources.md#models).
 Early days. The first results (October 2026) cover late September, and the history
 fills in as the backfill runs (back to 2024, about two months in total) and ČHMÚ
 publishes its checked monthly observations. ALADIN has forecast history only from
-June 2026. Next: checking that the combined forecast beats the best single model, then
-a write-up of the findings ([roadmap](ROADMAP.md)).
+June 2026. Our combined forecast is now tested out of sample every day against the
+model our ranking would have picked: on the first 24 test days (September 2026) it was
+better for daily precipitation and mostly better or equal for temperature and wind,
+slightly worse only for wind on the next day; too little history to call it settled
+([details](docs/methodology.md#does-it-beat-the-best-single-model-roadmap-64)). Next: a
+write-up of the findings ([roadmap](ROADMAP.md)).
 
 ## Use the data
 

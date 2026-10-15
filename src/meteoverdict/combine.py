@@ -17,8 +17,9 @@ weight comes from the scores, after 90 days three quarters.
 
 The combined forecast is ``sum_m weight_m * (forecast_m - correction_m)`` over the
 models available for that hour, with the weights of the missing ones left out and the
-rest rescaled. Whether this beats the best single model has to be checked out of sample
-(roadmap 6.4).
+rest rescaled (``combine_values``), with at least ``MIN_MODELS`` models; precipitation
+and wind are not allowed below 0. Whether this beats the best single model is tested
+out of sample by ``meteoverdict.blendtest`` (roadmap 6.4).
 
 Output (``write_forecast``): ``forecast/okresy.json`` with a forecast point per okres
 and ``forecast/<okres>.json`` with its weights, both ``{"columns", "rows"}`` like the
@@ -48,10 +49,20 @@ VARIABLES = {
     "precipitation": ("precipitation_daily", False),
 }
 WEIGHT_COLUMNS = ("variable", "lead_day", "model", "weight", "correction", "mae", "rank", "days")
+#: a combined value needs at least this many models with a value at that hour
+MIN_MODELS = 2
+#: combined variables that cannot be negative (clipped at 0 after the bias correction)
+NON_NEGATIVE = ("precipitation", "wind_speed_10m")
 
 
 def weights(table: pl.DataFrame, window: str = WINDOW) -> pl.DataFrame:
-    """One row per okres, variable (Open-Meteo name), lead day and model."""
+    """One row per okres, variable (Open-Meteo name), lead day and model.
+
+    ``table`` holds aggregated scores (``meteoverdict.aggregate``); ``rank`` (from
+    ``meteoverdict.ranking``) is passed through where present, null otherwise.
+    """
+    if "rank" not in table.columns:
+        table = table.with_columns(pl.lit(None, pl.Int16).alias("rank"))
     by_score = {score: (name, corrected) for name, (score, corrected) in VARIABLES.items()}
     rows = table.filter(
         pl.col("level") == "okres",
@@ -91,6 +102,35 @@ def weights(table: pl.DataFrame, window: str = WINDOW) -> pl.DataFrame:
         .select("region", "region_name", *WEIGHT_COLUMNS)
         .sort("region", "variable", "lead_day", "weight", descending=[False, False, False, True])
     )
+
+
+def combine_values(
+    frame: pl.LazyFrame | pl.DataFrame, variable: str, by: list[str], weight: str = "weight"
+) -> pl.LazyFrame | pl.DataFrame:
+    """The combined forecast of ``variable``, one row per group ``by``.
+
+    ``frame`` has one row per group and model with the model's forecast in
+    ``variable``, its ``weight`` (column named by ``weight``) and its ``correction``.
+    ``sum(weight * (forecast - correction)) / sum(weight)`` over the models with a value,
+    so the weights of missing models are left out and the rest rescaled; null with fewer
+    than ``MIN_MODELS`` models; not below 0 for ``NON_NEGATIVE`` variables.
+    """
+    w = pl.col(weight)
+    combined = (
+        frame.drop_nulls(variable)
+        .group_by(by)
+        .agg(
+            ((w * (pl.col(variable) - pl.col("correction"))).sum() / w.sum()).alias(variable),
+            pl.len().alias("_models"),
+        )
+        .with_columns(
+            pl.when(pl.col("_models") >= MIN_MODELS).then(pl.col(variable)).alias(variable)
+        )
+        .drop("_models")
+    )
+    if variable in NON_NEGATIVE:
+        combined = combined.with_columns(pl.col(variable).clip(lower_bound=0))
+    return combined
 
 
 def representative_point(region: Region) -> tuple[float, float]:
