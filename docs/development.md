@@ -30,6 +30,7 @@ data comes from recorded fixtures in `tests/fixtures/`. Dates are `YYYY-MM-DD` i
 | Rankings | `mvd aggregate` | `data/aggregates.parquet`, `site/data/**/*.json` |
 | Single runs (all models) | `mvd fetch-runs` | `data/runs/YYYY-MM.parquet`, `data/runs-state.json` |
 | Error by lead hour | `mvd leads` | `site/data/leads.json`, `leads-aladin.json`, `leads-aladin-kraj.json` |
+| Event skill for farmers | `mvd farm` | `site/data/farm.json` |
 | Combined forecast | `mvd outlook` | `site/data/outlook.json`, `outlook-hourly.json` |
 | Everything daily | `mvd daily` | all of the above from the stored data |
 | Checks | `mvd check` | exit 1 on stale data or many silent stations |
@@ -160,6 +161,12 @@ run of the last `--days` (30) days (H+1 … H+72) into `leads-aladin.json` and
 runs and the observation months first (read only), `--publish` also puts the JSON into
 `data-latest` ([details](data-sources.md#error-by-lead-hour-mvd-leads)).
 
+**Event skill for farmers.** `mvd farm` verifies the same single runs as yes/no events:
+frost nights (≤ 0 and ≤ −2 °C), gusts (≥ 10, 15, 20 m/s in a 3-hour block) and 3-hour
+rain (≥ 0.5, 2, 5 mm), per model and lead time bin, and writes `site/data/farm.json`;
+`--github-release` and `--publish` as for `mvd leads`
+([details](data-sources.md#event-skill-for-farmers-mvd-farm)).
+
 **ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so
 `mvd archive-aladin --github-release` saves temperature, wind and precipitation at every
 station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM`
@@ -189,7 +196,7 @@ the URL.
 |---|---|---|
 | `tv.html` | combined forecast map: day tabs, parts of the day, "play the day" / "play the week" (each round switches the map colour temperature → rain → wind → cloud), values at the okresy, a panel per okres; sunrise and sunset (earliest–latest over the okresy) in the headline box and the okres's own in its panel; symbols get a moon when most of the part of day is after sunset or before sunrise | `#2026-10-13/afternoon/temperature/tpw/CZ0201` |
 | `index.html` | score map: okresy and stations coloured by the best model, legend with win counts, okres finder, a panel explaining why a model wins, per-station error charts | `#temperature_2m/1/90d/CZ0201` |
-| `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, and every model's error by hours ahead from the single runs (`leads.json`, per run hour) | region |
+| `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, every model's error by hours ahead from the single runs (`leads.json`, per run hour), and the farmers' event skill (frost, gusts, 3-hour rain by lead time bin, `farm.json`) | region |
 | `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser); sunrise and sunset per day and the nights shaded in the charts, from `outlook.json` | okres |
 | `api.html` | open data: JSON and CSV per okres under `api/v1/` ([docs](open-data.md)) | – |
 
