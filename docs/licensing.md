@@ -2,8 +2,8 @@
 
 What we may do with each source, what it obliges us to do, and under which terms we
 publish our own outputs. Checked on **2026-10-12**; the providers of the models added on
-2026-10-15 (ECCC, JMA, CMA, NOAA AIGFS, KNMI, DMI) on that day. This is a summary for
-the project, not legal advice.
+2026-10-15 (ECCC, JMA, CMA, NOAA AIGFS, KNMI, DMI) and the ČHMÚ radar data on that day. This
+is a summary for the project, not legal advice.
 
 ## Sources
 
@@ -11,6 +11,7 @@ the project, not legal advice.
 |---|---|---|---|
 | ČHMÚ station observations and metadata (opendata.chmi.cz) | CC BY 4.0 | National Open Data Catalogue (data.gov.cz), e.g. "Meteorologická data měřená v síti stanic ČHMÚ za aktuální rok v intervalu 1 hodina" and "Aktuální meteorologická data … v intervalu 10 minut a 1 hodina": `autorské-dílo` and `databáze-jako-autorské-dílo` = CC BY 4.0, author ČHMÚ | credit ČHMÚ, link the licence, say what we changed |
 | ČHMÚ ALADIN forecasts (opendata.chmi.cz/meteorology/weather/nwp_aladin) | CC BY 4.0 | National Open Data Catalogue: "Numerické předpovědi počasí modelu ALADIN/ČHMÚ" and its two product datasets (oblast ČR, projekce Lambert) | same as above |
+| ČHMÚ weather radar composites (opendata.chmi.cz/meteorology/weather/radar) | CC BY 4.0 | National Open Data Catalogue, checked 2026-10-15: "Radarová data ČHMÚ", "Sloučená informace maximální radarové odrazivosti MAX_Z pro území Česka", the PseudoCAPPI_2km, ECHO_TOP and MERGE datasets and both "Extrapolační předpověď …" datasets | credit ČHMÚ on the radar page and in the release notes, link the licence, say what we changed (packing per day, cropped PNG frames, station extraction) |
 | Open-Meteo API (all other forecasts, and ALADIN as served by Open-Meteo): Forecast, Previous Runs and Single Runs APIs | CC BY 4.0 | open-meteo.com/en/licence, /en/terms | credit Open-Meteo with a link **next to every place the data is shown**; free tier only for **non-commercial** use and under 600 calls/min, 5,000/hour, 10,000/day and 300,000/month, shared by all our workflows |
 | UK Met Office models via Open-Meteo | **CC BY-SA 4.0** | open-meteo.com/en/licence | credit; anything we publish that is derived from it must be shared under CC BY-SA 4.0 (ShareAlike) |
 | DWD (ICON-D2, ICON-EU, ICON global), ECMWF (IFS, AIFS), KNMI, DMI via Open-Meteo | CC BY 4.0 | open-meteo.com/en/licence (KNMI and DMI link CC BY 4.0) | credit the provider |
@@ -28,6 +29,7 @@ the project, not legal advice.
 |---|---|---|
 | Code | this repository | MIT |
 | ALADIN station archive (`aladin-YYYY-MM` releases) | GitHub Release assets | CC BY 4.0, derived from ČHMÚ data only; release notes credit ČHMÚ and list our changes |
+| Radar archive (`radar-YYYY-MM` releases) and live frames (branch `radar-live`) | GitHub Release assets, a git branch | CC BY 4.0, derived from ČHMÚ data only; release notes and the branch README credit ČHMÚ and list our changes |
 | Single model runs at ~100 stations (`runs-YYYY-MM` releases) | GitHub Release assets | **CC BY-SA 4.0** (includes UK Met Office data); release notes credit Open-Meteo and the providers |
 | Scores, rankings, web map, open data | repository and GitHub Pages | **CC BY-SA 4.0**: they combine all sources, including UK Met Office data (ShareAlike). CC BY 4.0 inputs may be included in CC BY-SA 4.0 work. |
 
