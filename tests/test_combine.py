@@ -40,7 +40,7 @@ def weights_of(frame, variable="temperature_2m"):
 
 def test_temperature_weights_use_the_error_left_after_the_bias_correction():
     # a: RMSE 2 but bias 1.6 → error variance 4 - 2.56 = 1.44; b: RMSE 1.5, no bias → 2.25
-    days = 30  # shrink 30 / (30 + 30) = 0.5
+    days = 30  # weights shrink 30 / (30 + 30) = 0.5, the correction 30 / (30 + 5) = 6/7
     w = weights_of(
         combine.weights(
             table(
@@ -51,9 +51,20 @@ def test_temperature_weights_use_the_error_left_after_the_bias_correction():
     inv_a, inv_b = 1 / 1.44, 1 / 2.25
     assert w["a"][0] == pytest.approx(0.5 * inv_a / (inv_a + inv_b) + 0.25)
     assert w["b"][0] == pytest.approx(0.5 * inv_b / (inv_a + inv_b) + 0.25)
-    assert w["a"][1] == pytest.approx(0.8)  # half of the bias
+    assert w["a"][1] == pytest.approx(1.6 * 6 / 7)  # most of the bias
     assert w["b"][1] == 0
     assert w["a"][0] > w["b"][0]  # once corrected, a is the better model
+
+
+def test_the_bias_correction_is_shrunk_much_less_than_the_weights():
+    w = weights_of(
+        combine.weights(
+            table([("temperature_2m", "a", 5, 1.0, 2.0), ("temperature_2m", "b", 5, 1.0, 0.0)])
+        )
+    )
+    s = 5 / (5 + combine.SHRINK_DAYS)
+    assert w["a"][1] == pytest.approx(1.0)  # half of the bias after BIAS_SHRINK_DAYS days
+    assert w["a"][1] / 2.0 > 3 * s  # the weights are still mostly the plain mean
 
 
 def test_precipitation_is_weighted_by_rmse_and_not_corrected():
