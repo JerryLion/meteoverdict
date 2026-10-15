@@ -480,6 +480,7 @@ export const STRINGS = {
     "table.pod": "POD",
     "table.far": "FAR",
     "compare.ranking": "Pořadí pro Česko",
+    "region.cz": "Česko",
     "compare.rankingNote":
       "Střední absolutní chyba (MAE), bias (předpověď minus měření) a RMSE na stanicích a ve dnech, které pokrývají všechny modely. „≈“ značí modely, jejichž rozdíl MAE od nejlepšího není významný (95% bootstrapový interval přes dny). Průměr všech modelů je srovnávací základ, nemá pořadí; „proti průměru“ říká, o kolik procent má model menší chybu než tento průměr. U srážek ETS, POD a FAR pro dny se srážkami ≥ 0,1 mm. Stanice v závorce: půjčené ze sousedních okresů.",
     "compare.bias": "Bias podle nadmořské výšky",
@@ -984,6 +985,7 @@ export const STRINGS = {
     "table.pod": "POD",
     "table.far": "FAR",
     "compare.ranking": "Ranking for Czechia",
+    "region.cz": "Czechia",
     "compare.rankingNote":
       'Mean absolute error (MAE), bias (forecast minus observed) and RMSE over the stations and days every model covers. "≈" marks models whose MAE difference from the best is not significant (95 % bootstrap interval over days). The mean of all models is a baseline, not ranked; "vs mean" is how much smaller (in %) the model\'s error is than that mean\'s. For precipitation, ETS, POD and FAR for days with ≥ 0.1 mm. Stations in brackets: borrowed from neighbouring okresy.',
     "compare.bias": "Bias by elevation",

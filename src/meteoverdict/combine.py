@@ -11,9 +11,14 @@ station-days for all models, with borrowed stations where an okres has few):
   negative rain), weight ``1 / RMSE²``.
 
 With few days these numbers are noisy, so both are shrunk towards the plain mean of all
-models: with ``days`` scored days, ``s = days / (days + SHRINK_DAYS)``; the weight is
-``s * w + (1 - s) / models`` and the correction ``s * bias``. After 30 days half of the
-weight comes from the scores, after 90 days three quarters.
+models (weight ``1 / models``, no correction), the correction much less than the weight:
+with ``days`` scored days, the weight is ``s * w + (1 - s) / models`` with
+``s = days / (days + SHRINK_DAYS)`` and the correction ``c * bias`` with
+``c = days / (days + BIAS_SHRINK_DAYS)``. After 30 days half of the weight comes from
+the scores, after 90 days three quarters; the correction is 6/7 of the bias after 30
+days. A model's mean error is stable enough to be removed almost in full (out of sample
+in September 2026, shrinking it like the weights left about half of it in and cost
+7-10 % of wind MAE).
 
 The combined forecast is ``sum_m weight_m * (forecast_m - correction_m)`` over the
 models available for that hour, with the weights of the missing ones left out and the
@@ -38,7 +43,10 @@ from meteoverdict import blend
 from meteoverdict.regions import Region, load_regions
 
 WINDOW = "90d"
+#: shrinkage of the weights towards the plain mean, in scored days (half-way after this)
 SHRINK_DAYS = 30
+#: shrinkage of the bias correction towards none, in scored days
+BIAS_SHRINK_DAYS = 5
 #: smallest error variance used, so a model that was perfect on a few days does not get
 #: all the weight (units of the variable squared)
 MIN_ERROR_VARIANCE = 0.01
@@ -83,6 +91,7 @@ def weights(table: pl.DataFrame, window: str = WINDOW) -> pl.DataFrame:
         .otherwise(pl.col("rmse") ** 2)
     )
     shrink = pl.col("days") / (pl.col("days") + SHRINK_DAYS)
+    shrink_bias = pl.col("days") / (pl.col("days") + BIAS_SHRINK_DAYS)
     return (
         rows.with_columns(
             (1 / pl.max_horizontal(variance, pl.lit(MIN_ERROR_VARIANCE))).alias("inverse"),
@@ -94,7 +103,7 @@ def weights(table: pl.DataFrame, window: str = WINDOW) -> pl.DataFrame:
                 + (1 - pl.col("shrink")) / pl.len().over(group)
             ).alias("weight"),
             pl.when(corrected)
-            .then(pl.col("shrink") * pl.col("bias"))
+            .then(shrink_bias * pl.col("bias"))
             .otherwise(0.0)
             .alias("correction"),
             pl.col("variable").replace_strict({s: n for s, (n, _) in by_score.items()}),

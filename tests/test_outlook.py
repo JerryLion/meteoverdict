@@ -127,7 +127,7 @@ def test_lead_days_fall_back_to_the_nearest_shorter_one():
     assert lead["correction"].to_list() == [0.1, 0.1, 0.3, 0.3, 0.3]
 
 
-def test_probability_is_the_weighted_share_of_wet_models():
+def test_probability_is_the_share_of_wet_models_not_weighted():
     # hours ending 05-10 UTC: 06-12 Prague
     times = [datetime(2026, 10, 13, h, tzinfo=UTC) for h in range(5, 11)]
     fc = pl.DataFrame(
@@ -154,7 +154,8 @@ def test_probability_is_the_weighted_share_of_wet_models():
     p = outlook.probability(fc, w, datetime(2026, 10, 13, tzinfo=UTC))
     morning = p.filter(pl.col("part") == "morning")
     assert morning["day"].item() == date(2026, 10, 13)
-    assert morning["rain_probability"].item() == pytest.approx(0.5)
+    # a has half the precipitation weight, but every model counts the same
+    assert morning["rain_probability"].item() == pytest.approx(1 / 3)
 
 
 @pytest.mark.parametrize(
@@ -168,6 +169,8 @@ def test_probability_is_the_weighted_share_of_wet_models():
         (90, 2.0, 0.8, 1.5, "sleet"),
         (90, 2.0, 0.8, -3, "snow"),
         (90, 0.05, 0.8, 10, "showers"),  # likely but too little to call it rain
+        (90, 0.25, 0.8, 10, "showers"),  # wet in the models, but under RAIN_MM combined
+        (90, 0.3, 0.8, 10, "rain"),
         (None, None, None, None, None),
     ],
 )

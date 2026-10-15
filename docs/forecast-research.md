@@ -8,8 +8,9 @@ page do (roadmap 6.2, 6.3). Written 2026-10-12; sources at the end.
 
 Per okres, variable and lead day: correct each model by its mean error (temperature,
 wind), weight it by `1 / (RMSE² − bias²)` (precipitation: `1 / RMSE²`), estimate both
-from the last 90 days of station scores, shrink towards equal weights with
-`s = days / (days + 30)`, and average the current forecasts with these weights.
+from the last 90 days of station scores, shrink the weights towards equal weights with
+`s = days / (days + 30)` and the correction towards none with `days / (days + 5)`, and
+average the current forecasts with these weights.
 
 ## What operational systems do
 
@@ -61,7 +62,7 @@ too often and heavy rain too weakly (Clark 2017; probability matching, Ebert 200
 is the usual remedy for gridded fields). For a point forecast this means our combined
 hourly rain will show drizzle where only some models have a shower, and will
 understate a downpour. Remedies that fit a TV-style forecast: show the **probability
-of precipitation** (the weighted share of models that forecast rain) next to the
+of precipitation** (the share of models that forecast rain) next to the
 amount, and draw rain symbols only when that probability is high.
 
 ## Models that stop early
