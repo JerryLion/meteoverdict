@@ -364,7 +364,36 @@ in each okres (`meteoverdict.combine`), from the okres scores of the last 90 day
   `site/data/forecast/<okres>.json` (`variable`, `lead_day`, `model`, `weight`,
   `correction`, `mae`, `rank`, `days`; about 8 kB each). Only in the release
   `data-latest`, like the okres scores.
-- Not yet verified: whether the combination beats the best single model is roadmap 6.4.
+- Whether the combination beats the best single model: see the out-of-sample test below.
+
+### Out-of-sample test (`mvd blend-test`, roadmap 6.4)
+
+`meteoverdict.blendtest` replays the combination on the stored D+N forecasts
+(`fc-YYYY-MM.parquet`) with only earlier scores; method and result in
+[methodology.md](methodology.md#does-it-beat-the-best-single-model-roadmap-64).
+
+- **Training:** for day *d* at lead day *N*, `aggregate.aggregate` (okres level, window
+  `90d`, or `--window 30d` etc.) over the scores up to *d − N*, then `combine.weights`
+  and the okres's lowest-MAE model; tested only with ≥ 14 scored training days
+  (`--min-training-days`).
+- **Scoring:** the combination per okres and station (pools as in the ranking,
+  `combine.combine_values`, ≥ 2 models per hour) as a 6-hourly model through
+  `scoring.daily_scores`; `temperature_2m`, `wind_speed_10m`, `precipitation_daily`;
+  fair station-days per okres with the combination as one more model.
+- **Run:** daily in `daily.yml` after the lead hours (`--github-release --publish`, allowed
+  to fail), testing the last 180 scored days (`--days`); about 35 s and 3.6 GB for 38
+  scored days locally.
+- **Output:** `site/data/blend-test.json` (release `data-latest`, about 220 kB):
+  `generated`, `method`, `training_window`, `shrink_days`, `min_training_days`,
+  `min_okres_days`, `first_scored`, `from`, `to`, `test_days`, `warm_up_days` (scored
+  days before the first test day), `units`, `models`, and two `{"columns", "rows"}`
+  tables: `groups` (one row per `level` `cz`/`okres`, region, variable and lead day:
+  `days`, `stations`, `best_oos` (most often chosen model), `best_oos_models` (how many
+  different ones), `best_hindsight`, `mae_combined`, `mae_best_oos`,
+  `mae_best_hindsight`, `mae_blend`, and `diff_*`, `low_*`, `high_*` of `combined`,
+  `best_hindsight` and `blend` minus `best_oos` with the 95 % interval; okresy with at
+  least 10 test days) and `single_models` (Czechia: `variable`, `lead_day`, `model`,
+  `mae`, `diff`, `low`, `high`, same differences).
 
 ## Outlook (`mvd outlook`, roadmap 6.6)
 
