@@ -3,8 +3,10 @@ name: Outlook
 # Twice a day, after the night and noon model runs reach Open-Meteo: the TV-style
 # forecast for every okres (`mvd outlook`), combined with the okres weights of the
 # latest aggregates, published as outlook.json in the release data-latest. The Pages
-# workflow then rebuilds the map. One Forecast API request of about 420 weighted calls,
-# ~850 a day, within the budget split in runs.yml (docs/data-sources.md).
+# workflow then rebuilds the map. Only models with weights are asked: ~420 weighted calls
+# for 11 models, ~732 for all 19 (refused above 800), in requests of at most 500 a minute
+# apart; <= 1,600 a day, priority (1) in the budget split of runs.yml
+# (docs/data-sources.md#open-meteo-budget).
 on:
   schedule:
     - cron: "52 5 * * *"

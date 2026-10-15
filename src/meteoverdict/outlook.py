@@ -15,7 +15,10 @@ of sunshine and a weather symbol. Cloud cover and sunshine are the plain mean of
 models: we do not verify them. Every day also gets its sunrise and sunset at the okres
 point (``meteoverdict.sun``, computed, no request).
 
-Cost: 77 locations x 5 variables x 11 models / 10 = about 420 weighted calls a run.
+Cost: 77 locations x 5 variables x models / 10 weighted calls a run, and only the
+models with weights are asked: 11 models about 420, 19 models about 730. A request
+stays at or below ``MAX_REQUEST`` calls (Open-Meteo allows 600 a minute), so with more
+than 12 models the okresy are split into equal parts, a minute apart.
 """
 
 from __future__ import annotations
@@ -65,7 +68,11 @@ CLEAR_BELOW = 25.0
 PARTLY_BELOW = 70.0
 SNOW_AT_OR_BELOW = 0.5
 SLEET_AT_OR_BELOW = 2.0
-MAX_CALLS = 500
+#: refused above this (all 19 models with weights: ~732 a run, ~1,465 a day)
+MAX_CALLS = 800
+#: one request at most (Open-Meteo: 600 a minute); parts are ``PART_PAUSE`` s apart
+MAX_REQUEST = 500
+PART_PAUSE = 61
 
 
 def request_params(points: pl.DataFrame, models: list[str]) -> dict:
@@ -84,17 +91,49 @@ def cost(points: int, models: int) -> float:
     return call_weight(points, len(VARIABLES) * models, DAYS)
 
 
+def parts(n_points: int, n_models: int) -> list[int]:
+    """Points per request: equal parts of at most ``MAX_REQUEST`` calls."""
+    if n_points <= 0:
+        return []
+    per_point = cost(1, n_models)
+    size = max(1, int(MAX_REQUEST // per_point))
+    count = -(-n_points // size)
+    base, extra = divmod(n_points, count)
+    return [base + 1] * extra + [base] * (count - extra)
+
+
 def fetch(
     client: httpx.Client,
     points: pl.DataFrame,
     models: list[str],
     sleep: Callable[[float], None],
 ) -> list | dict:
-    """One request for all points. Retried after a pause: the per-minute limit (429),
-    server and network errors, and an answer that is not JSON."""
+    """All points, in as few requests as ``MAX_REQUEST`` allows (one answer list, as if
+    asked at once). Retried after a pause: the per-minute limit (429), server and
+    network errors, and an answer that is not JSON."""
     weight = cost(points.height, len(models))
     if weight > MAX_CALLS:
         raise ValueError(f"{weight:.0f} weighted calls is more than MAX_CALLS = {MAX_CALLS}")
+    sizes = parts(points.height, len(models))
+    if len(sizes) == 1:
+        return _fetch_part(client, points, models, sleep)
+    merged, offset = [], 0
+    for n, size in enumerate(sizes):
+        if n:
+            sleep(PART_PAUSE)  # stay under Open-Meteo's 600 calls a minute
+        payload = _fetch_part(client, points.slice(offset, size), models, sleep)
+        for position, item in enumerate(payload if isinstance(payload, list) else [payload]):
+            merged.append({**item, "location_id": offset + item.get("location_id", position)})
+        offset += size
+    return merged
+
+
+def _fetch_part(
+    client: httpx.Client,
+    points: pl.DataFrame,
+    models: list[str],
+    sleep: Callable[[float], None],
+) -> list | dict:
     problem = ""
     for wait in (30, 60, 120, None):
         try:
