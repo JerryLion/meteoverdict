@@ -390,8 +390,10 @@ in each okres (`meteoverdict.combine`), from the okres scores of the last 90 day
 - Weight of a model ∝ `1 / (RMSE² − bias²)` (the error left after removing its mean
   error) where it is bias-corrected, `1 / RMSE²` for precipitation; error variances
   below 0.01 count as 0.01.
-- Shrinkage towards the plain mean, by the number of scored days:
-  `s = days / (days + 30)`, weight `s · w + (1 − s) / models`, correction `s · bias`.
+- Shrinkage towards the plain mean, by the number of scored days: weight
+  `s · w + (1 − s) / models` with `s = days / (days + 30)`, correction `c · bias` with
+  `c = days / (days + 5)` (the bias is stable enough to be removed almost in full;
+  shrinking it like the weights cost 7–10 % of wind MAE out of sample).
 - Combined forecast: `Σ weight · (forecast − correction)` over the models available
   for the hour, weights rescaled to sum to 1; a model ending before the others gets ¾,
   ½ and ¼ of its weight in its last three hours.
@@ -421,9 +423,9 @@ in each okres (`meteoverdict.combine`), from the okres scores of the last 90 day
   to fail), testing the last 180 scored days (`--days`); about 35 s and 3.6 GB for 38
   scored days locally.
 - **Output:** `site/data/blend-test.json` (release `data-latest`, about 220 kB):
-  `generated`, `method`, `training_window`, `shrink_days`, `min_training_days`,
-  `min_okres_days`, `first_scored`, `from`, `to`, `test_days`, `warm_up_days` (scored
-  days before the first test day), `units`, `models`, and two `{"columns", "rows"}`
+  `generated`, `method`, `training_window`, `shrink_days`, `bias_shrink_days`,
+  `min_training_days`, `min_okres_days`, `first_scored`, `from`, `to`, `test_days`,
+  `warm_up_days` (scored days before the first test day), `units`, `models`, and two `{"columns", "rows"}`
   tables: `groups` (one row per `level` `cz`/`okres`, region, variable and lead day:
   `days`, `stations`, `best_oos` (most often chosen model), `best_oos_models` (how many
   different ones), `best_hindsight`, `mae_combined`, `mae_best_oos`,
@@ -457,10 +459,11 @@ The TV-style forecast for every okres (`meteoverdict.outlook`):
   and the whole day; a part needs at least 4 hours and a day 18 (the answer starts at
   00 UTC, 02:00 in Prague in summer time).
 - **Per period:** `tmin`, `tmax`, `precipitation` (sum of the combined hourly values),
-  `rain_probability` (weighted share of the models whose own total is ≥ 0.2 mm, among
-  those covering the whole period), `wind` (highest combined hourly mean, m/s), `cloud`
-  (%), `sunshine` (hours, sum of the hourly mean), `symbol`: `rain` / `sleet` / `snow` (≤ 2 / ≤ 0.5 °C mean temperature) when the
-  probability is ≥ 50 % and the total ≥ 0.2 mm, `showers` at ≥ 30 %, otherwise `clear`
+  `rain_probability` (share of the models whose own total is ≥ 0.2 mm, among those
+  covering the whole period, every model counting the same: the amount weights favour
+  AIFS, the worst model at rain or no rain), `wind` (highest combined hourly mean,
+  m/s), `cloud` (%), `sunshine` (hours, sum of the hourly mean), `symbol`: `rain` / `sleet` / `snow` (≤ 2 / ≤ 0.5 °C mean temperature) when the
+  probability is ≥ 50 % and the total ≥ 0.3 mm, `showers` at ≥ 30 %, otherwise `clear`
   (< 25 % cloud), `partly` (< 70 %) or `cloudy`. The whole day's symbol uses the cloud
   of 6–18.
 - **Sunrise and sunset** (`sunrise`, `sunset`, Prague time "HH:MM") at the okres point,

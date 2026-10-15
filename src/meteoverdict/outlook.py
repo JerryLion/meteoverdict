@@ -8,12 +8,12 @@ last ``TAPER_HOURS`` hours) and summarise each day by part of day in Prague time
 night 0-6, morning 6-12, afternoon 12-18, evening 18-24.
 
 Per part of day and per whole day: minimum and maximum of the combined temperature,
-combined precipitation total, **probability of precipitation** (the weighted share of
-models whose own total for that period is at least ``WET_MM``; averaging rain smooths it,
-see docs/forecast-research.md), the highest combined hourly wind, mean cloud cover, hours
-of sunshine and a weather symbol. Cloud cover and sunshine are the plain mean of the
-models: we do not verify them. Every day also gets its sunrise and sunset at the okres
-point (``meteoverdict.sun``, computed, no request).
+combined precipitation total, **probability of precipitation** (the share of models
+whose own total for that period is at least ``WET_MM``, every model counting the same;
+averaging rain smooths it, see docs/forecast-research.md), the highest combined hourly
+wind, mean cloud cover, hours of sunshine and a weather symbol. Cloud cover and
+sunshine are the plain mean of the models: we do not verify them. Every day also gets
+its sunrise and sunset at the okres point (``meteoverdict.sun``, computed, no request).
 
 Cost: 77 locations x 5 variables x models / 10 weighted calls a run, and only the
 models with weights are asked: 11 models about 420, 19 models about 730. A request
@@ -62,6 +62,10 @@ MIN_DAY_HOURS = 18
 WET_MM = 0.2
 #: symbols: precipitation when likely, otherwise by cloud cover
 RAIN_PROBABILITY = 0.5
+#: the "rain" symbol (and sleet, snow) also needs at least this combined total (mm);
+#: 0.3 rather than WET_MM: in September 2026 it drew rain less often where none fell
+#: (frequency bias 1.26 → 1.19) and scored better (ETS 0.420 → 0.430)
+RAIN_MM = 0.3
 SHOWER_PROBABILITY = 0.3
 CLEAR_BELOW = 25.0
 PARTLY_BELOW = 70.0
@@ -276,9 +280,12 @@ def _local(frame: pl.DataFrame) -> pl.DataFrame:
 
 
 def probability(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.DataFrame:
-    """Per okres, day and part (and ``part`` = "day" for whole days): the weighted share
-    of models whose own precipitation total is at least ``WET_MM``. Only models that
-    cover as many hours of the period as the longest one count."""
+    """Per okres, day and part (and ``part`` = "day" for whole days): the share of
+    models whose own precipitation total is at least ``WET_MM``. Only models with
+    precipitation weights for the okres that cover as many hours of the period as the
+    longest one count, each the same: the weights come from the error of the amounts and
+    favour a model (AIFS) that is the worst at rain or no rain (September 2026: Brier
+    score 0.071 weighted against 0.070 with equal weights)."""
     lead = _lead_weights(weights).filter(pl.col("variable") == "precipitation")
     rows = _local(with_lead_and_fade(fc, now).drop_nulls("precipitation"))
     frames = []
@@ -295,12 +302,7 @@ def probability(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.Da
             .filter(pl.col("hours") == pl.col("hours").max().over(keys))
             .join(lead, on=["okres", "lead_day", "model"])
             .group_by(keys)
-            .agg(
-                (
-                    (pl.col("weight") * (pl.col("precipitation") >= WET_MM)).sum()
-                    / pl.col("weight").sum()
-                ).alias("rain_probability")
-            )
+            .agg((pl.col("precipitation") >= WET_MM).mean().alias("rain_probability"))
         )
         if period == "day":
             totals = totals.with_columns(pl.lit("day").alias("part"))
@@ -317,7 +319,7 @@ def symbol(
     """Weather symbol: precipitation when likely, else sky by cloud cover."""
     if cloud is None and chance is None:
         return None
-    wet = (chance or 0) >= RAIN_PROBABILITY and (precipitation or 0) >= WET_MM
+    wet = (chance or 0) >= RAIN_PROBABILITY and (precipitation or 0) >= RAIN_MM
     if wet:
         if temperature is not None and temperature <= SNOW_AT_OR_BELOW:
             return "snow"
