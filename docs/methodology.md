@@ -158,7 +158,7 @@ The plain average of all models (at least 3 per hour) is scored like a model, bu
 ranked. It is compared with the best single model instead: if the average often wins,
 picking any single model is worse than averaging them.
 
-## Our own forecast (roadmap 6.2, 6.3)
+## Our own forecast (roadmap 6.2, 6.3, 6.4)
 
 The forecast page combines, for one okres, the current forecasts of all models from the
 Open-Meteo Forecast API at a point inside the okres. Each model is weighted by how well
@@ -182,9 +182,50 @@ day by `mvd outlook`: by part of day, with the probability of precipitation (the
 weighted share of models forecasting at least 0.2 mm) and a symbol; cloud cover there is
 a plain mean of the models and not verified.
 
-This is a forecast built on the ranking, not yet a verified one: whether it beats the
-best single model has to be shown out of sample (roadmap 6.4). Until then the page
-says so.
+### Does it beat the best single model? (roadmap 6.4)
+
+`mvd blend-test` (run daily, shown at the top of the comparison page) replays the
+combination on past days **out of sample**:
+
+- For day *d* at lead day *N*, the weights, bias corrections and the okres's best
+  model come only from the okres scores of the 90 days ending on *d − N*: what the
+  daily run had published when that D+N forecast was made. Same code and shrinkage
+  as the live forecast.
+- The combination is applied to the models' stored D+N forecasts at the okres's
+  stations (borrowed ones included) and scored like the mean of all models:
+  temperature and wind at 00, 06, 12 and 18 UTC, precipitation as UTC-day totals, on
+  the station-days every model has.
+- It is compared with **the best model at the time** (the okres's rank-1 model in that
+  training window, chosen anew every day: what a user following our ranking would have
+  used), the **best model in hindsight** (each okres's model with the lowest MAE over
+  the whole test: an upper bound nobody could pick in advance), the mean of all models
+  and every single model. Czechia sums the 77 okresy.
+- 95 % intervals of the MAE difference to the best model at the time come from the
+  same day bootstrap as the ranking. **Warm-up:** an okres is tested only after 14
+  scored training days.
+
+**Result so far** (24 test days, 7–30 September 2026, after 14 warm-up days; Czechia;
+negative = our forecast has the smaller MAE; 95 % interval in brackets):
+
+| | D+1 | D+2 | D+3 | D+4 | D+5 |
+|---|---|---|---|---|---|
+| Temperature (°C) | −0.02 (−0.06…+0.02) | **−0.05** (−0.09…−0.01) | **−0.09** (−0.13…−0.04) | −0.04 (−0.10…+0.03) | **−0.12** (−0.26…−0.01) |
+| Wind (m/s) | **+0.03** (+0.00…+0.06) | +0.03 (−0.01…+0.07) | −0.01 (−0.03…+0.02) | −0.03 (−0.06…+0.00) | **−0.13** (−0.16…−0.10) |
+| Precipitation (mm/day) | **−0.25** (−0.49…−0.08) | **−0.20** (−0.41…−0.07) | **−0.28** (−0.54…−0.08) | **−0.18** (−0.31…−0.06) | **−0.26** (−0.60…−0.02) |
+
+So far our forecast is never clearly worse than the model a user of the ranking would
+have picked, except wind at D+1 (by 0.03 m/s against DWD's ICON models),
+and clearly better for daily precipitation at every lead day and for temperature at
+D+2, D+3 and D+5. For precipitation it is about as good as the plain mean of all
+models, and both beat the per-okres "best" model, partly because that choice jumps
+between models on a short, noisy history (probably). The best model in hindsight is still better
+for precipitation and wind at D+1–D+2: a fixed, well-chosen model can do better, but
+nobody knows it in advance. **This rests on 24 autumn days and is not yet a verdict**:
+intervals ignore that consecutive days are alike (so they are too narrow), and the
+weights themselves had at most 37 days of scores behind them. The test is repeated
+every day as history grows. Not yet done: training windows of 30 and 45 days and a
+decaying average (roadmap 6.4); with under 45 days of history they would be almost
+the same as 90 days.
 
 ## Limitations
 
