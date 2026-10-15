@@ -185,21 +185,23 @@ All ten are siting, not faults:
 For precipitation, the largest ratio is Chýnov's 1.9 (a single day, see above), below
 the threshold.
 
-## Proposals (not applied)
+## Proposals
 
-1. **Manual gauges: skip a daily total that follows a missing day.** In August and
+1. **Manual gauges: skip a daily total that follows a missing day** (applied:
+   `gauges.drop_after_gaps`, a value after a gap in the same gauge's own readings, except
+   in the checked historical archive). In August and
    September 178 manual values follow one or more missing days (32 gauges, almost all in
    September, whose data ČHMÚ has not completed yet); 94 % of them are wet with a mean
    of 5.4 mm, against 36 % and 2.2 mm for values after a reported day. They are either
    multi-day totals or a selection of wet days, and both make the models look too dry.
    `gauges.py` could drop a value whose previous day is missing until the month is
    complete (ČHMÚ's later checked data then fills the gap and the day is rescored).
-2. **An exclusion list, should a station ever be broken.** A file such as
+2. **An exclusion list, should a station ever be broken** (not applied: nothing needs it). A file such as
    `src/meteoverdict/data/excluded_stations.yaml` with `station`, `variables`, `from`,
    `until` and `reason`, applied in `aggregate` and `ranking` (not in the stored scores,
    so it can be undone without rescoring) and shown on the station page. Nothing found
    in this check needs it: no station has errors that its siting does not explain.
-3. **Say which stations are scored.** The methodology now says that all stations are
+3. **Say which stations are scored** (applied). The methodology now says that all stations are
    ČHMÚ's official network and that rankings with only the main stations differ for
    wind and night temperature (Limitations).
 
