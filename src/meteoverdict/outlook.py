@@ -8,12 +8,12 @@ last ``TAPER_HOURS`` hours) and summarise each day by part of day in Prague time
 night 0-6, morning 6-12, afternoon 12-18, evening 18-24.
 
 Per part of day and per whole day: minimum and maximum of the combined temperature,
-combined precipitation total, **probability of precipitation** (the weighted share of
-models whose own total for that period is at least ``WET_MM``; averaging rain smooths it,
-see docs/forecast-research.md), the highest combined hourly wind, mean cloud cover, hours
-of sunshine and a weather symbol. Cloud cover and sunshine are the plain mean of the
-models: we do not verify them. Every day also gets its sunrise and sunset at the okres
-point (``meteoverdict.sun``, computed, no request).
+combined precipitation total, **probability of precipitation** (the share of models
+whose own total for that period is at least ``WET_MM``, every model counting the same;
+averaging rain smooths it, see docs/forecast-research.md), the highest combined hourly
+wind, mean cloud cover, hours of sunshine and a weather symbol. Cloud cover and
+sunshine are the plain mean of the models: we do not verify them. Every day also gets
+its sunrise and sunset at the okres point (``meteoverdict.sun``, computed, no request).
 
 Cost: 77 locations x 5 variables x models / 10 weighted calls a run, and only the
 models with weights are asked: 11 models about 420, 19 models about 730. A request
@@ -62,6 +62,10 @@ MIN_DAY_HOURS = 18
 WET_MM = 0.2
 #: symbols: precipitation when likely, otherwise by cloud cover
 RAIN_PROBABILITY = 0.5
+#: the "rain" symbol (and sleet, snow) also needs at least this combined total (mm);
+#: 0.3 rather than WET_MM: in September 2026 it drew rain less often where none fell
+#: (frequency bias 1.26 → 1.19) and scored better (ETS 0.420 → 0.430)
+RAIN_MM = 0.3
 SHOWER_PROBABILITY = 0.3
 CLEAR_BELOW = 25.0
 PARTLY_BELOW = 70.0
@@ -246,6 +250,8 @@ def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl
     the plain means of cloud cover and sunshine, and the number of models."""
     fc = with_lead_and_fade(fc, now)
     lead = _lead_weights(weights)
+    # some models publish sunshine slightly outside the hour (seen: 3605.6 and -1.0 s)
+    fc = fc.with_columns(pl.col("sunshine_duration").clip(0.0, 3600.0))
     out = fc.group_by("okres", "time").agg(
         *[pl.col(v).mean() for v in MEANS], pl.col("model").n_unique().alias("models")
     )
@@ -265,8 +271,11 @@ def combine_hourly(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl
     return out.sort("okres", "time")
 
 
-def _local(frame: pl.DataFrame) -> pl.DataFrame:
-    local = pl.col("time").dt.convert_time_zone(TIME_ZONE)
+def _local(frame: pl.DataFrame, hour_ending: bool = False) -> pl.DataFrame:
+    """Add the local ``day`` and ``part`` of each row; ``hour_ending``: by the hour that
+    ends at ``time`` (sums such as precipitation and sunshine), else by ``time`` itself."""
+    time = pl.col("time") - pl.duration(hours=1) if hour_ending else pl.col("time")
+    local = time.dt.convert_time_zone(TIME_ZONE)
     part = pl.lit(None, pl.String)
     for name, (first, end) in PARTS.items():
         part = (
@@ -276,11 +285,14 @@ def _local(frame: pl.DataFrame) -> pl.DataFrame:
 
 
 def probability(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.DataFrame:
-    """Per okres, day and part (and ``part`` = "day" for whole days): the weighted share
-    of models whose own precipitation total is at least ``WET_MM``. Only models that
-    cover as many hours of the period as the longest one count."""
+    """Per okres, day and part (and ``part`` = "day" for whole days): the share of
+    models whose own precipitation total is at least ``WET_MM``. Only models with
+    precipitation weights for the okres that cover as many hours of the period as the
+    longest one count, each the same: the weights come from the error of the amounts and
+    favour a model (AIFS) that is the worst at rain or no rain (September 2026: Brier
+    score 0.071 weighted against 0.070 with equal weights)."""
     lead = _lead_weights(weights).filter(pl.col("variable") == "precipitation")
-    rows = _local(with_lead_and_fade(fc, now).drop_nulls("precipitation"))
+    rows = _local(with_lead_and_fade(fc, now).drop_nulls("precipitation"), hour_ending=True)
     frames = []
     for period in ("part", "day"):
         keys = ["okres", "day"] if period == "day" else ["okres", "day", "part"]
@@ -295,12 +307,7 @@ def probability(fc: pl.DataFrame, weights: pl.DataFrame, now: datetime) -> pl.Da
             .filter(pl.col("hours") == pl.col("hours").max().over(keys))
             .join(lead, on=["okres", "lead_day", "model"])
             .group_by(keys)
-            .agg(
-                (
-                    (pl.col("weight") * (pl.col("precipitation") >= WET_MM)).sum()
-                    / pl.col("weight").sum()
-                ).alias("rain_probability")
-            )
+            .agg((pl.col("precipitation") >= WET_MM).mean().alias("rain_probability"))
         )
         if period == "day":
             totals = totals.with_columns(pl.lit("day").alias("part"))
@@ -317,7 +324,7 @@ def symbol(
     """Weather symbol: precipitation when likely, else sky by cloud cover."""
     if cloud is None and chance is None:
         return None
-    wet = (chance or 0) >= RAIN_PROBABILITY and (precipitation or 0) >= WET_MM
+    wet = (chance or 0) >= RAIN_PROBABILITY and (precipitation or 0) >= RAIN_MM
     if wet:
         if temperature is not None and temperature <= SNOW_AT_OR_BELOW:
             return "snow"
@@ -339,22 +346,29 @@ def summarise(hourly: pl.DataFrame, chances: pl.DataFrame) -> pl.DataFrame:
     ``MIN_DAY_HOURS`` hours of combined temperature (the ends of the forecast) are left
     out."""
     rows = _local(hourly)
+    # Open-Meteo: precipitation and seconds of sunshine in the hour ending at the time, so
+    # they belong to the period of the hour before
+    sums = _local(hourly, hour_ending=True)
     stats = [
         pl.col("temperature_2m").min().alias("tmin"),
         pl.col("temperature_2m").max().alias("tmax"),
         pl.col("temperature_2m").mean().alias("tmean"),
-        pl.col("precipitation").sum().alias("precipitation"),
         pl.col("wind_speed_10m").max().alias("wind"),
-        # Open-Meteo: seconds of sunshine in the hour ending at the time; null without any
+        pl.col("temperature_2m").count().alias("hours"),
+    ]
+    sum_stats = [
+        pl.col("precipitation").sum().alias("precipitation"),
+        # null without any sunshine value
         pl.when(pl.col("sunshine_duration").count() > 0)
         .then(pl.col("sunshine_duration").sum() / 3600)
         .alias("sunshine"),
-        pl.col("temperature_2m").count().alias("hours"),
     ]
+    part_keys = ["okres", "day", "part"]
     parts = (
-        rows.group_by("okres", "day", "part")
+        rows.group_by(part_keys)
         .agg(*stats, pl.col("cloud_cover").mean().alias("cloud"))
         .filter(pl.col("hours") >= MIN_PART_HOURS)
+        .join(sums.group_by(part_keys).agg(sum_stats), on=part_keys, how="left")
     )
     daytime = pl.col("part").is_in(["morning", "afternoon"])
     days = (
@@ -364,6 +378,7 @@ def summarise(hourly: pl.DataFrame, chances: pl.DataFrame) -> pl.DataFrame:
             pl.col("cloud_cover").filter(daytime).mean().alias("cloud"),
         )
         .filter(pl.col("hours") >= MIN_DAY_HOURS)
+        .join(sums.group_by("okres", "day").agg(sum_stats), on=["okres", "day"], how="left")
         .with_columns(pl.lit("day").alias("part"))
     )
     table = pl.concat([parts, days], how="diagonal_relaxed")
