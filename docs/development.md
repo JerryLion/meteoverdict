@@ -36,6 +36,7 @@ data comes from recorded fixtures in `tests/fixtures/`. Dates are `YYYY-MM-DD` i
 | ČHMÚ archive (every element) | `mvd chmi-archive`, `mvd chmi-mirror DIR` | releases `chmi-*` ([format](data-sources.md#chmi-archive)) |
 | Station pages | `mvd station-pages` | `site/data/station/<WSI>.json` |
 | Checks | `mvd check` | exit 1 on stale data or many silent stations |
+| Which stations score the models | `mvd station-check` | Markdown ([docs/station-check.md](station-check.md)) |
 
 ### Stations
 
@@ -88,6 +89,7 @@ it to the last 90 days until the single-runs history is complete
 uv run mvd score --start 2026-09-01 --end 2026-09-30   # → data/scores/2026-09.parquet
 uv run mvd aggregate                                   # → data/aggregates.parquet, site/data
 uv run mvd report                                      # best model per kraj as Markdown
+uv run mvd station-check --out check.md                # rankings with station subsets, odd stations
 ```
 
 `mvd score` pairs observations and forecasts and writes one row per day, station,
