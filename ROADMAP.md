@@ -52,8 +52,8 @@ start later for one variable (ARPEGE wind); see `docs/data-sources.md#models`.
 | README badge | `site/data/badge.json` ("last updated"), committed by the daily run | repo |
 | Web app | Static: Vite + MapLibre GL + Observable Plot, reads JSON | GitHub Pages |
 | ALADIN archive | `mvd archive-aladin` every 3 h, one Parquet per run as Release assets (`aladin-YYYY-MM`) | GitHub Actions |
-| Backfill | `mvd backfill` daily with 6,800 Open-Meteo calls, progress in Release `data-state` | GitHub Actions |
-| Single runs | `mvd fetch-runs` four times a day, 1,800 Open-Meteo calls a day (Single Runs API, ~100 stations), progress in Release `runs-state` | GitHub Actions |
+| Backfill | `mvd backfill` daily within the shared 4,500 Open-Meteo calls (last 90 days first, older windows after the single-runs history), progress in Release `data-state` | GitHub Actions |
+| Single runs | `mvd fetch-runs` four times a day, 3,400 Open-Meteo calls a day (Single Runs API, ~100 stations), plus what the backfill leaves of the shared 4,500, progress in Release `runs-state` | GitHub Actions |
 | Outlook | `mvd outlook` twice a day: combined forecast for every okres (≈ 340 calls) → `outlook.json` in Release `data-latest` | GitHub Actions |
 | Development | Claude scheduled task, weekdays, works from this roadmap, opens PRs | Claude (Cowork) |
 
@@ -174,6 +174,8 @@ Each item should fit one PR (≈ one working session). Check items off in the PR
 - [x] 6.2 Combination weights per okres × variable × lead day from the 90-day scores (inverse-MSE weights, bias corrections) and a forecast point per okres → `site/data/forecast.json`
 - [x] 6.3 Web: MeteoVerdict forecast for a chosen okres: today's Open-Meteo forecasts of all models combined with the 6.2 weights, next to the best single model
 - [ ] 6.4 Verify the combination out of sample (weights from earlier days, scored like a model) and rank it against the best single model; compare training windows of 30, 45 and 90 days and a decaying average (`docs/forecast-research.md`)
+  - [x] Out-of-sample test against the best model at the time, the best in hindsight, the mean and every model, with day-bootstrap intervals, per lead day, Czechia and okres: `mvd blend-test` → `site/data/blend-test.json`, daily, shown on the comparison page. First result (24 days, September 2026): never clearly worse except wind D+1 (+0.03 m/s), better for daily precipitation at all lead days and temperature at D+2, D+3, D+5; too short to call
+  - [ ] Training windows 30 / 45 / 90 days (`--window`) and a decaying average, once the history is longer than 45 days
 - [x] 6.5 Review the combination method against operational practice and the literature (`docs/forecast-research.md`); taper models that end early
 - [x] 6.6 TV-style forecast: combined forecast for all okresy by part of day (night, morning, afternoon, evening), with precipitation probability and cloud symbols, refreshed twice a day
 - [x] 6.7 TV-style forecast map: symbols and temperatures per okres, day and part-of-day controls, click an okres for details

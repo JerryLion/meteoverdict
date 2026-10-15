@@ -30,6 +30,7 @@ data comes from recorded fixtures in `tests/fixtures/`. Dates are `YYYY-MM-DD` i
 | Rankings | `mvd aggregate` | `data/aggregates.parquet`, `site/data/**/*.json` |
 | Single runs (all models) | `mvd fetch-runs` | `data/runs/YYYY-MM.parquet`, `data/runs-state.json` |
 | Error by lead hour | `mvd leads` | `site/data/leads.json`, `leads-aladin.json`, `leads-aladin-kraj.json` |
+| Event skill for farmers | `mvd farm` | `site/data/farm.json` |
 | Combined forecast | `mvd outlook` | `site/data/outlook.json`, `outlook-hourly.json` |
 | Everything daily | `mvd daily` | all of the above from the stored data |
 | ČHMÚ archive (every element) | `mvd chmi-archive`, `mvd chmi-mirror DIR` | releases `chmi-*` ([format](data-sources.md#chmi-archive)) |
@@ -77,7 +78,8 @@ allows 10,000 weighted calls a day and 300,000 a month; 14 days for all models a
 stations cost about 6,900, so `--max-calls` (default 9,000) stops a run in time and
 keeps what was fetched ([details](data-sources.md#fetching-mvd-fetch-fc)).
 `mvd backfill` fills the history newest first in 14-day windows and remembers its
-progress, so it can run a little every day
+progress, so it can run a little every day; `--older-windows after-runs-history` keeps
+it to the last 90 days until the single-runs history is complete
 ([details](data-sources.md#backfill-mvd-backfill)).
 
 ### Scores and rankings
@@ -136,10 +138,12 @@ The latest results are in the release `data-latest`: `aggregates.parquet`,
 
 **Single runs.** `mvd fetch-runs` asks Open-Meteo's Single Runs API (free tier) for
 each 00, 06, 12 and 18 UTC run of all models at the ~100 stations of
-`src/meteoverdict/data/run-stations.csv` (about 330 weighted calls a run): first the
-recent runs (10 to 48 hours old), then older ones newest first back to 2026-06-23 (the
-first run with ALADIN; `--history-from`), until `--max-calls` (default 450), plus
-`--extra-calls-if-backfill-idle N` when the D+N backfill has nothing pending. `--run 2026-10-12T06` fetches given runs, `--dry-run`
+`src/meteoverdict/data/run-stations.csv` (about 570 weighted calls a run with 19 models
+and 3 variables): first the recent runs (10 to 48 hours old), then older ones newest
+first back to 2026-06-23 (the first run with ALADIN; `--history-from`), until
+`--max-calls` (default 450), plus a part (`--shared-from`, `--shared-to`) of what the D+N
+backfill leaves of the shared daily budget (`--shared-calls`). `--run 2026-10-12T06`
+fetches given runs, `--dry-run`
 prints what is left and its cost. Progress is in `data/runs-state.json`;
 `--github-release` keeps the month files and the state in the releases `runs-YYYY-MM`
 and `runs-state` ([details](data-sources.md#single-runs-mvd-fetch-runs)). The station
@@ -164,23 +168,45 @@ every resolution (10 min to yearly, back to 1775) as Parquet in the releases `ch
 about 3 GB in total ([inventory](chmi-data.md), [format](data-sources.md#chmi-archive));
 `mvd chmi-mirror DIR` copies it to a local disk, skipping unchanged files.
 
+**Event skill for farmers.** `mvd farm` verifies the same single runs as yes/no events:
+frost nights (≤ 0 and ≤ −2 °C), gusts (≥ 10, 15, 20 m/s in a 3-hour block) and 3-hour
+rain (≥ 0.5, 2, 5 mm), per model and lead time bin, and writes `site/data/farm.json`;
+`--github-release` and `--publish` as for `mvd leads`
+([details](data-sources.md#event-skill-for-farmers-mvd-farm)).
+
 **ALADIN archive.** ČHMÚ keeps ALADIN runs online for only three days, so
 `mvd archive-aladin --github-release` saves temperature, wind and precipitation at every
 station for every run and lead hour (0–72 h) into the releases `aladin-YYYY-MM`
 ([format](data-sources.md#aladin-archive)).
+
+**Radar archive.** ČHMÚ keeps its radar composites online for about seven days, so
+`mvd archive-radar --products observed --stations data/stations.parquet --github-release`
+packs every complete UTC day into one tar per product (max reflectivity, CAPPI 2 km,
+echo tops, MERGE precipitation; HDF5 and PNG) in the releases `radar-YYYY-MM`, plus the
+hourly MERGE grids, MERGE at the stations and the radar page's frames
+([format, sizes](data-sources.md#radar-archive)). `--products forecast` adds the
+nowcasts (~50 GB a year, meant for a local disk with `--out-dir`), `mvd mirror-radar
+--out-dir DIR` copies the archive to a local disk, and `mvd radar-live --dir DIR` keeps
+the frames of the last 24 hours and the newest nowcast for the page.
+
+```bash
+uv run mvd radar-live --dir /tmp/radar-live --hours 3          # live frames, local
+uv run mvd archive-radar --day 2026-10-14 --out-dir data/radar  # one day, local
+```
 
 ## Automated workflows
 
 | Workflow | When (UTC) | What |
 |---|---|---|
 | ALADIN archive | every 3 hours | `mvd archive-aladin --github-release` |
-| Backfill | 02:41 | `mvd backfill`, 6,800 Open-Meteo calls a day |
-| Single runs | 04:20, 10:20, 16:20, 22:20 | `mvd fetch-runs --github-release`, 350 calls (750 at 10:20), 1,800 a day |
+| Radar | every 10 minutes; archive every 6 hours | `mvd radar-live` → branch `radar-live` (force-pushed); `mvd archive-radar --github-release` |
+| Backfill | 02:41 | `mvd backfill`, the shared 4,500 Open-Meteo calls a day: current windows first, older ones after the single-runs history |
+| Single runs | 04:20, 10:20, (13:20,) 16:20, 22:20 | `mvd fetch-runs --github-release`, 850 calls each (3,400 a day), plus what the backfill leaves of the shared 4,500 at 10:20 and 13:20 ([budget](data-sources.md#open-meteo-budget)) |
 | Daily | 05:17 | `mvd daily --github-release`, commits the badge, then `mvd leads --github-release --publish` (allowed to fail) |
 | Outlook | 05:52 and 17:52 | `mvd outlook --github-release` |
 | CHMI archive | 01:41 and 13:41 | `mvd chmi-archive --part days --part recent --github-release` (the last days of `now/`, changed months of `recent/`), then `mvd station-pages --github-release --publish` |
 | CHMI backfill | 02:07, up to 5 h | `mvd chmi-archive --part history --part months --github-release`, resumable, same concurrency group |
-| Pages | after Daily, Outlook, CHMI archive and changes in `web/` | builds `web/` and publishes it |
+| Pages | after Daily, Outlook, CHMI archive and changes in `web/` | builds `web/`, adds the radar frames of the last 60 days from the releases and the station pages, and publishes it |
 
 ## Web pages
 
@@ -195,10 +221,11 @@ the URL.
 |---|---|---|
 | `tv.html` | combined forecast map: day tabs, parts of the day, "play the day" / "play the week" (each round switches the map colour temperature → rain → wind → cloud), values at the okresy, a panel per okres; sunrise and sunset (earliest–latest over the okresy) in the headline box and the okres's own in its panel; symbols get a moon when most of the part of day is after sunset or before sunrise | `#2026-10-13/afternoon/temperature/tpw/CZ0201` |
 | `index.html` | score map: okresy and stations coloured by the best model, legend with win counts, okres finder, a panel explaining why a model wins, per-station error charts | `#temperature_2m/1/90d/CZ0201` |
-| `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, and every model's error by hours ahead from the single runs (`leads.json`, per run hour) | region |
+| `compare.html` | model ranking for Czechia, a kraj or an okres: MAE with 95 % intervals, skill, bias, RMSE, ETS/POD/FAR, MAE by lead day, every model's error by hours ahead from the single runs (`leads.json`, per run hour), and the farmers' event skill (frost, gusts, 3-hour rain by lead time bin, `farm.json`) | region |
 | `forecast.html` | hourly combined forecast for one okres next to the best single model, with the weights (asks Open-Meteo from the browser); sunrise and sunset per day and the nights shaded in the charts, from `outlook.json` | okres |
 | `api.html` | open data: JSON and CSV per okres under `api/v1/` ([docs](open-data.md)) | – |
 | `station.html` | one ČHMÚ station: every element it measures (also those we do not score), the last 3 days every 10 minutes, the last 30 days hourly, recent years daily and the whole history monthly; element picker, a table of all elements with their periods and latest values, search by name; linked from the score map's station panel | `#0-20000-0-11520/T` |
+| `radar.html` | ČHMÚ radar: the last 1–24 hours (live frames from the branch `radar-live`) with the nowcast for the next hour after them, marked as forecast; archived days (last 60) with a date picker; MERGE 1-hour precipitation as a second layer; colour scales in dBZ and mm, Prague time ([frames](data-sources.md#radar-page-frames)) | `#live/3/radar+rain/202610151035` |
 
 GitHub Pages: Settings → Pages → Source: GitHub Actions. A fork without Pages enabled
 only builds.
