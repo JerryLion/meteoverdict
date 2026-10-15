@@ -1,6 +1,8 @@
 // Czech and English texts of the web pages (roadmap 4.6). Model names come from
 // meta.json and are not translated.
 
+import { renderFooter } from "./footer.js";
+
 export const STRINGS = {
   cs: {
     "page.station": "Stanice",
@@ -505,6 +507,13 @@ export const STRINGS = {
     "footer.boundaries": "Hranice",
     "footer.scores": "Skóre",
     "footer.method": "Zdroj a metoda",
+    "footer.withModels": "s modely",
+    "footer.and": "a",
+    "footer.licence": "licence",
+    "footer.edited": "upraveno",
+    "footer.processed": "Hodnoty zpracoval MeteoVerdict (výběr bodů stanic a okresů, převod jednotek, hodnocení a kombinace modelů)",
+    "footer.radarProcessed": "Snímky oříznul a převedl MeteoVerdict; výšku odrazů, pohyb a bouřkové buňky z nich odvodil",
+    "footer.ours": "Naše data",
     "language.switch": "English",
   },
   en: {
@@ -1010,6 +1019,13 @@ export const STRINGS = {
     "footer.boundaries": "Boundaries",
     "footer.scores": "Scores",
     "footer.method": "Source and method",
+    "footer.withModels": "with the models of",
+    "footer.and": "and",
+    "footer.licence": "licence",
+    "footer.edited": "edited",
+    "footer.processed": "Values processed by MeteoVerdict (extraction at the stations and okres points, unit conversion, scoring and combining the models)",
+    "footer.radarProcessed": "Frames cropped and converted by MeteoVerdict; echo tops, motion and storm cells derived from them",
+    "footer.ours": "Our data",
     "language.switch": "Česky",
   },
 };
@@ -1050,7 +1066,8 @@ function storeLanguage(language) {
   }
 }
 
-/** Language of this page view; sets <html lang>, the [data-i18n] texts and the switch. */
+/** Language of this page view; sets <html lang>, the [data-i18n] texts, the footer and the
+ * switch. */
 export function setUpLanguage() {
   const language = pickLanguage(storedLanguage(), navigator.language);
   const t = translator(language);
@@ -1067,6 +1084,9 @@ export function setUpLanguage() {
   for (const element of document.querySelectorAll("[data-i18n-title]")) {
     element.title = t(element.dataset.i18nTitle);
     element.setAttribute("aria-label", element.title);
+  }
+  for (const footer of document.querySelectorAll("footer[data-footer]")) {
+    renderFooter(footer, t);
   }
   const toggle = document.getElementById("language");
   if (toggle) {

@@ -1389,8 +1389,9 @@ Priorities 3 and 4 share **4,500 calls a day**:
   - a current window still pending (the backfill has not finished it, or not run yet):
     nothing;
   - a current window becomes due tomorrow (one ending today): nothing, so this history
-    and the backfill's next big day are always 24 hours apart (safe even if Open-Meteo
-    counted a rolling 24 hours);
+    and the backfill's next big day are 24 hours apart by the schedules (safe even if
+    Open-Meteo counted a rolling 24 hours; scheduled runs can start up to ~5 hours late,
+    see below);
   - the backfill called Open-Meteo today: 4,500 minus what it used (nothing if the
     amount is not recorded);
   - otherwise (the current windows are done; older windows do not count): all 4,500;
@@ -1410,10 +1411,32 @@ looked at): single-runs history first: 412 runs since 2026-06-23 pending".
 | Calls | ≤ 1,600 (~1,465 with 19 models) | 3,400 (~2,960 used) | 4,500 | **≤ 9,500** |
 | In 31 days | ≤ 49,600 | 105,400 | 139,500 | **≤ 294,500** |
 
-No day exceeds 9,500 and no 31-day month 294,500, whoever spends the share. Hours: the
-backfill's ≤ 4,500 (02:41), 10:20 ≤ 850 + 2,500, 13:20 ≤ 2,000, the outlook ≤ 800 at 05:52
-and 17:52, the other single runs 850 each, so no clock hour exceeds 5,000 unless a run is
-delayed by more than an hour into another one.
+No day exceeds 9,500 and no 31-day month 294,500, whoever spends the share, as long as
+the runs start on time. Hours: the backfill's ≤ 4,500 (02:41), 10:20 ≤ 850 + 2,500, 13:20
+≤ 2,000, the outlook ≤ 800 at 05:52 and 17:52, the other single runs 850 each.
+
+**The times above are when the runs are scheduled, not when they start.** GitHub starts
+scheduled workflows **up to ~5 hours late** (on 2026-10-15 every scheduled run started
+2.5–5 h late, e.g. the backfill of 02:41 at 07:43, the outlook of 05:52 at 10:21, the
+single runs of 04:20 at 09:11) and sometimes skips a slot altogether (the 3-hourly
+ALADIN archive ran 4 of 8 times that day). So the budget assumes:
+
+- **Runs may overlap in one clock hour.** That day the backfill ended at 09:10 and the
+  single runs started at 09:11. `forecasts.Budget` paces each run below 4,800 an hour,
+  but two runs in the same hour can together pass Open-Meteo's 5,000; Open-Meteo then
+  answers 429, which the runs retry after a pause (and stop cleanly on the daily limit,
+  continuing next time).
+- **A run can slip into the next UTC day** (the single runs of 22:20 starting after
+  00:00), so one UTC day can see an extra 850 and another one less; the 500-call margin
+  below 10,000 covers one such slip, not two.
+- **The share's 24-hour gap is nominal:** "the backfill and its next big day are 24
+  hours apart" holds for the schedules; with the delays the real gap can be ~19–29 h.
+- **The single runs lag:** a run is fetched once it is `runs.MIN_AGE_H` (10) hours old
+  and only at the four schedules, so with the delays the newest stored run is often
+  12–16 h old. `mvd fetch-runs` already takes the newest pending run first and leaves
+  the older ones for later.
+- `mvd outlook` prints the Open-Meteo calls it used (retries included) to the log and the
+  job summary, so a day's total can be added up from the job summaries.
 
 **How long the histories take** (simulated day by day from the live states of
 2026-10-15: 3 of 72 D+N windows fetched for the first 11 models, 8 recent single runs):
