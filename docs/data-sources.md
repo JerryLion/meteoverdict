@@ -113,6 +113,7 @@ builds hourly values from them:
 | `temperature_2m` | `T` at HH:00 | Open-Meteo's `temperature_2m` is the value at the hour |
 | `wind_speed_10m` | `F` at HH:00 (m/s) | model wind at the hour; `F` is ČHMÚ's main wind speed element |
 | `precipitation` | sum of the six `SRA10M` values stamped HH-1:10 … HH:00, only if all six exist | Open-Meteo's hourly precipitation is the sum over the preceding hour |
+| `wind_gusts_10m` | largest of the six `Fmax` values (maximum gust in each 10 minutes, m/s) stamped HH-1:10 … HH:00, only if all six exist | Open-Meteo's hourly `wind_gusts_10m` is the maximum of the preceding hour ("Preceding hour max" in its docs, checked 2026-10-15) |
 
 Checks on real data (Praha-Libuš, September 2026): the hourly precipitation equals
 ČHMÚ's own `SRA1H` for all 720 hours (22.6 mm both), which also confirms that
@@ -121,11 +122,18 @@ timestamps mark the end of each interval. `F` is on average 0.1 m/s above `Fprum
 (**unverified**; possibly scalar vs. vector mean), and the difference is small for
 ranking models.
 
+Gusts are stored since 2026-10-15 (earlier months have none) and are used only by the
+farmers' event scores (`mvd farm`), not by the D+N scores. `Fmax` is in the 10-minute
+files of the run stations (checked: Praha-Vinohrady, 14 Oct 2026, 144 values a day,
+e.g. 3.4 m/s with `F` 1.6 m/s); a first fetch of 2026-10-13 to 15 for the 100 run
+stations gave 5,556 hourly gusts next to 5,666 temperatures.
+
 Values with `QUALITY` 1 (suspect), 2 (poor) or 4 (missing) are dropped; 0, 3 and 5 are
 kept with their code, so scoring can exclude estimated values. Every value also records
 its `source` (`recent`, `historical`, `now`).
 
 Only stations with a 10-minute `T`, `F` or `SRA10M` in today's `meta2` are fetched
+(`Fmax` does not add stations)
 (about 475; the other ~280 active stations are manual rain gauges with daily data
 only, see below), plus inactive stations (not in today's `meta2`). One day for all
 stations from `now/` took about a minute (468 stations returned data on 2026-10-10).
@@ -364,7 +372,36 @@ in each okres (`meteoverdict.combine`), from the okres scores of the last 90 day
   `site/data/forecast/<okres>.json` (`variable`, `lead_day`, `model`, `weight`,
   `correction`, `mae`, `rank`, `days`; about 8 kB each). Only in the release
   `data-latest`, like the okres scores.
-- Not yet verified: whether the combination beats the best single model is roadmap 6.4.
+- Whether the combination beats the best single model: see the out-of-sample test below.
+
+### Out-of-sample test (`mvd blend-test`, roadmap 6.4)
+
+`meteoverdict.blendtest` replays the combination on the stored D+N forecasts
+(`fc-YYYY-MM.parquet`) with only earlier scores; method and result in
+[methodology.md](methodology.md#does-it-beat-the-best-single-model-roadmap-64).
+
+- **Training:** for day *d* at lead day *N*, `aggregate.aggregate` (okres level, window
+  `90d`, or `--window 30d` etc.) over the scores up to *d − N*, then `combine.weights`
+  and the okres's lowest-MAE model; tested only with ≥ 14 scored training days
+  (`--min-training-days`).
+- **Scoring:** the combination per okres and station (pools as in the ranking,
+  `combine.combine_values`, ≥ 2 models per hour) as a 6-hourly model through
+  `scoring.daily_scores`; `temperature_2m`, `wind_speed_10m`, `precipitation_daily`;
+  fair station-days per okres with the combination as one more model.
+- **Run:** daily in `daily.yml` after the lead hours (`--github-release --publish`, allowed
+  to fail), testing the last 180 scored days (`--days`); about 35 s and 3.6 GB for 38
+  scored days locally.
+- **Output:** `site/data/blend-test.json` (release `data-latest`, about 220 kB):
+  `generated`, `method`, `training_window`, `shrink_days`, `min_training_days`,
+  `min_okres_days`, `first_scored`, `from`, `to`, `test_days`, `warm_up_days` (scored
+  days before the first test day), `units`, `models`, and two `{"columns", "rows"}`
+  tables: `groups` (one row per `level` `cz`/`okres`, region, variable and lead day:
+  `days`, `stations`, `best_oos` (most often chosen model), `best_oos_models` (how many
+  different ones), `best_hindsight`, `mae_combined`, `mae_best_oos`,
+  `mae_best_hindsight`, `mae_blend`, and `diff_*`, `low_*`, `high_*` of `combined`,
+  `best_hindsight` and `blend` minus `best_oos` with the 95 % interval; okresy with at
+  least 10 test days) and `single_models` (Czechia: `variable`, `lead_day`, `model`,
+  `mae`, `diff`, `low`, `high`, same differences).
 
 ## Outlook (`mvd outlook`, roadmap 6.6)
 
@@ -373,9 +410,16 @@ The TV-style forecast for every okres (`meteoverdict.outlook`):
 - **Request:** one Open-Meteo **Forecast API** request (`api.open-meteo.com/v1/forecast`)
   for the forecast points of all 77 okresy, all models with weights,
   `hourly=temperature_2m,precipitation,wind_speed_10m,cloud_cover,sunshine_duration`,
-  `forecast_days=6`, UTC; 77 × 5 × 11 / 10 ≈ 420 weighted calls (refused above 500). Checked live on
-  2026-10-12: a JSON list of 77 results, columns `<variable>_<model>`, 2.7 MB, under a
-  second.
+  `forecast_days=6`, UTC; 77 × 5 × models / 10 weighted calls: ≈ 420 with 11 models,
+  ≈ 732 with all 19 (refused above 800). A request is at most 500 calls (Open-Meteo
+  allows 600 a minute), so with more than 12 models the okresy go in two equal requests
+  61 s apart, merged into one answer. Checked live on 2026-10-12: a JSON list of 77
+  results, columns `<variable>_<model>`, 2.7 MB, under a second.
+- **New models** enter only once they have weights, i.e. once `mvd aggregate` has 90-day
+  okres scores for them (the D+N backfill fetches their current windows first). Weights
+  are per okres, variable and lead day; a model without weights in an okres is left out
+  there (the join with the weights), and the request asks only for models with weights
+  somewhere. The forecast page (`forecast.js`, `weightedModels`) does the same.
 - **Combination:** as on the forecast page (bias correction, weights of the hour's lead
   day, models fading out over their last 3 hours, at least 2 models). Cloud cover and
   sunshine are the plain mean of the models (not verified; all 13 models report
@@ -397,8 +441,8 @@ The TV-style forecast for every okres (`meteoverdict.outlook`):
   "okresy": [{code, name, lat, lon}], "columns", "rows"}` (about 110 kB);
   `.github/workflows/outlook.yml` runs it at 05:52 and 17:52 UTC and uploads it to the
   release `data-latest`, after which the Pages workflow rebuilds the map.
-- **Budget:** two runs a day ≈ 850 calls; see the [budget split](#open-meteo-budget)
-  with the backfill and the single runs.
+- **Budget:** two runs a day ≈ 850 calls with 11 models, ≈ 1,465 with 19; priority 1 in
+  the [budget split](#open-meteo-budget) with the backfill and the single runs.
 
 ## Ranking with confidence intervals (roadmap 2.5)
 
@@ -466,23 +510,34 @@ from its archive start, then the window's daily scores.
   its windows are fetched but scored only once ČHMÚ publishes the month.
 - With `--github-release` the month files and the state are pulled from and pushed to
   GitHub Releases (`data-YYYY-MM`, state in `data-state`) after every window, so the
-  scheduled workflow `.github/workflows/backfill.yml` (daily, 6,800 calls, leaving room
-  for the outlook and the single runs, see the [budget split](#open-meteo-budget)) can continue
-  from any machine.
-- Budget: about 6,900 calls per window for all ~500 stations and 11 models, plus about
-  1,550 for the rain gauges (measured on the first real runs, 12 Oct 2026: 5,913 + 3,785
-  calls for the newest window), so about one window a day with 8,500 calls (since
-  2026-10-13 the daily budget is 6,800, so a little less than one); 2024-01-01
-  to now is about 70 windows, fewer models in older ones (archive starts), i.e. about
-  two months. The free tier counts calls per IP address and GitHub's runners share
-  addresses, so a run can meet the daily limit early; it then stops cleanly. ČHMÚ
-  downloads are about 2.5 GB per month of history. Checked live on 3 stations × one
-  window (41 calls, 6,270 score rows; a second run did nothing).
+  scheduled workflow `.github/workflows/backfill.yml` (daily, the shared 4,500 calls,
+  see the [budget split](#open-meteo-budget)) can continue from any machine.
+- **Current windows first, older ones last** (`--older-windows always|never|
+  after-runs-history`): the complete windows ending in the last 90 days
+  (`backfill.CURRENT_DAYS`, the 90-day ranking and the combination weights) are always
+  processed; older ones only when allowed (the workflow: once the single-runs history is
+  complete). The job summary says which and why, and the calls used today.
+- **Models added later:** a `model|window` key that is not in the state is pending, also
+  in windows already scored; such a window is fetched again (only the new model) and
+  scored again. Because windows go newest first, a new model is fetched for the current
+  windows first. Until it is, the fair comparison limits a region's ranking to the days
+  every model there has, so the 90-day ranking briefly covers fewer days.
+- Budget: about 6,900 calls per window for the first 11 models at ~500 stations, plus
+  about 1,550 for the rain gauges (measured on the first real runs, 12 Oct 2026: 5,913 +
+  3,785 calls for the newest window); with all 19 models **~11,970 per window** and
+  ~5,360 per 28-day gauge window (`forecasts.estimate_calls`). 2024-01-01 to now is about
+  72 windows, fewer models in older ones (archive starts): ~1.1 million calls, at the
+  lowest priority (see [how long](#open-meteo-budget)). The free tier counts calls per IP
+  address and GitHub's runners share addresses, so a run can meet the daily limit early;
+  it then stops cleanly. ČHMÚ downloads are about 2.5 GB per month of history. Checked
+  live on 3 stations × one window (41 calls, 6,270 score rows; a second run did
+  nothing).
 - **Rain gauges** (the ~280 manual gauges; closed stations are already verified
   hourly): precipitation forecasts only, for 28-day windows counted from `--from`
   (two 14-day windows; progress key `gauges|model|start|end`). With at most 5 lead
   days that is at most 5 variables, so 28 days still cost one call per location: about
-  3,100 calls per 28 days for 11 models, roughly +22 % on the station forecasts. The
+  3,100 calls per 28 days for 11 models, ~5,360 for 19, roughly +22 % on the station
+  forecasts. The
   newer 14-day window fetches its 28-day gauge window and re-scores both halves, so
   windows scored before the gauges were added get them too. Gauge observations come
   from `recent/` per month into `data/gauges`; a month is final once it ended 62 days
@@ -804,26 +859,35 @@ Previous Runs API (D+N, above) cannot: there each hour mixes runs. Checked live 
 - If **any** requested model does not have that run, the whole request fails: HTTP 400
   `{"error":true,"reason":"The requested model run is not available. Model: X, run: …"}`.
   X is Open-Meteo's internal name, which can differ from the id we ask for:
-  `dwd_icon_d2_native`, `dwd_icon_eu_native`, `ncep_gfs013` (for `ncep_gfs_global`); the
-  others report their own id. `mvd fetch-runs` drops X and asks again for the rest.
+  `dwd_icon_d2_native`, `dwd_icon_eu_native`, `ncep_gfs013` (for `ncep_gfs_global`),
+  `cmc_gem_gdps_15km` (for `gem_global`), `meteofrance_arpege_world025` (for
+  `meteofrance_arpege_world`; checked 2026-10-15); the others report their own id
+  (`dwd_icon`, `ncep_aigfs025`, `jma_gsm`, `cma_grapes_global`, KNMI, DMI).
+  `mvd fetch-runs` drops X and asks again for the rest.
 - A model without data at one location (ICON-D2 in the far east) is **left out of that
   location's answer** instead of failing the request; if only one model is left, the
   columns lose their model suffix (`temperature_2m`). A one-model request fails there
   with "No data is available for this location", as in the Previous Runs API.
-- Every model has every 00, 06, 12 and 18 UTC run. Horizons seen (temperature, lead
-  hours with a value, runs of 2026-10-12): ALADIN (both) 72; ICON-D2 48; GeoSphere
-  AROME 60; ARPEGE Europe 102; ICON-EU, IFS HRES, IFS 0.25°, AIFS and GFS 120 (asked
-  for); UK Met Office 120 from 00 and 12 UTC, 60 from 06 and 18 UTC. AIFS (6-hourly)
-  and IFS 0.25° (3-hourly) come with every hour filled, so the hours in between are
-  interpolated, as in the Previous Runs API.
+- Every model has every 00, 06, 12 and 18 UTC run, except **GEM Global: 00 and 12 UTC
+  only** (`run_hours` in models.yaml, so the 06 and 18 UTC runs do not ask for it).
+  Horizons seen (temperature, lead hours with a value, runs of 2026-10-12 and
+  2026-10-14): ALADIN (both) 72; ICON-D2 48; DMI 59, KNMI 60; GeoSphere AROME 60; ARPEGE
+  Europe and World 102; ICON-EU, ICON global, IFS HRES, IFS 0.25°, AIFS, GFS, AIGFS, GEM
+  Global, JMA GSM and CMA GRAPES 120 (asked for); UK Met Office 120 from 00 and 12 UTC,
+  60 from 06 and 18 UTC. AIFS, AIGFS, JMA GSM (6-hourly), IFS 0.25° and CMA GRAPES
+  (3-hourly) come with every hour filled, so the hours in between are interpolated, as
+  in the Previous Runs API (AIGFS has no values for leads 1–5).
 - **Archive start:** the 2026-04-02 00 UTC runs are there for every model except ALADIN,
-  the 2026-04-01 12 UTC runs only for IFS HRES (the docs say IFS HRES from 2024-03-14).
-  ALADIN (both domains) from the **2026-06-23 00 UTC** run (2026-06-22 18 UTC is missing;
-  `runs_from` in models.yaml). Gaps after that are possible (KNMI, not used, misses
-  2026-09-01 12 UTC).
+  GEM Global and JMA GSM, the 2026-04-01 12 UTC runs only for IFS HRES (the docs say IFS
+  HRES from 2024-03-14). ALADIN (both domains) from the **2026-06-23 00 UTC** run
+  (2026-06-22 18 UTC is missing), JMA GSM from 2026-05-12 12 UTC, GEM Global from
+  2026-05-28 00 UTC (`runs_from` in models.yaml, measured 2026-10-15 by bisection, so a
+  gap just before could hide an earlier start). Gaps after that are possible (KNMI misses
+  2026-09-01 12 UTC, CMA GRAPES 2026-10-01 00 UTC).
 - **Delivery:** at 14:25 UTC on 2026-10-13 the 06 UTC run (8.4 h old) was complete for
-  all 11 models, the 12 UTC run only for ICON-D2. So a run is fetched once it is
-  **10 hours** old.
+  the first 11 models, the 12 UTC run only for ICON-D2. So a run is fetched once it is
+  **10 hours** old. (Not yet checked for the 8 models added on 2026-10-15; one that comes
+  later is asked again by the next run, as for any model missing from a young run.)
 
 ### The station subset
 
@@ -847,39 +911,47 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
 ### Fetching and storage
 
 `mvd fetch-runs [--mode recent|history|all] [--run YYYY-MM-DDTHH …] [--max-calls N]
-[--extra-calls-if-backfill-idle N [--backfill-from 2024-01-01]] [--history-from D]
-[--github-release] [--dry-run]`:
+[--shared-calls N [--shared-from A] [--shared-to B] [--backfill-from 2024-01-01]]
+[--history-from D] [--github-release] [--dry-run]`:
 
-- **One request per run** for all 100 stations and all enabled models (11),
-  `hourly=temperature_2m,precipitation,wind_speed_10m`, `forecast_hours=121`,
-  `wind_speed_unit=ms`, with each station's elevation. Retries, the daily limit and
+- **One run, all enabled models** (19; 18 at 06 and 18 UTC) at the 100 stations,
+  `hourly=temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m`, `forecast_hours=121`,
+  `wind_speed_unit=ms`, with each station's elevation; split into equal requests of at
+  most 100 stations and 500 weighted calls (`runs.batches`: 2 × 50 stations with 19
+  models: 7.6 a station with 4 variables), because Open-Meteo allows 600 calls a minute and one request of 760 could
+  never pass. Retries, the daily limit and
   persistent failures behave as in `mvd fetch-fc` (`forecasts.request`); a run stopped by
   the budget or by Open-Meteo is not kept and is asked again next time.
 - **Cost** (Open-Meteo's formula: locations × max(1, variables × models / 10 ×
   max(1, days / 14))): 121 hours count as 6 days, under 14, so the whole 5 days cost the
-  same as one day: **3 × 11 / 10 = 3.3 calls per station, 330 a run** (270 for the runs
-  before 2026-06-23 without ALADIN). Measured on the first real runs (2026-10-13, our
-  budget counter): 330 for each of 2026-10-10 00 and 12 UTC, 2026-07-15 00 UTC and
-  2026-10-13 00 UTC, 270 for 2026-04-15 12 UTC. A model that has to be asked again on
-  its own costs at least 1 per station (100). Requests that fail count too (we do not
-  know whether Open-Meteo counts them).
+  same as one day: variables × models / 10 per station, so with 11 models and 3
+  variables 3.3 (330 a run; measured on the first real runs, 2026-10-13), with 19 models
+  **5.7 (570 a run)** and with the 4th variable (gusts, added 2026-10-15 for the farmers' scores)
+  **7.6 (760 a run; 720 at 06 and 18 UTC)**, which is what runs cost now. Measured live on 2026-10-15: 28.5 calls for 5 stations × 19 models × 3
+  variables. A model added later costs only itself for runs already fetched (8 new
+  models: 3.2 a station with 4 variables). A model that has to be asked again on its own
+  costs at least 1 per station (100). Requests that fail count too (we do not know
+  whether Open-Meteo counts them).
 - **Order:** "recent" runs first (all runs between 10 and 48 hours old not done yet:
   ongoing collection, missed schedules catch up), then "history" newest first back to
   **2026-06-23 00 UTC** (`runs.HISTORY_FROM`, `--history-from` to change it). `--run`
-  fetches only the given runs.
+  fetches only the given runs. A model added to models.yaml is missing from every run,
+  so it is fetched (alone) for the recent runs first, then back through the history.
 - **Why the history stops at 2026-06-23:** it is the first run with ALADIN (both
-  domains) in the archive. The runs from 2026-04-02 to 2026-06-22 have only 9 of the 11
-  models, so on the fair common set (every model verified on the same runs, stations
-  and hours) they add nothing for ALADIN and little for the others, yet they are about
-  330 more runs (~89,000 calls, at 270 a run). They can still be fetched with
-  `--history-from 2026-04-02` or `--run`.
+  domains) in the archive. The runs from 2026-04-02 to 2026-06-22 lack ALADIN (and
+  before mid/late May JMA GSM and GEM Global), so on the fair common set (every model
+  verified on the same runs, stations and hours) they add nothing for ALADIN and little
+  for the others, yet they are about 330 more runs (~200,000 calls with 16-17 models and
+  4 variables). They can still be fetched with `--history-from 2026-04-02` or `--run`.
 - **Gaps:** a model Open-Meteo does not have for a run older than 24 hours is recorded as
   missing for good; for a younger run it is asked again later (models arrive at
   different times).
 - **Rows:** `data/runs/YYYY-MM.parquet` by the month of the run's start, one row per
   `run`, `model`, `station_id`, `lead_h` (1–120) with `valid_time` (= run + lead),
-  `temperature_2m` (°C), `precipitation` (mm in the hour ending at `valid_time`) and
-  `wind_speed_10m` (m/s), sorted by run. About 107,000 rows and 0.31 MB a run, so about
+  `temperature_2m` (°C), `precipitation` (mm in the hour ending at `valid_time`),
+  `wind_speed_10m` (m/s) and `wind_gusts_10m` (m/s, maximum of the hour ending at
+  `valid_time`; null in runs fetched before 2026-10-15 and for AIFS, which has no gusts),
+  sorted by run. About 107,000 rows and 0.31 MB a run, so about
   38 MB a month.
 - **State:** `data/runs-state.json`: per run (`YYYYMMDDHH`) the models fetched and the
   models missing.
@@ -890,92 +962,99 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
   added to it and pushed after each run. Only `runs.yml` writes these releases, so it
   has its own concurrency group; `mvd leads` in the daily workflow only reads them.
 - **Schedule** (`.github/workflows/runs.yml`): at 04:20, 10:20, 16:20 and 22:20 UTC,
-  10 h 20 min after each run. Each scheduled run normally fetches the newest run; the
-  10:20 run has a larger budget and also fills about one older run. When the backfill
-  is idle, 10:20 and an extra run at 13:20 take its share for the history (below).
+  10 h 20 min after each run, 850 calls each: the newest run. The 10:20 run and a run at
+  13:20 also take what the D+N backfill leaves of the daily shared budget, for the
+  history (below).
 
 ### Open-Meteo budget
 
 All workflows share the free tier's 10,000 weighted calls a day, 5,000 an hour and
 300,000 a month (per IP address; GitHub's runners share addresses, so a run can still
 meet the daily limit early and then stops cleanly). Each workflow has its own call
-budget (`--max-calls`); `forecasts.Budget` also paces one run below 4,800 an hour.
+budget (`--max-calls`); `forecasts.Budget` also paces one run below 550 a minute and
+4,800 an hour, and no single request weighs more than 500 (`runs.MAX_REQUEST`,
+`outlook.MAX_REQUEST`).
 
-**While the D+N backfill has work** (until about early January 2027):
+**Priorities** (decided 2026-10-15, with all 19 models: "the backfill has the lowest
+priority; fill it from the date closest to today into the past"):
 
-| Workflow | Calls a day | In 31 days |
-|---|---|---|
-| Backfill (`backfill.yml`, once a day) | 6,800 | 210,800 |
-| Outlook (`outlook.yml`, 2 × ~420) | ~850 | ~26,400 |
-| Single runs (`runs.yml`, 3 × 350 + 750) | 1,800 | 55,800 |
-| **Total** | **~9,450** | **~293,000** |
+1. **Outlook** (user-facing, `outlook.yml`): only the models with weights are asked,
+   77 okresy × 5 variables × models / 10: ~420 calls a run with 11 models, ~732 with all
+   19 (refused above 800), twice a day.
+2. **The newest single runs** of all models (`runs.yml`, 850 at 04:20, 10:20, 16:20 and
+   22:20): with 4 variables (temperature, precipitation, wind and gusts, added
+   separately) 4 × 19 / 10 = 7.6 calls a station, **760 a run** at 100 stations (720 at
+   06 and 18 UTC, which GEM Global does not run); measured live on 2026-10-15 with 3
+   variables: 28.5 calls for 5 stations and 19 models (5.7 a station).
+3. **The current D+N windows** (`backfill.yml` at 02:41): the complete 14-day windows
+   ending in the last 90 days, which the 90-day ranking and the combination weights
+   read (`backfill.CURRENT_DAYS`). Usually only the newest one is pending; after a model
+   is added, all of them are for that model. A window of all 19 models costs **~11,970
+   calls** at the ~500 stations (5,110 of them for the 8 models added on 2026-10-15;
+   measured live: 7.5 calls for 5 stations × 14 days of ICON global, 1.5 a station), plus
+   ~5,360 for the rain gauges' 28-day window with every other window.
+4. **History, newest first:** (a) the single runs back to 2026-06-23, then (b) the D+N
+   windows back to 2024-01-01.
 
-The monthly limit is the tighter one: 10,000 a day would be 310,000 in a 31-day month.
+Priorities 3 and 4 share **4,500 calls a day**:
 
-**Handover.** Once the backfill has caught up, it needs one new 14-day window every 14
-days (~6,900 calls, plus ~3,100 for the rain gauges' 28-day window with every other
-window), i.e. two days of its 6,800 and nothing on the other twelve. On those days its share goes to
-the single-runs history: `mvd fetch-runs --extra-calls-if-backfill-idle N` adds N to
-`--max-calls` only when `backfill.handover` says the backfill is idle, from the
-backfill's own state (`backfill-state.json` in the release `data-state`, read-only):
+- The backfill (02:41, `--max-calls 4500`) spends them first on its current windows,
+  newest first. It fetches older windows only with `--older-windows
+  after-runs-history`, i.e. once the single-runs history is complete (at most 4 runs
+  left, `runs.history_done`, from the state in the release `runs-state`; held back if
+  that cannot be read). It records the calls of the day in its state (`calls_on`,
+  `calls_used`).
+- `runs.yml` at 10:20 takes the part 0–2,500 and at 13:20 the part 2,500–4,500 of what the
+  backfill left (`mvd fetch-runs --shared-calls 4500 --shared-from A --shared-to B`,
+  `backfill.share_left`, from the backfill's state in the release `data-state`):
+  - a current window still pending (the backfill has not finished it, or not run yet):
+    nothing;
+  - a current window becomes due tomorrow (one ending today): nothing, so this history
+    and the backfill's next big day are always 24 hours apart (safe even if Open-Meteo
+    counted a rolling 24 hours);
+  - the backfill called Open-Meteo today: 4,500 minus what it used (nothing if the
+    amount is not recorded);
+  - otherwise (the current windows are done; older windows do not count): all 4,500;
+  - if the state cannot be downloaded or read: nothing.
+- Once the single-runs history is complete, the backfill spends the whole share on its
+  current and then its older windows every day, so nothing is left for `runs.yml`.
 
-- no complete 14-day window since `--backfill-from` (2024-01-01, as in `backfill.yml`)
-  up to yesterday still needs Open-Meteo forecasts (`backfill.pending_windows`, the
-  same rule as `mvd backfill`: station forecasts of every enabled model from its
-  archive start, and the rain-gauge forecasts of the 28-day window). A window fetched
-  but waiting for ČHMÚ to publish the month's observations needs no Open-Meteo calls,
-  so it does not block the handover. A newly enabled model makes every window pending
-  again, which stops the handover by itself;
-- no window becomes due tomorrow (one ending today): the day before the backfill's
-  big day stays normal, so the extra calls and the backfill's 6,800 are always more
-  than 24 hours apart (also safe if Open-Meteo counts a rolling 24 hours);
-- the backfill did not call Open-Meteo today (UTC; `calls_on` in its state, written
-  whenever it asks for forecasts), so a day on which it finished a window this
-  morning stays normal;
-- if the state cannot be downloaded or read, the normal budget is used.
+Both job summaries say what was decided and why, e.g. "3350 calls (850 normal + 2500
+shared; 4500 of 4500 left, this run takes 0-2500: the backfill's current windows (last 90
+days) are done)", "850 calls (normal; no shared calls: 0 of 4500 left, this run takes
+0-2500; 1 current backfill window pending (newest 2026-10-05..2026-10-18))", and
+"Priority: the 6 current windows (last 90 days) first; older windows held back (63 not
+looked at): single-runs history first: 412 runs since 2026-06-23 pending".
 
-The job summary of every single-runs run states the budget used and why (for example
-"3750 calls (750 normal + 3000 extra: backfill idle (all 72 complete windows since
-2024-01-01 fetched))" or "750 calls (normal; extra 3000 not used: 70 backfill windows
-pending (newest 2024-…))").
-
-In `runs.yml` the 10:20 run (after the backfill at 02:41 and the daily run at 05:17)
-gets +3,000 and a run at 13:20 gets 3,000 (nothing when the backfill is not idle): two
-runs of at most 3,750 and 3,000 in different hours, under the 5,000 an hour.
-
-| Day | Backfill | Outlook | Single runs | Total |
+| Per day (caps) | Outlook | Newest single runs | Shared (backfill + histories) | Total |
 |---|---|---|---|---|
-| Backfill has work | 6,800 | ~850 | 1,800 | ~9,450 |
-| Backfill idle (handover) | 0 | ~850 | 1,800 + 6,000 | ~8,650 |
-| New window due tomorrow | 0 | ~850 | 1,800 | ~2,650 |
-| Backfill finishes a window | ≤ 3,200 | ~850 | 1,800 | ≤ ~5,850 |
+| Calls | ≤ 1,600 (~1,465 with 19 models) | 3,400 (~2,960 used) | 4,500 | **≤ 9,500** |
+| In 31 days | ≤ 49,600 | 105,400 | 139,500 | **≤ 294,500** |
 
-No day exceeds ~9,450, so no month exceeds 9,450 × 31 = ~293,000, in either regime; the
-idle day leaves ~1,350 a day for the outlook (user-facing) and for requests that are
-retried. A typical 28-day cycle after the backfill (two windows, one with the gauges):
-per window 1 day before it (2,650), 1 day of the window (9,450) and 1 day finishing it
-(2,750 without the gauges, 5,850 with them), plus 22 idle days (22 × 8,650 = 190,300):
-about 223,000 in 28 days, ~8,000 a day, ~247,000 in 31 days. Once the run history is
-complete the extra budget is simply not spent (~2,700 a day in all).
+No day exceeds 9,500 and no 31-day month 294,500, whoever spends the share. Hours: the
+backfill's ≤ 4,500 (02:41), 10:20 ≤ 850 + 2,500, 13:20 ≤ 2,000, the outlook ≤ 800 at 05:52
+and 17:52, the other single runs 850 each, so no clock hour exceeds 5,000 unless a run is
+delayed by more than an hour into another one.
 
-**How long the history takes.** From 2026-06-23 00 UTC to now (2026-10-14) there are
-about 450 runs older than the recent ones (446 at 10:20 UTC), at 330 calls ≈ 147,000
-calls (not counting the four new runs a day, which the normal budget covers: 4 × 330 =
-1,320 of its 1,800).
+**How long the histories take** (simulated day by day from the live states of
+2026-10-15: 3 of 72 D+N windows fetched for the first 11 models, 8 recent single runs):
 
-- **Normal budget only:** the 480 left a day are usable only at 10:20 (750 − 330 = 420,
-  one run; the 350-call runs have 20 left), so about **one history run a day**: ~450
-  days, i.e. not before early 2028 (back to 2026-04-02 it would be ~770 runs, over two
-  years).
-- **Until the backfill finishes** (70 of 72 windows pending on 2026-10-14; at most
-  ~8,450 calls a window on average with the gauges, fewer for the older windows with
-  fewer models; 6,800 a day: ~75–90 days, i.e. early January 2027): ~85 history runs,
-  ~360 left.
-- **After the handover:** on an idle day 10:20 fetches the newest run and 10 older ones
-  (3,750 / 330), 13:20 another 9 (3,000 / 330): ~19 history runs a day; with 11 idle
-  days out of 14 that is 11 × 19 + 3 × 1 = ~212 runs in 14 days, ~15 a day. The ~360
-  runs left take **about 24 days**, so the history back to 2026-06-23 is complete
-  around **early February 2027** (instead of early 2028).
+- **Current windows first:** the 6 current windows (back to July) for all 19 models and
+  the newest gauge windows: ~60,000 calls, the first ~13 days of the share. Every new
+  window afterwards costs ~12,000 (+ ~5,400 gauges every other one), about three days of
+  the share every 14 days, plus the day before it.
+- **(a) Single runs back to 2026-06-23:** ~450 runs × ~740 = **~333,000 calls**; with
+  what the backfill leaves (~3,100 a day on average) it is complete around **mid-February
+  2027** (simulation: 2027-02-18).
+- **(b) D+N backfill back to 2024-01-01** (per model from its archive start: ALADIN
+  2026-06-24, AIGFS 2026-01-22, AIFS 2025-02-18, IFS HRES 2025-10-01, GeoSphere
+  2026-03-26, UKMO 2024-08-08, KNMI/DMI 2024-06-29, the others 2024-01-19 or earlier):
+  ~1.13 million calls in all; after the single runs, ~3,400 a day on older windows, so
+  complete around **end of September 2027** (simulation: 2027-09-29).
+
+Until then the "all time" and season windows cover only what has been fetched (and,
+by the fair comparison, only the days every model of a region has); the 90-day ranking
+is complete for all 19 models after the first ~2 weeks.
 
 ## Error by lead hour (`mvd leads`)
 
@@ -1088,6 +1167,78 @@ domain; observations from `now/` for 2026-10-10 00 UTC to 2026-10-13 12 UTC, as
 
 Four days of one October spell: an illustration that the pipeline works, not a result.
 
+## Event skill for farmers (`mvd farm`)
+
+What it means: [methodology](methodology.md#event-skill-for-farmers). `meteoverdict.farm`
+reads the same single runs and observations as `mvd leads` (last `--runs-days`, 90;
+`--github-release` downloads them first, read only; `--publish` puts `farm.json` into
+`data-latest`). In `daily.yml` it is the last step, optional like the `mvd leads` step
+before it (`continue-on-error`), and reuses what that step downloaded; `pages.yml`
+fetches `farm.json` from `data-latest` like `leads.json`. No Open-Meteo calls.
+
+Units and events (thresholds inclusive):
+
+| Event | Unit | Observed | Forecast | Thresholds |
+|---|---|---|---|---|
+| `frost` | station × night, 18:00–09:00 Europe/Prague (16 full hours, 15/17 when the clocks change), keyed by its end | minimum of the hourly `T`, every hour required | minimum over the model's own output hours in the night, every one required; the whole night after the run's start | ≤ 0, ≤ −2 °C |
+| `gust` | station × 3-hour block 00–03, 03–06, … UTC, keyed by its end | maximum of the three hourly gusts (each from six `Fmax`), all required | maximum of `wind_gusts_10m` at the model's own output hours in the block (3 for hourly output, the end for 3-hourly); 6-hourly not scored | ≥ 10, 15, 20 m/s |
+| `rain3h` | the same blocks | sum of the three hourly sums, all required | sum of the three hourly values (for 3-hourly output Open-Meteo's hourly values add up to the period total, as in `align`); 6-hourly not scored | ≥ 0.5, 2, 5 mm |
+
+The lead bins (1–6, 7–12, 13–24, 25–48, 49–72, 73–120) go by the lead of the unit's end.
+Runs start at 00/06/12/18 UTC, so blocks end at leads 3, 6, 9, … and never straddle a
+run's start; a night ends at H+19 (12 UTC run), H+25 (06), H+31 (00) or H+37 (18 UTC),
+each a day later at the longer leads, so H+1–6 and H+7–12 have no frost nights and
+H+13–24 holds only the 12 UTC runs' coming night.
+
+**Fair set.** A model's coverage of a variable is the median first and last lead with
+a value per run hour (narrowest over the run hours in which any model has the variable;
+gusts exist only in runs fetched since 2026-10-15). Per event and bin the required
+models are those covering the whole bin (for blocks also with an output step of at most
+3 h throughout); only units that every required model has, with an observation, count.
+Measured coverage of the gusts (run of 2026-10-13 00 UTC): ALADIN 1–72, ICON-D2 1–48,
+AROME 2–60, ICON-EU, IFS HRES, GFS, UKMO 1–120 (UKMO 60 from 06/18 UTC), ARPEGE 1–102,
+IFS 0.25° 3–92 (temperature to 120), AIFS none.
+
+`site/data/farm.json`:
+
+| Key | Meaning |
+|---|---|
+| `generated`, `first_run`, `last_run` | UTC, `YYYY-MM-DDTHH:MMZ` |
+| `runs`, `stations` | runs and stations with at least one scored unit |
+| `bins`, `small_sample` | the lead bins; fewer observed events than this are flagged (20) |
+| `events` | per event: `variable`, `unit` (`night`, `3h`), `op` (`<=`, `>=`), `thresholds`, `definition` |
+| `models` | per model: `name`, `runs` scored, `leads` (coverage per variable, `[first, last]`) |
+| `columns`, `rows` | one row per `event`, `threshold`, `bin`, `model`: `units` (nights or blocks, station × run; the same for every model of a bin), `runs`, `stations`, `events` (observed), `hits`, `misses`, `false_alarms`, `correct_negatives`, `pod`, `far`, `csi`, `ets`, `bias` (frequency bias; 3 decimals, null when the denominator is 0) |
+
+About 35 kB with 11 runs (all events, thresholds and bins); it grows with the bins and
+models filled, not with the runs (at most 8 × 6 × 11 rows).
+
+**First real numbers, 2026-10-15** (read only towards GitHub; 1,320 Open-Meteo calls):
+the runs of 2026-10-11 12 UTC, 2026-10-12 00 and 12 UTC fetched with gusts, plus the 8
+runs of 2026-10-13 00 to 2026-10-14 18 UTC from the release `runs-2026-10` (no gusts);
+observations of the 100 stations from the release `data-2026-10` (10–14 Oct) and
+ČHMÚ `now/` (13 Oct 00 to 15 Oct 09 UTC, with gusts). The nights of 12/13 and 13/14
+October had frost at many stations (down to −8.4 °C on 13 Oct).
+
+| Event | Bin | Units | Events | Best ETS (POD / FAR) |
+|---|---|---|---|---|
+| frost ≤ 0 °C | H+13–24 | 378 nights | 39 | ICON-D2 0.18 (0.23 / 0.31) |
+| frost ≤ 0 °C | H+25–48 | 849 | 79 | ICON-D2 0.17 (0.20 / 0.30) |
+| frost ≤ 0 °C | H+49–72 | 474 | 15 ⚠ | none above 0 |
+| gust ≥ 10 m/s | H+25–48 | 1,937 blocks | 87 | ICON-D2 0.41 (0.79 / 0.52); AROME 0.39 |
+| gust ≥ 10 m/s | H+49–72 | 2,228 | 173 | ALADIN 2.3 km 0.35 (0.55 / 0.43) |
+| gust ≥ 15 m/s | H+49–72 | 2,228 | 22 | ALADIN 1 km 0.09 (0.14 / 0.75) |
+| rain ≥ 0.5 mm / 3 h | H+1–6 | 2,141 | 97 | ALADIN 1 km 0.33 (0.49 / 0.45) |
+| rain ≥ 0.5 mm / 3 h | H+13–24 | 3,892 | 119 | UKMO 0.40 (0.56 / 0.39) |
+| rain ≥ 0.5 mm / 3 h | H+25–48 | 5,441 | 122 | UKMO 0.36 (0.54 / 0.47) |
+
+Every model forecast far too few frost nights (frequency bias 0.15 to 0.9 at H+13–48,
+mostly 0.3–0.5; ICON-D2 caught 9 of 39 at H+13–24):
+the 2 m temperature at the station's elevation stays above 0 °C in clear, calm nights
+when the station drops below. Gusts ≥ 20 m/s and 3-hour rain ≥ 5 mm hardly occurred
+(0 and 12 events). A handful of runs in one cold spell: a check that the pipeline works,
+not a result.
+
 ## Okres and kraj boundaries
 
 `src/meteoverdict/data/kraje.geojson` holds the 14 kraje with their NUTS 3 code
@@ -1154,8 +1305,9 @@ hundred requests got `429 Too Many Requests`, so the client must batch and back 
   day with `temperature_2m` (°C), `precipitation` (mm in the hour ending at `time`) and
   `wind_speed_10m` (m/s) in `data/fc/YYYY-MM.parquet`.
 - **Cost** (weighted calls, Open-Meteo's formula): about **6,900 calls for one day** of
-  all 11 enabled models at the ~500 verified stations, the same for any window up to 14
-  days, about 20,600 for a month and about 333,000 for 2024-01-01 to 2026-10-10. So the
+  the first 11 models at the ~500 verified stations (~11,970 with all 19), the same for
+  any window up to 14 days, about 20,600 for a month and about 333,000 for 2024-01-01 to
+  2026-10-10 (11 models). So the
   daily pipeline should fetch forecasts in 14-day windows (≈ 15,000 calls a month), and
   the full backfill needs more than one month of the free quota (300,000 a month,
   10,000 a day). `mvd fetch-fc --dry-run` prints the estimate; `--max-calls` stops a
@@ -1204,6 +1356,8 @@ cover Czechia by definition.
 | `dmi_harmonie_arome_europe` | Lambert conformal, 1906 × 1606 × 2 km | covered |
 | `meteofrance_arome_france` | lat 37.5–55.4, lon −12.0–16.0 | **partly** (not east of 16° E): excluded |
 | `italia_meteo_arpae_icon_2i` | lat 33.7–48.9, lon 3–22 | **only the far south**: excluded |
+| `gem_regional` (ECCC RDPS 10 km) | polar stereographic, 935 × 824, "North America, North Pole" | **only the north** (live check below): in models.yaml, disabled |
+| `dwd_icon`, `gem_global`, `jma_gsm`, `cma_grapes_global`, `meteofrance_arpege_world`, `ncep_aigfs025` | global | covered |
 
 **Live check (2026-10-12):** all ~500 verified stations were requested from each
 regional model (ALADIN CZ 1 km and CE 2.3 km, ICON-D2, GeoSphere AROME, ARPEGE Europe).
@@ -1216,9 +1370,42 @@ way until it finds such stations and skips them (`uncovered`, kept in the backfi
 state); scoring compares models per station among the models covering it.
 
 The UK Met Office UKV 2 km model covers only the UK and Ireland (excluded).
-KNMI and DMI HARMONIE-AROME cover Czechia but are disabled for v1 (not in the roadmap's
-candidate list); `ecmwf_ifs025` is enabled because IFS HRES (`ecmwf_ifs`) only joined
-Open-Meteo in September 2025, so the open-data IFS is our only ECMWF history before that.
+`ecmwf_ifs025` is enabled because IFS HRES (`ecmwf_ifs`) only joined Open-Meteo in
+September 2025, so the open-data IFS is our only ECMWF history before that.
+
+**All models (2026-10-15).** On the owner's decision ("I want all the models") every
+model of Open-Meteo's Forecast API model list (`MultiDomains` in the server's
+`ForecastapiController.swift`) that has data in Czechia and a Previous Runs archive is
+enabled. Checked live at Praha-Libuš (Forecast API, Previous Runs API for 1–14 Sep 2026,
+Single Runs API):
+
+- **Added:** DWD ICON global (`dwd_icon`), ECCC GEM Global (`gem_global`), JMA GSM
+  (`jma_gsm`), CMA GRAPES (`cma_grapes_global`), Météo-France ARPEGE World
+  (`meteofrance_arpege_world`), NOAA AIGFS (`ncep_aigfs025`, machine learning), and
+  KNMI and DMI HARMONIE-AROME (in models.yaml before, now enabled). KNMI and DMI have
+  data at the four extreme points of Czechia and at three more in the south-east
+  (Single Runs API, 2026-10-15).
+- **Same data under another id:** `meteofrance_arpege_world025` (= ARPEGE World),
+  `dwd_icon_global` (= `dwd_icon`), `ncep_gfs013`/`ncep_gfs025` (parts of
+  `ncep_gfs_global`).
+- **No data in Czechia** (null values or "No data is available"): KMA GDPS
+  (`kma_gdps`), BOM ACCESS-G (`bom_access_global`), GraphCast (`ncep_gfs_graphcast025`),
+  `ecmwf_ifs04`, `ecmwf_aifs025`, MET Nordic, MeteoSwiss ICON-CH1/CH2, ItaliaMeteo
+  ICON-2I; regional models of other continents (HRRR, NAM, NBM, HRDPS, JMA MSM, KMA
+  LDPS, UKV, AROME France HD, KNMI Netherlands, COSMO) by their domains.
+- **ECCC GEM Regional (RDPS)** has data only north of a line from about 48.83° N at
+  12.1° E to 49.63° N at 18.85° E (bisected live with single-point requests,
+  2026-10-15): 115 of the 501 verified stations (South Bohemia, South Moravia, parts of
+  Vysočina and Zlín) are outside. Like AROME France it is **not enabled**: the fair
+  comparison would leave those stations out of the national and kraj rankings for every
+  model. Its archive start is not measured (longer Previous Runs requests returned
+  empty answers).
+- **Not added: ensemble means** (`ncep_hgefs025_ensemble_mean`,
+  `ncep_aigefs025_ensemble_mean`, `ecmwf_ifs_europe_ensemble_mean`,
+  `ecmwf_aifs_europe_ensemble_mean`): they have Previous Runs data in Czechia, but they
+  are means of ensembles, not single model runs (smoother, so they win MAE comparisons
+  for that reason), and most of them return no data in the Forecast API, so they could
+  not enter the outlook. To decide separately.
 
 **Forecast length, grid and output step** come from the model tables in the Open-Meteo
 docs (e.g. ICON-D2 2 days, ALADIN 3 days, ARPEGE Europe 4 days, GeoSphere AROME,
@@ -1233,9 +1420,14 @@ before every hour must still reach that hour:
 |---|---|---|---|---|---|
 | ALADIN CZ 1 km, ALADIN CE 2.3 km | 100 % | 100 % | 0 | 0 | 0 |
 | ICON-D2, GeoSphere AROME, KNMI, DMI | 100 % | 0 | 0 | 0 | 0 |
-| ICON-EU | 100 % | 100 % | 100 % | 100 % | 0 |
-| ARPEGE Europe | 100 % | 100 % | 100 % | 0 | 0 |
-| IFS HRES, IFS 0.25°, AIFS, GFS, UKMO global | 100 % | 100 % | 100 % | 100 % | 100 % |
+| ICON-EU, CMA GRAPES | 100 % | 100 % | 100 % | 100 % | 0 |
+| ARPEGE Europe, ARPEGE World | 100 % | 100 % | 100 % | 0 | 0 |
+| IFS HRES, IFS 0.25°, AIFS, GFS, UKMO global, ICON global, GEM Global, JMA GSM, AIGFS | 100 % | 100 % | 100 % | 100 % | 100 % |
+| GEM Regional (disabled) | 100 % | 100 % | 0 | 0 | 0 |
+
+CMA GRAPES has a 10-day forecast but no `_previous_day5` in the archive (measured on
+September 2026), so it is used up to D+4. Measured for the models added on 2026-10-15
+and KNMI/DMI on the same month.
 
 So the high-resolution models can only be compared at D+1, and ALADIN at D+1 and D+2.
 
@@ -1257,6 +1449,12 @@ per model: D+1 forecasts of the three variables at Praha-Libuš, 2021-01-01 to
 | GeoSphere AROME | 2026-03-26 | 84–100 % | T2m and precipitation 44–80 % in 2026-03 to 2026-05 |
 | KNMI HARMONIE | 2024-06-29 | 99–100 % | precipitation only from 2024-10-10 |
 | DMI HARMONIE | 2024-06-29 | 100 % | |
+| ICON global | 2024-01-19 | 100 % | T2m and precipitation 89 % in 2026-04 |
+| GEM Global | 2024-01-19 | 100 % | T2m 84 % in 2026-06 |
+| JMA GSM | ≤ 2021-01-01 | 100 % | all three variables from the first day probed |
+| CMA GRAPES | 2024-01-19 | 93 % | 69 % in 2025-08, 26–27 % in 2025-09, 23 % in 2025-10, 68 % in 2026-01 |
+| ARPEGE World | 2024-01-19 | 100 % | **10 m wind only from 2026-08-07** (as ARPEGE Europe) |
+| NOAA AIGFS | **2026-01-22** | 68–73 % | precipitation from 2026-01-06, wind 2026-01-07, T2m 2026-01-22; 0–84 % of hours until 2026-06, ≥ 90 % since 2026-07 |
 
 Consequences:
 
@@ -1268,6 +1466,13 @@ Consequences:
 - Gaps are real (UKMO especially), so scores must count only hours where both the
   observation and the forecast exist, and report the sample size.
 
-Also note: AIFS has 6-hourly output and IFS 0.25° 3-hourly, so hourly scores for them
-use fewer hours; ICON-EU, IFS HRES and UKMO become 3-hourly later in the forecast
-(78 h, 90 h and 54 h).
+The models added on 2026-10-15 were probed with `scripts/probe_archive.py --start
+2023-07-01 --model …` (JMA GSM again from 2021-01-01).
+
+Also note: AIFS, AIGFS and JMA GSM have 6-hourly output, IFS 0.25° and CMA GRAPES
+3-hourly, so hourly scores for them use fewer hours; ARPEGE World, UKMO, ICON-EU, ICON
+global, GEM Global and IFS HRES become 3-hourly later in the forecast (48 h, 54 h, 78 h,
+78 h, 84 h and 90 h). Measured for the added models on 2026-10-15 from the Single Runs
+API: a 3- or 6-hourly step shows as equal hourly precipitation within each 3- or 6-hour
+block (Open-Meteo spreads a period's total evenly), checked at 8 points over 4 runs.
+GEM Global is hourly up to 84 h although Open-Meteo's docs say 3-hourly.
