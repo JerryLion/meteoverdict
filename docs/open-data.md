@@ -55,5 +55,6 @@ so the files follow both. About 3.4 MB in total, 25 kB per okres.
 CC BY-SA 4.0: credit MeteoVerdict, Open-Meteo.com (model data, CC BY 4.0; UK Met Office
 CC BY-SA 4.0) and ČHMÚ (observations, CC BY 4.0) — the `attribution` field has the text —
 and share derived data alike. Not an official forecast; whether the combination beats
-the best single model is still being tested (roadmap 6.4). Please fetch at most once an
+the best single model is tested daily on a still short history (`blend-test.json`,
+roadmap 6.4). Please fetch at most once an
 hour.

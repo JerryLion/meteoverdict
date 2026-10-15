@@ -27,10 +27,12 @@ closest to what ČHMÚ measured?
 
 - From the **Open-Meteo Previous Runs API** (CC BY 4.0): for each model the value it
   predicted for a given hour 1, 2, … 5 days earlier (`_previous_dayN`, "D+N").
-- 11 models: ČHMÚ ALADIN (1 km and 2.3 km), DWD ICON-D2 and ICON-EU, ECMWF IFS HRES,
-  IFS 0.25° and AIFS, NOAA GFS, UK Met Office global, Météo-France ARPEGE Europe and
-  GeoSphere Austria AROME. Each is used for the lead days its archive fills, measured
-  live (the high-resolution models only reach D+1 or D+2).
+- 19 models, every one Open-Meteo has for all of Czechia with an archive: ČHMÚ ALADIN
+  (1 km and 2.3 km), DWD ICON-D2, ICON-EU and ICON global, ECMWF IFS HRES, IFS 0.25° and
+  AIFS, NOAA GFS and AIGFS, UK Met Office global, Météo-France ARPEGE Europe and World,
+  GeoSphere Austria AROME, KNMI and DMI HARMONIE-AROME, ECCC GEM Global, JMA GSM and CMA
+  GRAPES (the last eight added in October 2026). Each is used for the lead days its
+  archive fills, measured live (the high-resolution models only reach D+1 or D+2).
 - Requested at each station's coordinates **and elevation**: Open-Meteo picks the grid
   point and corrects temperature for the height difference.
 
@@ -56,7 +58,7 @@ closest to what ČHMÚ measured?
 
 The D+N scores answer "how good is the forecast made about N days earlier", using
 Open-Meteo's `_previous_dayN` (for each hour, the run at least 24·N hours older). That
-is fair across 11 models but blurs the first hours of a forecast: D+1 for a
+is fair across all models but blurs the first hours of a forecast: D+1 for a
 temperature at 12 UTC is a run from 24 to 30 hours earlier, never a run from this
 morning. Meteorologists verify run by run instead, and so do we:
 
@@ -166,6 +168,12 @@ are not independent.
 - Where a model never reaches some stations (ICON-D2 at six stations in the Beskydy),
   those stations are left out of their regions' comparison for every model; on their own
   they are still compared among the other models.
+- **Models added later** (eight in October 2026) are fetched for the newest days first.
+  Until their history is filled in, the windows that reach further back (all time,
+  seasons) are limited to the days they have, like ALADIN's late start, and gaps of
+  one model (AIGFS before July 2026, CMA GRAPES in autumn 2025, UKMO) drop those days
+  for every model of the region. The single-run comparison likewise uses only runs that
+  every model reaching a lead hour has.
 - A region is ranked only with at least **3 stations**. An okres with fewer of its own
   borrows the nearest stations of its neighbours (at most 30 km beyond its border) up to
   3, and the map says how many. So every okres has a ranking, but for a third of them it
@@ -192,7 +200,7 @@ The plain average of all models (at least 3 per hour) is scored like a model, bu
 ranked. It is compared with the best single model instead: if the average often wins,
 picking any single model is worse than averaging them.
 
-## Our own forecast (roadmap 6.2, 6.3)
+## Our own forecast (roadmap 6.2, 6.3, 6.4)
 
 The forecast page combines, for one okres, the current forecasts of all models from the
 Open-Meteo Forecast API at a point inside the okres. Each model is weighted by how well
@@ -216,9 +224,50 @@ day by `mvd outlook`: by part of day, with the probability of precipitation (the
 weighted share of models forecasting at least 0.2 mm) and a symbol; cloud cover there is
 a plain mean of the models and not verified.
 
-This is a forecast built on the ranking, not yet a verified one: whether it beats the
-best single model has to be shown out of sample (roadmap 6.4). Until then the page
-says so.
+### Does it beat the best single model? (roadmap 6.4)
+
+`mvd blend-test` (run daily, shown at the top of the comparison page) replays the
+combination on past days **out of sample**:
+
+- For day *d* at lead day *N*, the weights, bias corrections and the okres's best
+  model come only from the okres scores of the 90 days ending on *d − N*: what the
+  daily run had published when that D+N forecast was made. Same code and shrinkage
+  as the live forecast.
+- The combination is applied to the models' stored D+N forecasts at the okres's
+  stations (borrowed ones included) and scored like the mean of all models:
+  temperature and wind at 00, 06, 12 and 18 UTC, precipitation as UTC-day totals, on
+  the station-days every model has.
+- It is compared with **the best model at the time** (the okres's rank-1 model in that
+  training window, chosen anew every day: what a user following our ranking would have
+  used), the **best model in hindsight** (each okres's model with the lowest MAE over
+  the whole test: an upper bound nobody could pick in advance), the mean of all models
+  and every single model. Czechia sums the 77 okresy.
+- 95 % intervals of the MAE difference to the best model at the time come from the
+  same day bootstrap as the ranking. **Warm-up:** an okres is tested only after 14
+  scored training days.
+
+**Result so far** (24 test days, 7–30 September 2026, after 14 warm-up days; Czechia;
+negative = our forecast has the smaller MAE; 95 % interval in brackets):
+
+| | D+1 | D+2 | D+3 | D+4 | D+5 |
+|---|---|---|---|---|---|
+| Temperature (°C) | −0.02 (−0.06…+0.02) | **−0.05** (−0.09…−0.01) | **−0.09** (−0.13…−0.04) | −0.04 (−0.10…+0.03) | **−0.12** (−0.26…−0.01) |
+| Wind (m/s) | **+0.03** (+0.00…+0.06) | +0.03 (−0.01…+0.07) | −0.01 (−0.03…+0.02) | −0.03 (−0.06…+0.00) | **−0.13** (−0.16…−0.10) |
+| Precipitation (mm/day) | **−0.25** (−0.49…−0.08) | **−0.20** (−0.41…−0.07) | **−0.28** (−0.54…−0.08) | **−0.18** (−0.31…−0.06) | **−0.26** (−0.60…−0.02) |
+
+So far our forecast is never clearly worse than the model a user of the ranking would
+have picked, except wind at D+1 (by 0.03 m/s against DWD's ICON models),
+and clearly better for daily precipitation at every lead day and for temperature at
+D+2, D+3 and D+5. For precipitation it is about as good as the plain mean of all
+models, and both beat the per-okres "best" model, partly because that choice jumps
+between models on a short, noisy history (probably). The best model in hindsight is still better
+for precipitation and wind at D+1–D+2: a fixed, well-chosen model can do better, but
+nobody knows it in advance. **This rests on 24 autumn days and is not yet a verdict**:
+intervals ignore that consecutive days are alike (so they are too narrow), and the
+weights themselves had at most 37 days of scores behind them. The test is repeated
+every day as history grows. Not yet done: training windows of 30 and 45 days and a
+decaying average (roadmap 6.4); with under 45 days of history they would be almost
+the same as 90 days.
 
 ## Limitations
 

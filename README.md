@@ -41,9 +41,11 @@ Everything runs on GitHub Actions: scores are updated every morning, the forecas
 
 ## Models
 
-ČHMÚ ALADIN (1 km and 2.3 km), DWD ICON-D2 and ICON-EU, ECMWF IFS HRES, IFS 0.25° and
-AIFS, NOAA GFS, UK Met Office global, Météo-France ARPEGE Europe and GeoSphere AROME
-Austria, plus the mean of all models as a baseline every model has to beat. The list
+ČHMÚ ALADIN (1 km and 2.3 km), DWD ICON-D2, ICON-EU and ICON global, ECMWF IFS HRES,
+IFS 0.25° and AIFS, NOAA GFS and AIGFS, UK Met Office global, Météo-France ARPEGE Europe
+and World, GeoSphere AROME Austria, KNMI and DMI HARMONIE-AROME, ECCC GEM Global, JMA GSM
+and CMA GRAPES (19 models), plus the mean of all models as a baseline every model has to
+beat. The list
 is in [`models.yaml`](src/meteoverdict/models.yaml); archive depth and lead days per
 model are in [data sources](docs/data-sources.md#models).
 
@@ -52,8 +54,12 @@ model are in [data sources](docs/data-sources.md#models).
 Early days. The first results (October 2026) cover late September, and the history
 fills in as the backfill runs (back to 2024, about two months in total) and ČHMÚ
 publishes its checked monthly observations. ALADIN has forecast history only from
-June 2026. Next: checking that the combined forecast beats the best single model, then
-a write-up of the findings ([roadmap](ROADMAP.md)).
+June 2026. Our combined forecast is now tested out of sample every day against the
+model our ranking would have picked: on the first 24 test days (September 2026) it was
+better for daily precipitation and mostly better or equal for temperature and wind,
+slightly worse only for wind on the next day; too little history to call it settled
+([details](docs/methodology.md#does-it-beat-the-best-single-model-roadmap-64)). Next: a
+write-up of the findings ([roadmap](ROADMAP.md)).
 
 ## Use the data
 
@@ -86,9 +92,11 @@ Commands, data store, workflows and the web pages: [docs/development.md](docs/de
   [opendata.chmi.cz](https://opendata.chmi.cz/), licensed under
   [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). We extract station values
   and convert units.
-- Forecast models via Open-Meteo: DWD (ICON), ECMWF (IFS, AIFS), NOAA (GFS),
+- Forecast models via Open-Meteo: DWD (ICON), ECMWF (IFS, AIFS), NOAA (GFS, AIGFS),
   Météo-France (ARPEGE, Licence Ouverte 2.0), GeoSphere Austria (AROME), KNMI and DMI,
-  and the UK Met Office ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)).
+  Environment and Climate Change Canada (GEM, Data Server End-use Licence), the Japan
+  Meteorological Agency (GSM), the China Meteorological Administration (GRAPES) and the
+  UK Met Office ([CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/)).
 - Okres and kraj boundaries: © ČÚZK (INSPIRE Administrative Units), CC BY 4.0, via
   [siwekm/czech-geojson](https://github.com/siwekm/czech-geojson); simplified by
   `scripts/build_regions.py`.
