@@ -198,6 +198,35 @@ first, then the kraj polygons drop anything outside Czechia (see below).
 On 2026-10-11 `mvd stations` produced 782 stations (756 active, 26 closed since
 2024-01-01) in all 14 kraje; none was outside Czechia or needed the border tolerance.
 
+### Kinds of station
+
+All stations in ČHMÚ's open data are ČHMÚ's own network: there are no amateur or
+third-party stations. The metadata has **no "station type" or "operator" field**:
+`meta1` is `WSI, GH_ID, FULL_NAME, GEOGR1, GEOGR2, ELEVATION, BEGIN_DATE`, `meta2` lists
+elements with `OBS_TYPE` (`10M`, `1H`, `DLY`, `PHENO`) and `SCHEDULE`, `meta3`/`meta4` are
+flag and quality codes. `stations.network` (used for the station map, `index.json`'s
+`network`) derives the kind from the WIGOS id and from which elements the station
+still measures, every 10 minutes or once a day:
+
+| `network` | Rule | Active stations on 2026-10-15 |
+|---|---|---|
+| `main` | WIGOS `0-20000-0-<WMO number>`: the main (synoptic) stations, the only ones with a WMO number: ČHMÚ's professional stations, which report to the WMO (SYNOP) | 40 |
+| `climate` | 10-minute air temperature `T` (not a snow station); all also have humidity, most precipitation `SRA10M` and wind `F` | 218 |
+| `snow` | 10-minute `T` and automatic snow depth `SCEa`, but no 10-minute precipitation or wind: mountain snow stations (GH_ID with `4` as second character, e.g. `H4CEHO01` Černá hora) | 38 |
+| `precipitation_auto` | 10-minute precipitation `SRA10M`, no 10-minute `T` | 179 |
+| `precipitation` | no 10-minute elements, daily precipitation `SRA` (06 UTC, i.e. 07 CET; snow `SCE`/`SNO`): read by hand by ČHMÚ's (volunteer) observers | 279 |
+| `climate_manual` | no 10-minute elements, daily `T` (06/13/20 UTC terms) | 0 (4 closed since 2024) |
+| `other` | nothing of the above in `meta2` (Hradištko, Třinec-Kosmos) | 2 |
+
+"Still measures" means an element of today's `meta2` or a historical `meta2` period
+that has not ended (`END_DATE` 3999); a closed station is judged by everything it ever
+measured. The current `meta2` lists only `10M` and `1H` elements, so manual stations
+appear only in the historical file. WIGOS ids also hint at the kind
+(`0-203-0-<5 digits>`, the old national climate numbers: 154 of the 218 automatic climate
+stations; `0-203-0-<11 digits>`: mostly precipitation stations), but not reliably
+enough to use. That precipitation stations are read by volunteers is ČHMÚ's general
+description of its network, not a field of the metadata.
+
 Small real excerpts are in `tests/fixtures/chmi/` (see the README there).
 
 ### Access notes
@@ -783,8 +812,10 @@ needs into `--archive`, default `data/chmi`; `--publish` uploads the folder as
 `data/scores/station/`):
 
 - `station/index.json`: `{"generated", "stations": [{id, name, okres, kraj, lat, lon,
-  elevation, active, views, elements}]}` for the search and the station map (`elements`:
-  the codes with values, without the ceilometer's and the phenomena);
+  elevation, active, network, views, elements}]}` for the search and the station map
+  (`network`: the [kind of station](#kinds-of-station); `elements`: the codes with
+  values, without the ceilometer's and the phenomena). The map guesses the kind from the
+  id, elements and views for an older index without `network`;
 - `station/<WSI>.json`: `station` (from `mvd stations`), `elements` (from ČHMÚ's
   `meta2`: Czech name, unit, sensor height, kinds `10M`/`1H`/`DLY`/`PHENO`, first and
   last day, and the `views` that have it), `series` and `source`.
