@@ -35,8 +35,41 @@ def test_request_and_cost():
         "temperature_2m,precipitation,wind_speed_10m,cloud_cover,sunshine_duration"
     )
     assert params["models"] == "a,b" and params["timezone"] == "GMT"
-    # 77 okresy, 5 variables x 11 models: 5.5 calls each
+    # 77 okresy, 5 variables x 11 models: 5.5 calls each; 19 models: 9.5
     assert outlook.cost(77, 11) == pytest.approx(423.5)
+    assert outlook.cost(77, 19) == pytest.approx(731.5)
+    assert outlook.cost(77, 19) <= outlook.MAX_CALLS
+    # one request up to 500 calls (Open-Meteo: 600 a minute)
+    assert outlook.parts(77, 11) == [77]
+    assert outlook.parts(77, 19) == [39, 38]
+    assert all(outlook.cost(n, 19) <= outlook.MAX_REQUEST for n in outlook.parts(77, 19))
+    assert outlook.parts(0, 19) == []
+
+
+def test_fetch_in_parts_gives_one_answer():
+    points = pl.DataFrame(
+        {
+            "code": [f"c{i}" for i in range(77)],
+            "lat": [50.0] * 77,
+            "lon": [14.0 + i / 100 for i in range(77)],
+        }
+    )
+    asked = []
+
+    def handler(request):
+        lons = request.url.params["longitude"].split(",")
+        asked.append(len(lons))
+        answers = [{"longitude": float(x), "hourly": {}} for x in lons]
+        for i, item in enumerate(answers[1:], 1):
+            item["location_id"] = i
+        return httpx.Response(200, json=answers)
+
+    waits = []
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        payload = outlook.fetch(client, points, [f"m{i}" for i in range(19)], waits.append)
+    assert asked == [39, 38] and waits == [outlook.PART_PAUSE]
+    assert [item["location_id"] for item in payload] == list(range(77))
+    assert [item["longitude"] for item in payload] == points["lon"].to_list()
 
 
 def test_parse_the_saved_answer():
@@ -254,3 +287,16 @@ def test_outlook_retries_server_errors_and_non_json_answers():
         pytest.raises(RuntimeError, match="HTTP 400: not json"),
     ):
         outlook.fetch(client, points, ["a"], lambda _: None)
+
+
+def test_a_model_without_weights_in_an_okres_is_left_out_there():
+    # a newly added model gets weights okres by okres, as its scores come in
+    partial = WEIGHTS.filter(~((pl.col("region") == "CZ0100") & (pl.col("model") == "ecmwf_ifs")))
+    hourly = outlook.combine_hourly(FC, partial, NOW)
+    full = outlook.combine_hourly(FC, WEIGHTS, NOW)
+    praha = pl.col("okres") == "CZ0100"
+    assert hourly.filter(praha)["temperature_2m"].null_count() == 0
+    assert not hourly.filter(praha)["temperature_2m"].equals(full.filter(praha)["temperature_2m"])
+    assert hourly.filter(~praha).equals(full.filter(~praha))
+    # and the request asks only for models with weights somewhere
+    assert sorted(partial["model"].unique()) == MODELS
