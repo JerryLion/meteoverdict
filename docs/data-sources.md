@@ -596,7 +596,11 @@ concurrency group because both write release assets). No Open-Meteo calls.
    are about 3 MB a day (first real data, October 2026), too much for the git history.
 
 Freshness: forecasts up to 2 weeks behind (complete backfill windows); observations
-daily (unchecked first, replaced by checked data once ČHMÚ publishes the month).
+daily (unchecked first, replaced by checked data once ČHMÚ publishes the month). A day
+is scored only when it has both: `now/` keeps about 3 days, so days the daily run
+missed (1–9 October 2026, before it was scheduled) wait for the month in `recent/`.
+The daily run logs its last scored day and, when that is before the day it processed,
+which of those days have forecasts and which have observations.
 
 ## Data quality (`mvd check`)
 
@@ -608,6 +612,7 @@ also appears on the run page (job summary).
 |---|---|---|
 | newest observation | older than 30 h | |
 | newest forecast, newest score | older than 21 days (complete backfill windows lag up to 15) | |
+| published scores (`site/data/meta.json`, `mvd check --meta`) | `as_of` more than 21 days before `generated` (forecasts come in 14-day windows, so up to ~20 is normal) | file missing |
 | stations reporting in the last 3 days, of those that reported in the last 30 | under 80 % | the stations missing |
 | temperature MAE per station over 90 days (all models) | | above 3 x the network median and above 3 °C: sensor or metadata problem |
 
