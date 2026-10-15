@@ -782,8 +782,9 @@ needs into `--archive`, default `data/chmi`; `--publish` uploads the folder as
 `station-data.zip` to `data-latest`, which the Pages workflow unpacks into
 `data/scores/station/`):
 
-- `station/index.json`: `{"generated", "stations": [{id, name, okres, elevation,
-  active, views}]}` for the search;
+- `station/index.json`: `{"generated", "stations": [{id, name, okres, kraj, lat, lon,
+  elevation, active, views, elements}]}` for the search and the station map (`elements`:
+  the codes with values, without the ceilometer's and the phenomena);
 - `station/<WSI>.json`: `station` (from `mvd stations`), `elements` (from ČHMÚ's
   `meta2`: Czech name, unit, sensor height, kinds `10M`/`1H`/`DLY`/`PHENO`, first and
   last day, and the `views` that have it), `series` and `source`.
