@@ -982,6 +982,22 @@ appears there at the first Pages deployment after it was archived (usually the n
 morning); until then the live branch covers the last 24 hours. Older days stay in the
 releases.
 
+### How the radar page uses the frames
+
+The page decodes every PNG in the browser (canvas, then each pixel's colour → ČHMÚ class
+4 … 60 dBZ, "aloft" for the lighter colours of `png_masked`, or no coverage) and draws
+the classes itself (`web/src/radar-palette.js`), so it can hide weaker echoes ("Show
+from": all / light / moderate / heavy / hail, with the lower bounds from the labels of
+`scales.maxz` in `index.json`, else 20 / 28 / 40 / 56 dBZ; echoes aloft are hidden by
+every setting but "all"). Between two frames it draws one image a minute
+(`web/src/radar-motion.js`): each pixel takes the earlier frame at x − τ·d and the
+later one at x + (1 − τ)·d, d being `motion/<later stamp>.json` (grid pixels per
+`dt_s`, u east, v down the rows) scaled to the interval, and the classes blended by τ;
+the nowcast uses the newest motion file; without one it cross-fades. Rain at a place
+reads the class of its grid cell in the frames of the last 2 hours and the nowcast.
+Every newer key of `index.json` (`echotop`, `motion`, `cells`, `satellite`, `scales`) is
+optional: archived days without them show the radar and the 1-hour sums as before.
+
 ## Single runs (`mvd fetch-runs`)
 
 Open-Meteo's **Single Runs API** returns one model run as it was issued, which the
