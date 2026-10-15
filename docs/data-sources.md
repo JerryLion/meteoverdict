@@ -609,7 +609,7 @@ also appears on the run page (job summary).
 |---|---|---|
 | newest observation | older than 30 h | |
 | newest forecast, newest score | older than 21 days (complete backfill windows lag up to 15) | |
-| published scores (`site/data/meta.json`, `mvd check --meta`) | `as_of` more than 3 days before `generated` | file missing |
+| published scores (`site/data/meta.json`, `mvd check --meta`) | `as_of` more than 21 days before `generated` (forecasts come in 14-day windows, so up to ~20 is normal) | file missing |
 | stations reporting in the last 3 days, of those that reported in the last 30 | under 80 % | the stations missing |
 | temperature MAE per station over 90 days (all models) | | above 3 x the network median and above 3 °C: sensor or metadata problem |
 
