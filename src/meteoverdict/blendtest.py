@@ -506,6 +506,7 @@ def document(
         "method": METHOD.format(window=window, min_days=min_training_days, resamples=resamples),
         "training_window": window,
         "shrink_days": combine.SHRINK_DAYS,
+        "bias_shrink_days": combine.BIAS_SHRINK_DAYS,
         "min_training_days": min_training_days,
         "min_okres_days": MIN_OKRES_DAYS,
         "first_scored": str(scored[0]) if scored else None,

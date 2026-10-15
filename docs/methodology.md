@@ -207,7 +207,8 @@ Open-Meteo Forecast API at a point inside the okres. Each model is weighted by h
 it did there over the last 90 days (inverse of its error variance), and temperature and
 wind are corrected by its mean error there; precipitation is weighted but not
 corrected. The weights are shrunk towards a plain mean while there are few scored days
-(half-way after 30 days). Hours in the next 24 h use the D+1 weights, later hours those
+(half-way after 30 days), the bias correction much less (half-way after 5 days: a
+model's mean error is stable, and leaving half of it in cost 7–10 % of wind MAE). Hours in the next 24 h use the D+1 weights, later hours those
 of their lead day (up to D+5), and models that do not reach an hour are left out with
 the other weights rescaled; a model that ends early fades out over its last 3 hours, so
 the curve does not jump. The page draws, next to the combination, the model ranked
@@ -221,7 +222,7 @@ National Blend of Models, MeteoSwiss) and what still has to be tested:
 
 The forecast map (`tv.html`) shows the same combination for every okres, made twice a
 day by `mvd outlook`: by part of day, with the probability of precipitation (the
-weighted share of models forecasting at least 0.2 mm) and a symbol; cloud cover there is
+share of models forecasting at least 0.2 mm, each counting the same) and a symbol; cloud cover there is
 a plain mean of the models and not verified.
 
 ### Does it beat the best single model? (roadmap 6.4)
