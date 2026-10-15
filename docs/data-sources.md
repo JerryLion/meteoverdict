@@ -113,6 +113,7 @@ builds hourly values from them:
 | `temperature_2m` | `T` at HH:00 | Open-Meteo's `temperature_2m` is the value at the hour |
 | `wind_speed_10m` | `F` at HH:00 (m/s) | model wind at the hour; `F` is ČHMÚ's main wind speed element |
 | `precipitation` | sum of the six `SRA10M` values stamped HH-1:10 … HH:00, only if all six exist | Open-Meteo's hourly precipitation is the sum over the preceding hour |
+| `wind_gusts_10m` | largest of the six `Fmax` values (maximum gust in each 10 minutes, m/s) stamped HH-1:10 … HH:00, only if all six exist | Open-Meteo's hourly `wind_gusts_10m` is the maximum of the preceding hour ("Preceding hour max" in its docs, checked 2026-10-15) |
 
 Checks on real data (Praha-Libuš, September 2026): the hourly precipitation equals
 ČHMÚ's own `SRA1H` for all 720 hours (22.6 mm both), which also confirms that
@@ -121,11 +122,18 @@ timestamps mark the end of each interval. `F` is on average 0.1 m/s above `Fprum
 (**unverified**; possibly scalar vs. vector mean), and the difference is small for
 ranking models.
 
+Gusts are stored since 2026-10-15 (earlier months have none) and are used only by the
+farmers' event scores (`mvd farm`), not by the D+N scores. `Fmax` is in the 10-minute
+files of the run stations (checked: Praha-Vinohrady, 14 Oct 2026, 144 values a day,
+e.g. 3.4 m/s with `F` 1.6 m/s); a first fetch of 2026-10-13 to 15 for the 100 run
+stations gave 5,556 hourly gusts next to 5,666 temperatures.
+
 Values with `QUALITY` 1 (suspect), 2 (poor) or 4 (missing) are dropped; 0, 3 and 5 are
 kept with their code, so scoring can exclude estimated values. Every value also records
 its `source` (`recent`, `historical`, `now`).
 
 Only stations with a 10-minute `T`, `F` or `SRA10M` in today's `meta2` are fetched
+(`Fmax` does not add stations)
 (about 475; the other ~280 active stations are manual rain gauges with daily data
 only, see below), plus inactive stations (not in today's `meta2`). One day for all
 stations from `now/` took about a minute (468 stations returned data on 2026-10-10).
@@ -732,10 +740,10 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
 [--history-from D] [--github-release] [--dry-run]`:
 
 - **One run, all enabled models** (19; 18 at 06 and 18 UTC) at the 100 stations,
-  `hourly=temperature_2m,precipitation,wind_speed_10m`, `forecast_hours=121`,
+  `hourly=temperature_2m,precipitation,wind_speed_10m,wind_gusts_10m`, `forecast_hours=121`,
   `wind_speed_unit=ms`, with each station's elevation; split into equal requests of at
   most 100 stations and 500 weighted calls (`runs.batches`: 2 × 50 stations with 19
-  models), because Open-Meteo allows 600 calls a minute and one request of 760 could
+  models: 7.6 a station with 4 variables), because Open-Meteo allows 600 calls a minute and one request of 760 could
   never pass. Retries, the daily limit and
   persistent failures behave as in `mvd fetch-fc` (`forecasts.request`); a run stopped by
   the budget or by Open-Meteo is not kept and is asked again next time.
@@ -743,8 +751,8 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
   max(1, days / 14))): 121 hours count as 6 days, under 14, so the whole 5 days cost the
   same as one day: variables × models / 10 per station, so with 11 models and 3
   variables 3.3 (330 a run; measured on the first real runs, 2026-10-13), with 19 models
-  **5.7 (570 a run)** and with the 4th variable (gusts) **7.6 (760 a run; 720 at 06 and
-  18 UTC)**. Measured live on 2026-10-15: 28.5 calls for 5 stations × 19 models × 3
+  **5.7 (570 a run)** and with the 4th variable (gusts, added 2026-10-15 for the farmers' scores)
+  **7.6 (760 a run; 720 at 06 and 18 UTC)**, which is what runs cost now. Measured live on 2026-10-15: 28.5 calls for 5 stations × 19 models × 3
   variables. A model added later costs only itself for runs already fetched (8 new
   models: 3.2 a station with 4 variables). A model that has to be asked again on its own
   costs at least 1 per station (100). Requests that fail count too (we do not know
@@ -765,8 +773,10 @@ each station is in (`reason`: `okres`, `mountain`, `spread`).
   different times).
 - **Rows:** `data/runs/YYYY-MM.parquet` by the month of the run's start, one row per
   `run`, `model`, `station_id`, `lead_h` (1–120) with `valid_time` (= run + lead),
-  `temperature_2m` (°C), `precipitation` (mm in the hour ending at `valid_time`) and
-  `wind_speed_10m` (m/s), sorted by run. About 107,000 rows and 0.31 MB a run, so about
+  `temperature_2m` (°C), `precipitation` (mm in the hour ending at `valid_time`),
+  `wind_speed_10m` (m/s) and `wind_gusts_10m` (m/s, maximum of the hour ending at
+  `valid_time`; null in runs fetched before 2026-10-15 and for AIFS, which has no gusts),
+  sorted by run. About 107,000 rows and 0.31 MB a run, so about
   38 MB a month.
 - **State:** `data/runs-state.json`: per run (`YYYYMMDDHH`) the models fetched and the
   models missing.
@@ -981,6 +991,78 @@ domain; observations from `now/` for 2026-10-10 00 UTC to 2026-10-13 12 UTC, as
 | runs (pairs per domain) | 14 (4,041) | 15 (4,327) | 15 (4,327) | 15 (4,327) | 11 (3,174) | 7 (2,023) |
 
 Four days of one October spell: an illustration that the pipeline works, not a result.
+
+## Event skill for farmers (`mvd farm`)
+
+What it means: [methodology](methodology.md#event-skill-for-farmers). `meteoverdict.farm`
+reads the same single runs and observations as `mvd leads` (last `--runs-days`, 90;
+`--github-release` downloads them first, read only; `--publish` puts `farm.json` into
+`data-latest`). In `daily.yml` it is the last step, optional like the `mvd leads` step
+before it (`continue-on-error`), and reuses what that step downloaded; `pages.yml`
+fetches `farm.json` from `data-latest` like `leads.json`. No Open-Meteo calls.
+
+Units and events (thresholds inclusive):
+
+| Event | Unit | Observed | Forecast | Thresholds |
+|---|---|---|---|---|
+| `frost` | station × night, 18:00–09:00 Europe/Prague (16 full hours, 15/17 when the clocks change), keyed by its end | minimum of the hourly `T`, every hour required | minimum over the model's own output hours in the night, every one required; the whole night after the run's start | ≤ 0, ≤ −2 °C |
+| `gust` | station × 3-hour block 00–03, 03–06, … UTC, keyed by its end | maximum of the three hourly gusts (each from six `Fmax`), all required | maximum of `wind_gusts_10m` at the model's own output hours in the block (3 for hourly output, the end for 3-hourly); 6-hourly not scored | ≥ 10, 15, 20 m/s |
+| `rain3h` | the same blocks | sum of the three hourly sums, all required | sum of the three hourly values (for 3-hourly output Open-Meteo's hourly values add up to the period total, as in `align`); 6-hourly not scored | ≥ 0.5, 2, 5 mm |
+
+The lead bins (1–6, 7–12, 13–24, 25–48, 49–72, 73–120) go by the lead of the unit's end.
+Runs start at 00/06/12/18 UTC, so blocks end at leads 3, 6, 9, … and never straddle a
+run's start; a night ends at H+19 (12 UTC run), H+25 (06), H+31 (00) or H+37 (18 UTC),
+each a day later at the longer leads, so H+1–6 and H+7–12 have no frost nights and
+H+13–24 holds only the 12 UTC runs' coming night.
+
+**Fair set.** A model's coverage of a variable is the median first and last lead with
+a value per run hour (narrowest over the run hours in which any model has the variable;
+gusts exist only in runs fetched since 2026-10-15). Per event and bin the required
+models are those covering the whole bin (for blocks also with an output step of at most
+3 h throughout); only units that every required model has, with an observation, count.
+Measured coverage of the gusts (run of 2026-10-13 00 UTC): ALADIN 1–72, ICON-D2 1–48,
+AROME 2–60, ICON-EU, IFS HRES, GFS, UKMO 1–120 (UKMO 60 from 06/18 UTC), ARPEGE 1–102,
+IFS 0.25° 3–92 (temperature to 120), AIFS none.
+
+`site/data/farm.json`:
+
+| Key | Meaning |
+|---|---|
+| `generated`, `first_run`, `last_run` | UTC, `YYYY-MM-DDTHH:MMZ` |
+| `runs`, `stations` | runs and stations with at least one scored unit |
+| `bins`, `small_sample` | the lead bins; fewer observed events than this are flagged (20) |
+| `events` | per event: `variable`, `unit` (`night`, `3h`), `op` (`<=`, `>=`), `thresholds`, `definition` |
+| `models` | per model: `name`, `runs` scored, `leads` (coverage per variable, `[first, last]`) |
+| `columns`, `rows` | one row per `event`, `threshold`, `bin`, `model`: `units` (nights or blocks, station × run; the same for every model of a bin), `runs`, `stations`, `events` (observed), `hits`, `misses`, `false_alarms`, `correct_negatives`, `pod`, `far`, `csi`, `ets`, `bias` (frequency bias; 3 decimals, null when the denominator is 0) |
+
+About 35 kB with 11 runs (all events, thresholds and bins); it grows with the bins and
+models filled, not with the runs (at most 8 × 6 × 11 rows).
+
+**First real numbers, 2026-10-15** (read only towards GitHub; 1,320 Open-Meteo calls):
+the runs of 2026-10-11 12 UTC, 2026-10-12 00 and 12 UTC fetched with gusts, plus the 8
+runs of 2026-10-13 00 to 2026-10-14 18 UTC from the release `runs-2026-10` (no gusts);
+observations of the 100 stations from the release `data-2026-10` (10–14 Oct) and
+ČHMÚ `now/` (13 Oct 00 to 15 Oct 09 UTC, with gusts). The nights of 12/13 and 13/14
+October had frost at many stations (down to −8.4 °C on 13 Oct).
+
+| Event | Bin | Units | Events | Best ETS (POD / FAR) |
+|---|---|---|---|---|
+| frost ≤ 0 °C | H+13–24 | 378 nights | 39 | ICON-D2 0.18 (0.23 / 0.31) |
+| frost ≤ 0 °C | H+25–48 | 849 | 79 | ICON-D2 0.17 (0.20 / 0.30) |
+| frost ≤ 0 °C | H+49–72 | 474 | 15 ⚠ | none above 0 |
+| gust ≥ 10 m/s | H+25–48 | 1,937 blocks | 87 | ICON-D2 0.41 (0.79 / 0.52); AROME 0.39 |
+| gust ≥ 10 m/s | H+49–72 | 2,228 | 173 | ALADIN 2.3 km 0.35 (0.55 / 0.43) |
+| gust ≥ 15 m/s | H+49–72 | 2,228 | 22 | ALADIN 1 km 0.09 (0.14 / 0.75) |
+| rain ≥ 0.5 mm / 3 h | H+1–6 | 2,141 | 97 | ALADIN 1 km 0.33 (0.49 / 0.45) |
+| rain ≥ 0.5 mm / 3 h | H+13–24 | 3,892 | 119 | UKMO 0.40 (0.56 / 0.39) |
+| rain ≥ 0.5 mm / 3 h | H+25–48 | 5,441 | 122 | UKMO 0.36 (0.54 / 0.47) |
+
+Every model forecast far too few frost nights (frequency bias 0.15 to 0.9 at H+13–48,
+mostly 0.3–0.5; ICON-D2 caught 9 of 39 at H+13–24):
+the 2 m temperature at the station's elevation stays above 0 °C in clear, calm nights
+when the station drops below. Gusts ≥ 20 m/s and 3-hour rain ≥ 5 mm hardly occurred
+(0 and 12 events). A handful of runs in one cold spell: a check that the pipeline works,
+not a result.
 
 ## Okres and kraj boundaries
 

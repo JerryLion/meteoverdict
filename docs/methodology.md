@@ -114,6 +114,40 @@ What it is not:
 - **100 stations**, not all ~500: enough for Czechia as a whole, too few for kraje.
 - The newest days use ČHMÚ's unchecked `now/` observations, like the D+N scores.
 
+## Event skill for farmers
+
+Farmers decide on yes/no questions: cover the crops tonight, postpone spraying, secure
+the polytunnel. So the same single runs are also verified as **events** (`mvd farm`,
+`farm.json`, the section "For farmers" on the comparison page):
+
+- **Frost**, per station and **night** (18:00 to 09:00 Prague time, 16 hourly values; 15
+  or 17 when the clocks change): the night's lowest hourly 2 m temperature ≤ 0 °C and
+  ≤ −2 °C. The model's minimum is taken over its own output hours in the night (3- and
+  6-hourly models see fewer hours, as their users do). A night belongs to the lead bin of
+  its end (09:00): the 12 UTC run's coming night ends at H+19, so H+13–24 is "tonight,
+  from today's midday run". This is air frost at 2 m; ground frost is often colder.
+- **Gusts**, per station and **3-hour block** (00–03, 03–06, … UTC): the strongest gust
+  ≥ 10, 15 and 20 m/s. Observed: ČHMÚ's `Fmax` (maximum gust in each 10 minutes), the
+  largest of the 18 values; forecast: Open-Meteo's hourly gust (maximum of the preceding
+  hour) at the model's own output hours in the block. Blocks rather than single hours,
+  so a gust ten minutes early does not count as both a miss and a false alarm.
+- **3-hour rain**, the same blocks: ≥ 0.5, 2 and 5 mm.
+- **Lead bins** H+1–6, 7–12, 13–24, 25–48, 49–72 and 73–120 (by the end of the night or
+  block). **Fair set** as above: in each bin only the models whose runs cover the whole
+  bin (and, for blocks, have at most 3-hourly output there) are compared, on the nights
+  and blocks that all of them have. AIFS has no gusts; 6-hourly output is not scored in
+  3-hour blocks.
+- Hits, misses, false alarms and correct negatives give the **POD** ("caught 8 of 10
+  frosts"), the **FAR** ("3 of 10 warnings were false"), the CSI, the **ETS** (the CSI
+  corrected for chance hits; the page colours it) and the frequency bias (warnings per
+  event). With fewer than **20 observed events** in a bin the page warns that the numbers
+  are mostly chance, which for −2 °C, 15 and 20 m/s and 5 mm will be the case for months.
+
+Limits: one season of runs at most, about 100 stations, observed gusts only from
+15 October 2026 (when `Fmax` was added) and forecast gusts only in runs fetched since
+then; events cluster in a few weather situations, so neighbouring stations and blocks
+are not independent.
+
 ## Metrics
 
 - **MAE** (mean absolute error) ranks the models. **Bias** (forecast minus observed)
