@@ -32,6 +32,7 @@ from zoneinfo import ZoneInfo
 import httpx
 import polars as pl
 
+from meteoverdict import frost
 from meteoverdict.combine import combine_values
 from meteoverdict.forecasts import _reason, call_weight
 from meteoverdict.sun import sun_times
@@ -452,19 +453,32 @@ def write(table: pl.DataFrame, points: pl.DataFrame, path: Path, generated: date
         pl.col("symbol"),
         pl.col("sunrise"),
         pl.col("sunset"),
-    ).select(COLUMNS)
+        *_frost_columns(table),
+    )
+    columns = [*COLUMNS, *(c for c in frost.OUTLOOK_COLUMNS if c in table.columns)]
+    rounded = rounded.select(columns)
     doc = {
         "generated": generated.isoformat(timespec="minutes"),
         "time_zone": TIME_ZONE,
         "parts": list(PARTS),
         "days": sorted(rounded["day"].unique().to_list()),
         "okresy": points.select("code", "name", "lat", "lon").rows(named=True),
-        "columns": list(COLUMNS),
+        "columns": columns,
         "rows": rounded.rows(),
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")), "utf-8")
     return path
+
+
+def _frost_columns(table: pl.DataFrame) -> list[pl.Expr]:
+    """The optional frost fields (``meteoverdict.frost``), rounded like the others."""
+    digits = {"night_min": 1, "coldest_min": 1, "ground_min": 1, "frost_probability": 2}
+    return [
+        pl.col(c).round(digits[c]) if c in digits else pl.col(c)
+        for c in frost.OUTLOOK_COLUMNS
+        if c in table.columns
+    ]
 
 
 HOURLY = ("temperature_2m", "precipitation", "wind_speed_10m", "cloud_cover", "sunshine_duration")
@@ -506,9 +520,13 @@ def outlook(
     points: pl.DataFrame,
     now: datetime | None = None,
     sleep: Callable[[float], None] = lambda _: None,
+    calibration: frost.Calibration | None = None,
+    nights: list[pl.DataFrame] | None = None,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Fetch, combine and summarise for all ``points`` (code, name, lat, lon) that have
-    weights: the parts-of-day table and the combined hourly series."""
+    weights: the parts-of-day table and the combined hourly series. The frost fields
+    (``meteoverdict.frost``) come from ``calibration``; the models' nights at the okres
+    points are appended to ``nights`` for the archive."""
     now = now or datetime.now(UTC)
     points = points.filter(pl.col("code").is_in(weights["region"].unique().to_list()))
     models = sorted(weights["model"].unique().to_list())
@@ -516,4 +534,8 @@ def outlook(
     fc = parse(payload, points["code"].to_list(), models)
     hourly = combine_hourly(fc, weights, now)
     table = summarise(hourly, probability(fc, weights, now))
+    night_rows = frost.point_nights(fc, payload, points["code"].to_list(), now)
+    if nights is not None:
+        nights.append(night_rows)
+    table = frost.add_to_outlook(table, night_rows, calibration)
     return with_sun(table, points), hourly

@@ -27,6 +27,12 @@ Benešov, `CZ020A` Praha-západ, `CZ0100` Praha).
   `wind`, `cloud`, `sunshine` (hours), `symbol` (as on the forecast map;
   [data-sources.md](data-sources.md#outlook-mvd-outlook-roadmap-66)), and `sunrise`,
   `sunset` (Prague time, `"07:21"`, at the okres point, the same on every row of a day).
+  Frost, on the `night` and `day` rows of the date a night (18–06 UTC) ends and `null`
+  elsewhere or when not available: `night_min` (corrected night minimum at 2 m, °C),
+  `coldest_site` and `coldest_min` (the okres's most frost-prone ČHMÚ station and its
+  corrected minimum), `frost_probability` (0–1, minimum ≤ 0 °C), `frost` (air-frost
+  warning, `night_min` ≤ 1 °C), `ground_min` (estimated minimum 5 cm above the ground)
+  and `ground_frost` (`ground_min` ≤ 0 °C); [methodology.md](methodology.md#frost-night-minimum-frost-and-ground-frost).
 - `models.variables.<variable>` for `temperature_2m`, `wind_speed_10m`,
   `precipitation_daily` and `precipitation_24h`: `stations`, `borrowed`, `days`, and
   `lead_days."1"…"5"`: the models in rank order with `rank`, `mae`, `bias`, `rmse`,

@@ -19,6 +19,9 @@ export const HOURLY = ["temperature_2m", "precipitation", "wind_speed_10m", "clo
 const PART_FIELDS = [
   "day", "part", "tmin", "tmax", "precipitation", "rain_probability", "wind", "cloud", "sunshine", "symbol",
   "sunrise", "sunset",
+  // frost (on the night and day rows of the date a night ends; null elsewhere and in
+  // older outlook files): corrected night minimum, coldest site, probability, warnings
+  "night_min", "coldest_site", "coldest_min", "frost_probability", "frost", "ground_min", "ground_frost",
 ];
 
 const round = (v, digits) => (v == null ? null : Number(v.toFixed(digits)));
