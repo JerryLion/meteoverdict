@@ -12,7 +12,9 @@ combined precipitation total, **probability of precipitation** (the share of mod
 whose own total for that period is at least ``WET_MM``, every model counting the same;
 averaging rain smooths it, see docs/forecast-research.md), the highest combined hourly
 wind, mean cloud cover, hours of sunshine and a weather symbol. Cloud cover and
-sunshine are the plain mean of the models: we do not verify them. Every day also gets
+sunshine are the plain mean of the models corrected against ČHMÚ observations
+(``meteoverdict.sun_cloud_gust``: sunshine as a share of the day length, refitted
+nightly; the hourly sunshine is scaled to the corrected day). Every day also gets
 its sunrise and sunset at the okres point (``meteoverdict.sun``, computed, no request).
 
 Cost: 77 locations x 5 variables x models / 10 weighted calls a run, and only the
@@ -32,6 +34,7 @@ from zoneinfo import ZoneInfo
 import httpx
 import polars as pl
 
+from meteoverdict import sun_cloud_gust
 from meteoverdict.combine import combine_values
 from meteoverdict.forecasts import _reason, call_weight
 from meteoverdict.sun import sun_times
@@ -44,7 +47,8 @@ VARIABLES = (
     "cloud_cover",
     "sunshine_duration",
 )
-#: plain means of the models, not combined with weights (we do not verify them)
+#: plain means of the models, not combined with weights; corrected afterwards
+#: (``sun_cloud_gust.correct_hourly``)
 MEANS = ("cloud_cover", "sunshine_duration")
 COMBINED = ("temperature_2m", "precipitation", "wind_speed_10m")
 DAYS = 6
@@ -67,8 +71,11 @@ RAIN_PROBABILITY = 0.5
 #: (frequency bias 1.26 → 1.19) and scored better (ETS 0.420 → 0.430)
 RAIN_MM = 0.3
 SHOWER_PROBABILITY = 0.3
-CLEAR_BELOW = 25.0
-PARTLY_BELOW = 70.0
+#: on the corrected cloud cover, which is less spread than the plain mean: 30/65 gave
+#: the observed shares of clear, partly cloudy and cloudy days (25/70 % in ČHMÚ's
+#: octas) and the best Heidke skill out of sample (docs/methodology.md)
+CLEAR_BELOW = 30.0
+PARTLY_BELOW = 65.0
 SNOW_AT_OR_BELOW = 0.5
 SLEET_AT_OR_BELOW = 2.0
 #: refused above this (all 19 models with weights: ~732 a run, ~1,465 a day)
@@ -487,10 +494,10 @@ def write_hourly(hourly: pl.DataFrame, path: Path, generated: datetime) -> Path:
             "temperature_2m": "°C",
             "precipitation": "mm in the hour ending at the time",
             "wind_speed_10m": "m/s, hourly mean",
-            "cloud_cover": "%, plain mean of the models, not verified",
+            "cloud_cover": "%, mean of the models corrected against ČHMÚ observations",
             "sunshine_duration": (
-                "s of sunshine in the hour ending at the time, plain mean of the models, "
-                "not verified"
+                "s of sunshine in the hour ending at the time, mean of the models scaled "
+                "so that each day adds up to the corrected daily sunshine"
             ),
         },
         "okresy": okresy,
@@ -506,14 +513,20 @@ def outlook(
     points: pl.DataFrame,
     now: datetime | None = None,
     sleep: Callable[[float], None] = lambda _: None,
+    corrections: dict | None = None,
 ) -> tuple[pl.DataFrame, pl.DataFrame]:
     """Fetch, combine and summarise for all ``points`` (code, name, lat, lon) that have
-    weights: the parts-of-day table and the combined hourly series."""
+    weights: the parts-of-day table and the combined hourly series (with the plain
+    means of cloud and sunshine as ``cloud_cover_raw`` and ``sunshine_duration_raw``).
+    ``corrections``: the coefficients of ``sun_cloud_gust`` (default: the bootstrap)."""
     now = now or datetime.now(UTC)
     points = points.filter(pl.col("code").is_in(weights["region"].unique().to_list()))
     models = sorted(weights["model"].unique().to_list())
     payload = fetch(client, points, models, sleep)
     fc = parse(payload, points["code"].to_list(), models)
     hourly = combine_hourly(fc, weights, now)
+    hourly = sun_cloud_gust.correct_hourly(
+        hourly, points, corrections or sun_cloud_gust.load(), now
+    )
     table = summarise(hourly, probability(fc, weights, now))
     return with_sun(table, points), hourly
